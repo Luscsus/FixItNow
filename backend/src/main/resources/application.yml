@@ -1,0 +1,70 @@
+spring:
+  application:
+    name: backend
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/backend_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 20000
+      maximum-pool-size: 10
+      minimum-idle: 5
+
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+
+  jackson:
+    time-zone: UTC
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: never
+    include-binding-errors: never
+
+app:
+  name: ${APP_NAME:Backend}
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+  jwt:
+    # Generate a strong secret: openssl rand -base64 64
+    secret: ${JWT_SECRET:dGVzdC1zZWNyZXQta2V5LWZvci1kZXZlbG9wbWVudC1vbmx5LW11c3QtY2hhbmdl}
+    access-token-expiration-ms: ${JWT_ACCESS_EXPIRATION_MS:900000}       # 15 minutes
+    refresh-token-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS:7}
+    temp-token-expiration-ms: ${JWT_TEMP_EXPIRATION_MS:300000}           # 5 minutes
+  token:
+    email-confirmation-expiration-hours: ${EMAIL_CONFIRMATION_EXPIRATION_HOURS:24}
+    password-reset-expiration-hours: ${PASSWORD_RESET_EXPIRATION_HOURS:2}
+  email:
+    from-address: ${EMAIL_FROM_ADDRESS:noreply@example.com}
+    from-name: ${EMAIL_FROM_NAME:Backend App}
+
+sendgrid:
+  api-key: ${SENDGRID_API_KEY:}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
+    try-it-out-enabled: true
+  show-actuator: false
+
+logging:
+  level:
+    com.example.backend: INFO
+    org.springframework.security: WARN

@@ -28,6 +28,18 @@ spring:
       write-dates-as-timestamps: false
     default-property-inclusion: non_null
 
+  mail:
+    host: smtp-relay.brevo.com
+    port: 587
+    username: ${BREVO_SMTP_LOGIN:}
+    password: ${BREVO_SMTP_KEY:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 server:
   port: ${SERVER_PORT:8080}
   error:
@@ -49,9 +61,6 @@ app:
   email:
     from-address: ${EMAIL_FROM_ADDRESS:noreply@example.com}
     from-name: ${EMAIL_FROM_NAME:Backend App}
-
-sendgrid:
-  api-key: ${SENDGRID_API_KEY:}
 
 springdoc:
   api-docs:

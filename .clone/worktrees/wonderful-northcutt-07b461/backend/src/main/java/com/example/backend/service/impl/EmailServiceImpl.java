@@ -1,22 +1,25 @@
 package com.example.backend.service.impl;
 
 import com.example.backend.service.EmailService;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import sendinblue.ApiException;
+import sibApi.TransactionalEmailsApi;
+import sibModel.SendSmtpEmail;
+import sibModel.SendSmtpEmailSender;
+import sibModel.SendSmtpEmailTo;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class EmailServiceImpl implements EmailService {
 
-    private final JavaMailSender mailSender;
+    private final TransactionalEmailsApi transactionalEmailsApi;
 
     @Value("${app.email.from-address}")
     private String fromAddress;
@@ -41,16 +44,23 @@ public class EmailServiceImpl implements EmailService {
     }
 
     private void sendEmail(String to, String subject, String htmlBody) {
+        SendSmtpEmailSender sender = new SendSmtpEmailSender();
+        sender.setEmail(fromAddress);
+        sender.setName(fromName);
+
+        SendSmtpEmailTo recipient = new SendSmtpEmailTo();
+        recipient.setEmail(to);
+
+        SendSmtpEmail email = new SendSmtpEmail();
+        email.setSender(sender);
+        email.setTo(List.of(recipient));
+        email.setSubject(subject);
+        email.setHtmlContent(htmlBody);
+
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, "UTF-8");
-            helper.setFrom(fromAddress, fromName);
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(htmlBody, true);
-            mailSender.send(message);
+            transactionalEmailsApi.sendTransacEmail(email);
             log.info("Email sent to {}", to);
-        } catch (MessagingException | java.io.UnsupportedEncodingException e) {
+        } catch (ApiException e) {
             log.error("Failed to send email to {}: {}", to, e.getMessage());
         }
     }

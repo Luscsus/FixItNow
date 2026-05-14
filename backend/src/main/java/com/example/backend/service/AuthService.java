@@ -13,6 +13,8 @@ public interface AuthService {
 
     MessageResponse confirmEmail(String token);
 
+    MessageResponse resendEmailConfirmation(ForgotPasswordRequest request);
+
     MessageResponse forgotPassword(ForgotPasswordRequest request);
 
     MessageResponse resetPassword(ResetPasswordRequest request);

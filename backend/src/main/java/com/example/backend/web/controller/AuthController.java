@@ -45,6 +45,12 @@ public class AuthController {
         return ResponseEntity.ok(authService.confirmEmail(token));
     }
 
+    @Operation(summary = "Resend email confirmation", description = "Sends a new confirmation link if the account exists and is not yet verified (always returns 200 to prevent enumeration)")
+    @PostMapping("/resend-confirmation")
+    public ResponseEntity<MessageResponse> resendEmailConfirmation(@Valid @RequestBody ForgotPasswordRequest request) {
+        return ResponseEntity.ok(authService.resendEmailConfirmation(request));
+    }
+
     @Operation(summary = "Request password reset", description = "Sends a password reset link to the email if it exists (always returns 200 to prevent enumeration)")
     @PostMapping("/forgot-password")
     public ResponseEntity<MessageResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {

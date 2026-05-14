@@ -75,7 +75,7 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
 
         String token = generateAndSaveVerificationToken(user, TokenType.EMAIL_CONFIRMATION, emailConfirmationExpirationHours);
-        String confirmationUrl = frontendUrl + "/auth/confirm-email?token=" + token;
+        String confirmationUrl = frontendUrl + "/confirm-email?token=" + token;
         emailService.sendEmailConfirmation(user.getEmail(), user.getFirstName(), confirmationUrl);
 
         log.info("Registered new user: {}", user.getEmail());
@@ -141,6 +141,20 @@ public class AuthServiceImpl implements AuthService {
 
         log.info("Email confirmed for: {}", user.getEmail());
         return new MessageResponse("Email verified successfully. You can now log in.");
+    }
+
+    @Override
+    public MessageResponse resendEmailConfirmation(ForgotPasswordRequest request) {
+        userRepository.findByEmail(request.getEmail().toLowerCase()).ifPresent(user -> {
+            if (!user.isEmailVerified()) {
+                verificationTokenRepository.deleteAllByUserAndTokenType(user, TokenType.EMAIL_CONFIRMATION);
+                String token = generateAndSaveVerificationToken(user, TokenType.EMAIL_CONFIRMATION, emailConfirmationExpirationHours);
+                String confirmationUrl = frontendUrl + "/confirm-email?token=" + token;
+                emailService.sendEmailConfirmation(user.getEmail(), user.getFirstName(), confirmationUrl);
+                log.info("Resent email confirmation to: {}", user.getEmail());
+            }
+        });
+        return new MessageResponse("If an unverified account with that email exists, a new confirmation link has been sent.");
     }
 
     @Override

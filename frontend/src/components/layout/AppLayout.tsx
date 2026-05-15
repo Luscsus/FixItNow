@@ -1,61 +1,88 @@
-import { NavLink, Outlet } from "react-router-dom";
-
+import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "@/context/auth";
-import { Button } from "@/components/ui/button";
-
-const linkBase =
-  "rounded-full px-4 py-2 text-sm font-medium transition-colors hover:bg-mist/60";
 
 export function AppLayout() {
   const { isAuthenticated, clearSession } = useAuth();
 
   return (
-    <div className="min-h-screen bg-transparent text-ink">
-      <nav className="sticky top-0 z-10 border-b border-mist/60 bg-white/70 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-4 sm:px-8">
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <span className="inline-flex h-2 w-2 rounded-full bg-tide" />
-            Auth UI
-          </div>
-          <div className="flex items-center gap-2">
-            {!isAuthenticated && (
-              <>
-                <NavLink
-                  to="/login"
-                  className={({ isActive }) =>
-                    `${linkBase} ${isActive ? "bg-mist/60" : ""}`
-                  }
-                >
-                  Login
-                </NavLink>
-                <NavLink
-                  to="/register"
-                  className={({ isActive }) =>
-                    `${linkBase} ${isActive ? "bg-mist/60" : ""}`
-                  }
-                >
-                  Register
-                </NavLink>
-              </>
-            )}
-            {isAuthenticated && (
+    <div style={{ minHeight: "100vh", background: "var(--bg-canvas)", color: "var(--text)" }}>
+      {/* Marketing top bar */}
+      <header style={{
+        position: "sticky", top: 0, zIndex: 30,
+        background: "rgba(250, 250, 247, 0.9)",
+        backdropFilter: "saturate(180%) blur(12px)",
+        WebkitBackdropFilter: "saturate(180%) blur(12px)",
+        borderBottom: "1px solid rgba(15, 23, 42, 0.06)",
+      }}>
+        <div style={{
+          maxWidth: 1280, margin: "0 auto",
+          padding: "16px 32px",
+          display: "flex", alignItems: "center", gap: 28,
+        }}>
+          {/* Brand */}
+          <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: 10, fontWeight: 700, fontSize: 17, letterSpacing: "-0.02em", textDecoration: "none", color: "inherit" }}>
+            <span className="brand-mark" aria-hidden="true" />
+            <span>FixIt<span className="brand-now">Now</span></span>
+          </Link>
+
+          {/* Center nav */}
+          <nav style={{ display: "flex", gap: 4, marginLeft: 8 }}>
+            {["How it works", "Find a provider", "Pricing", "For providers"].map((label) => (
+              <a
+                key={label}
+                href="#"
+                style={{
+                  padding: "8px 14px",
+                  borderRadius: 8,
+                  fontSize: 13.5,
+                  fontWeight: 500,
+                  color: "var(--text-muted)",
+                  textDecoration: "none",
+                  transition: "background 0.12s, color 0.12s",
+                }}
+                onMouseEnter={(e) => { (e.target as HTMLElement).style.background = "rgba(15,23,42,0.05)"; (e.target as HTMLElement).style.color = "var(--text)"; }}
+                onMouseLeave={(e) => { (e.target as HTMLElement).style.background = "transparent"; (e.target as HTMLElement).style.color = "var(--text-muted)"; }}
+              >
+                {label}
+              </a>
+            ))}
+          </nav>
+
+          <span style={{ flex: 1 }} />
+
+          {/* Auth */}
+          {!isAuthenticated && (
+            <>
+              <NavLink
+                to="/login"
+                style={{ padding: "8px 12px", borderRadius: 8, fontSize: 13.5, fontWeight: 500, color: "var(--text-muted)", textDecoration: "none" }}
+              >
+                Log in
+              </NavLink>
+              <NavLink to="/register" className="btn btn-primary btn-sm">
+                Sign up <span style={{ fontSize: 13 }}>→</span>
+              </NavLink>
+            </>
+          )}
+          {isAuthenticated && (
+            <>
               <NavLink
                 to="/profile"
-                className={({ isActive }) =>
-                  `${linkBase} ${isActive ? "bg-mist/60" : ""}`
-                }
+                style={{ padding: "8px 12px", borderRadius: 8, fontSize: 13.5, fontWeight: 500, color: "var(--text-muted)", textDecoration: "none" }}
               >
                 Profile
               </NavLink>
-            )}
-            {isAuthenticated && (
-              <Button variant="ghost" onClick={clearSession}>
+              <button
+                onClick={clearSession}
+                style={{ padding: "8px 12px", borderRadius: 8, fontSize: 13.5, fontWeight: 500, background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer" }}
+              >
                 Sign out
-              </Button>
-            )}
-          </div>
+              </button>
+            </>
+          )}
         </div>
-      </nav>
+      </header>
+
       <Outlet />
     </div>
   );

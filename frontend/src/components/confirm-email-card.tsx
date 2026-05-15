@@ -195,7 +195,7 @@ export function ConfirmEmailCard({ initialToken }: ConfirmEmailCardProps) {
             {isBusy ? "Confirming..." : "Confirm email"}
           </Button>
           <Button
-            variant="secondary"
+            variant="outline"
             onClick={handleResend}
             disabled={!canResend || resendMutation.isPending}
           >

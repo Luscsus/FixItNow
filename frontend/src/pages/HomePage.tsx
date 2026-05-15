@@ -118,7 +118,6 @@ export function HomePage() {
                   className="problem-textarea"
                   placeholder="e.g. The kitchen sink is leaking under the cabinet — water's pooling and the towels aren't keeping up."
                   rows={2}
-                  defaultValue="The kitchen sink is leaking under the cabinet — water's pooling and the towels aren't keeping up."
                 />
 
                 <div className="problem-row">

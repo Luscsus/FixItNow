@@ -1,0 +1,17 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+logging:
+  level:
+    com.example.backend: INFO
+    org.springframework.security: WARN
+
+app:
+  frontend-url: ${FRONTEND_URL}
+
+springdoc:
+  swagger-ui:
+    enabled: false

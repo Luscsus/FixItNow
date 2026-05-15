@@ -1,4 +1,4 @@
-package com.example.backend.service.impl;
+package com.example.backend.service;
 
 import com.example.backend.common.exception.*;
 import com.example.backend.domain.token.RefreshToken;

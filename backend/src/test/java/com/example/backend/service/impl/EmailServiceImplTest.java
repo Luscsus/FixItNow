@@ -1,5 +1,6 @@
-package com.example.backend.service;
+package com.example.backend.service.impl;
 
+import com.example.backend.service.EmailServiceImpl;
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;

@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Java 21 / Spring Boot 3.3.x REST API with layered clean architecture, JWT authentication,
+Java 25 / Spring Boot 3.5.x REST API with layered clean architecture, JWT authentication,
 SendGrid email, and TOTP-based two-factor authentication.
 
 ---
@@ -79,6 +79,29 @@ com.example.backend
 2. Add a new `UserRole` enum value if needed.
 3. Add a repository interface for the subtype if custom queries are required.
 4. Do NOT modify the `users` table structure — JOINED inheritance handles it automatically.
+
+---
+
+## Database Schema & Migrations
+
+Schema is managed by **Flyway**. Hibernate's `ddl-auto` is `update` in dev and `validate` in prod — neither is allowed to author schema changes.
+
+**Every new entity or schema change requires a Flyway migration.** Without it, `prod` will fail Hibernate's `validate` check on startup.
+
+1. Add the entity / `@Column` / `@JoinColumn` change as usual.
+2. Create a new file under `backend/src/main/resources/db/migration/` named `V<n>__<description>.sql`, where `<n>` is the next integer after the highest existing version. Example: `V2__add_audit_log.sql`.
+3. Write plain `CREATE TABLE` / `ALTER TABLE` — do **not** use `IF NOT EXISTS` on V2+ migrations (only `V1__init_schema.sql` is idempotent because it had to run against a pre-existing prod DB).
+4. Match Hibernate's expected column types so `validate` passes in prod:
+   - `UUID` → `uuid`
+   - `String` (no length) → `varchar(255)`
+   - `LocalDateTime` → `timestamp(6)`
+   - `boolean` → `boolean`
+   - `@Enumerated(EnumType.STRING)` → `varchar(<length or 255>)`
+   - Discriminator columns → `varchar(31)` unless overridden
+5. Never edit a migration that has already been applied to any environment. Add a new one instead.
+6. Foreign keys: reference parent tables inline (`REFERENCES users (id)`). Cascade rules belong in SQL, not in JPA annotations alone.
+
+Flyway is configured with `baseline-on-migrate=true` and `baseline-version=0`, so a fresh database runs V1 onwards; an existing one is baselined at 0 and catches up from V1.
 
 ---
 

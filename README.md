@@ -16,7 +16,7 @@ Every push to the `main` branch automatically runs tests and deploys the affecte
 
 **Workflow:** `.github/workflows/frontend.yml`  
 **Triggers:** push to `main` when files inside `frontend/` change  
-**Deploys to:** Netlify
+**Deploys to:** Netlify — https://fixitnowfrontend.netlify.app
 
 | Step | What happens |
 |---|---|
@@ -29,7 +29,7 @@ Every push to the `main` branch automatically runs tests and deploys the affecte
 
 **Workflow:** `.github/workflows/backend.yml`  
 **Triggers:** push to `main` when files inside `backend/` change, or manually via GitHub Actions → Run workflow  
-**Deploys to:** Heroku
+**Deploys to:** Heroku — https://fix-it-now-backend-b27cce84b1a2.herokuapp.com
 
 | Step | What happens |
 |---|---|

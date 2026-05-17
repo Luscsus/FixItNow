@@ -1,4 +1,4 @@
-package com.example.backend.service.impl;
+package com.example.backend.service;
 
 import com.example.backend.service.TwoFactorService;
 import dev.samstevens.totp.code.DefaultCodeGenerator;

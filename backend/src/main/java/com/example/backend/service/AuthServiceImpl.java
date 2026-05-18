@@ -4,16 +4,15 @@ import com.example.backend.common.exception.*;
 import com.example.backend.domain.token.RefreshToken;
 import com.example.backend.domain.token.TokenType;
 import com.example.backend.domain.token.VerificationToken;
+import com.example.backend.domain.user.Provider;
 import com.example.backend.domain.user.User;
+import com.example.backend.domain.user.UserRole;
 import com.example.backend.domain.user.UserStatus;
 import com.example.backend.repository.RefreshTokenRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.VerificationTokenRepository;
 import com.example.backend.security.JwtTokenProvider;
 import com.example.backend.security.UserPrincipal;
-import com.example.backend.service.AuthService;
-import com.example.backend.service.EmailService;
-import com.example.backend.service.TwoFactorService;
 import com.example.backend.web.dto.request.*;
 import com.example.backend.web.dto.response.*;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -61,6 +61,15 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public MessageResponse register(RegisterRequest request) {
+        return registerWithRole(request, UserRole.USER);
+    }
+
+    @Override
+    public MessageResponse registerCustomer(RegisterRequest request) {
+        return registerWithRole(request, UserRole.CUSTOMER);
+    }
+
+    private MessageResponse registerWithRole(RegisterRequest request, UserRole role) {
         if (userRepository.existsByEmail(request.getEmail().toLowerCase())) {
             throw new EmailAlreadyExistsException("Email is already registered.");
         }
@@ -70,6 +79,8 @@ public class AuthServiceImpl implements AuthService {
             .password(passwordEncoder.encode(request.getPassword()))
             .firstName(request.getFirstName())
             .lastName(request.getLastName())
+            .role(role)
+            .status(UserStatus.PENDING_VERIFICATION)
             .build();
 
         userRepository.save(user);
@@ -78,8 +89,56 @@ public class AuthServiceImpl implements AuthService {
         String confirmationUrl = frontendUrl + "/confirm-email?token=" + token;
         emailService.sendEmailConfirmation(user.getEmail(), user.getFirstName(), confirmationUrl);
 
-        log.info("Registered new user: {}", user.getEmail());
+        log.info("Registered new user: {} (role={})", user.getEmail(), role);
         return new MessageResponse("Registration successful. Please check your email to verify your account.");
+    }
+
+    @Override
+    public MessageResponse registerProvider(ProviderRegisterRequest request) {
+        if (userRepository.existsByEmail(request.getEmail().toLowerCase())) {
+            throw new EmailAlreadyExistsException("Email is already registered.");
+        }
+
+        Provider provider = Provider.builder()
+            .email(request.getEmail().toLowerCase())
+            .password(passwordEncoder.encode(request.getPassword()))
+            .firstName(request.getFirstName())
+            .lastName(request.getLastName())
+            .role(UserRole.PROVIDER)
+            .status(UserStatus.PENDING_APPROVAL)
+            .emailVerified(true)
+            .phoneNumber(request.getPhoneNumber())
+            .locationLat(request.getLocationLat())
+            .locationLon(request.getLocationLon())
+            .pricePerHour(request.getPricePerHour())
+            .yearsOfExperience(request.getYearsOfExperience())
+            .serviceRadiusKm(request.getServiceRadiusKm())
+            .categories(request.getCategories())
+            .bio(request.getBio())
+            .build();
+
+        userRepository.save(provider);
+
+        // Notify provider that they are pending approval
+        emailService.sendProviderApprovalPending(provider.getEmail(), provider.getFirstName());
+
+        // Notify all admins about the new approval request
+        List<User> admins = userRepository.findAllByRole(UserRole.ADMIN);
+        String fullName = provider.getFirstName() + " " + provider.getLastName();
+        for (User admin : admins) {
+            emailService.sendAdminNewProviderApprovalRequest(
+                admin.getEmail(),
+                admin.getFirstName(),
+                provider.getEmail(),
+                fullName
+            );
+        }
+
+        log.info("Registered new provider: {} (pending approval, notified {} admins)", provider.getEmail(), admins.size());
+        return new MessageResponse(
+            "Provider registration submitted. Your application is now pending approval by an administrator. " +
+                "You will receive an email once your application has been reviewed."
+        );
     }
 
     @Override
@@ -91,10 +150,15 @@ public class AuthServiceImpl implements AuthService {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         User user = principal.getUser();
 
+        if (user.getStatus() == UserStatus.PENDING_APPROVAL) {
+            throw new ApiException("Your provider application is still pending approval by an administrator.");
+        }
+        if (user.getStatus() == UserStatus.REJECTED) {
+            throw new ApiException("Your provider application has been declined.");
+        }
         if (!user.isEmailVerified()) {
             throw new ApiException("Please verify your email address before logging in.");
         }
-
         if (user.getStatus() != UserStatus.ACTIVE) {
             throw new ApiException("Account is not active. Status: " + user.getStatus());
         }
@@ -133,7 +197,10 @@ public class AuthServiceImpl implements AuthService {
 
         User user = verificationToken.getUser();
         user.setEmailVerified(true);
-        user.setStatus(UserStatus.ACTIVE);
+        // Don't override PENDING_APPROVAL etc. — only activate if currently pending verification
+        if (user.getStatus() == UserStatus.PENDING_VERIFICATION) {
+            user.setStatus(UserStatus.ACTIVE);
+        }
         userRepository.save(user);
 
         verificationToken.setUsed(true);
@@ -166,7 +233,6 @@ public class AuthServiceImpl implements AuthService {
             emailService.sendPasswordReset(user.getEmail(), user.getFirstName(), resetUrl);
             log.info("Password reset requested for: {}", user.getEmail());
         });
-        // Always return the same message to prevent email enumeration
         return new MessageResponse("If an account with that email exists, a password reset link has been sent.");
     }
 
@@ -274,12 +340,13 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private AuthResponse buildAuthResponse(User user) {
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getEmail());
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getEmail(), user.getRole());
         String refreshTokenValue = createRefreshToken(user);
         return AuthResponse.builder()
             .accessToken(accessToken)
             .refreshToken(refreshTokenValue)
             .tokenType("Bearer")
+            .role(user.getRole())
             .requiresTwoFactor(false)
             .build();
     }

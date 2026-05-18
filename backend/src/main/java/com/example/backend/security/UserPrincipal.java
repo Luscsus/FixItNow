@@ -51,7 +51,8 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return user.getStatus() == UserStatus.ACTIVE
-            || user.getStatus() == UserStatus.PENDING_VERIFICATION;
+        // Allow auth to proceed for statuses that have a tailored error message in AuthService.
+        // DELETED is the only status where DaoAuthenticationProvider should outright reject login.
+        return user.getStatus() != UserStatus.DELETED;
     }
 }

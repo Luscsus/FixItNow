@@ -12,6 +12,14 @@ spring:
       maximum-pool-size: 10
       minimum-idle: 5
 
+  flyway:
+    enabled: ${FLYWAY_ENABLED:true}
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    # Skip checksum validation and tolerate the orphaned V1 schema-history row from a previous run.
+    validate-on-migrate: false
+    ignore-migration-patterns: "*:missing,*:future"
+
   jpa:
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:update}

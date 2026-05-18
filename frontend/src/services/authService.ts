@@ -2,6 +2,7 @@ import type {
   AuthResponseDto,
   ForgotPasswordRequestDto,
   LoginRequestDto,
+  ProviderRegisterRequestDto,
   RefreshTokenRequestDto,
   RegisterRequestDto,
   ResetPasswordRequestDto,
@@ -25,6 +26,24 @@ export async function confirmEmail(token: string): Promise<Message> {
 
 export async function register(payload: RegisterRequestDto): Promise<Message> {
   const data = await requestJson<MessageResponseDto>('/api/v1/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+
+  return mapMessageResponse(data)
+}
+
+export async function registerCustomer(payload: RegisterRequestDto): Promise<Message> {
+  const data = await requestJson<MessageResponseDto>('/api/v1/auth/register/customer', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+
+  return mapMessageResponse(data)
+}
+
+export async function registerProvider(payload: ProviderRegisterRequestDto): Promise<Message> {
+  const data = await requestJson<MessageResponseDto>('/api/v1/auth/register/provider', {
     method: 'POST',
     body: JSON.stringify(payload),
   })

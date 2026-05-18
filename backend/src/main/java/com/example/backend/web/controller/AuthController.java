@@ -21,10 +21,27 @@ public class AuthController {
 
     private final AuthService authService;
 
-    @Operation(summary = "Register a new user", description = "Creates an account and sends an email confirmation link")
+    @Operation(summary = "Register a new user (legacy)", description = "Creates a generic user account (role=USER) and sends an email confirmation link. Prefer /register/customer or /register/provider.")
     @PostMapping("/register")
     public ResponseEntity<MessageResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
+    }
+
+    @Operation(summary = "Register a new customer", description = "Creates a customer account (role=CUSTOMER) and sends an email confirmation link.")
+    @PostMapping("/register/customer")
+    public ResponseEntity<MessageResponse> registerCustomer(@Valid @RequestBody RegisterRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.registerCustomer(request));
+    }
+
+    @Operation(
+        summary = "Register a new provider",
+        description = "Submits a provider application (role=PROVIDER, status=PENDING_APPROVAL). " +
+            "An email is sent to the applicant confirming the pending status, and an email is sent to all administrators " +
+            "notifying them of the new approval request. The provider cannot log in until an admin approves their application."
+    )
+    @PostMapping("/register/provider")
+    public ResponseEntity<MessageResponse> registerProvider(@Valid @RequestBody ProviderRegisterRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.registerProvider(request));
     }
 
     @Operation(summary = "Login", description = "Returns tokens on success. If 2FA is enabled, returns requiresTwoFactor=true and a short-lived tempToken instead")

@@ -1,5 +1,6 @@
 package com.example.backend.web.dto.response;
 
+import com.example.backend.domain.user.UserRole;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,6 +17,7 @@ public class AuthResponse {
     private String accessToken;
     private String refreshToken;
     private String tokenType;
+    private UserRole role;
     private boolean requiresTwoFactor;
     private String tempToken;
 }

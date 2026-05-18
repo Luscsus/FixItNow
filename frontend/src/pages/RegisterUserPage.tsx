@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
-import { useRegisterMutation } from "@/hooks/useRegisterMutation";
+import { useRegisterCustomerMutation } from "@/hooks/useRegisterCustomerMutation";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { mapZodErrors } from "@/lib/validation";
 
@@ -54,7 +54,7 @@ function IconLock() {
 
 export function RegisterUserPage() {
   const navigate = useNavigate();
-  const registerMutation = useRegisterMutation();
+  const registerMutation = useRegisterCustomerMutation();
 
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", password: "" });
   const [errors, setErrors] = useState<Partial<Record<Fields, string>>>({});

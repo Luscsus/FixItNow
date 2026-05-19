@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS tickets (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_tickets_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT fk_tickets_service_provider FOREIGN KEY (assigned_service_provider_id) REFERENCES users(id)
+    CONSTRAINT fk_tickets_service_provider FOREIGN KEY (assigned_service_provider_id) REFERENCES providers(id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_locations_address ON locations (address);

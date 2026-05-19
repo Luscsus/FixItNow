@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { z } from "zod";
 
-import { useRegisterMutation } from "@/hooks/useRegisterMutation";
+import { useRegisterProviderMutation } from "@/hooks/useRegisterProviderMutation";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { mapZodErrors } from "@/lib/validation";
 
@@ -10,19 +10,48 @@ const schema = z.object({
   firstName: z.string().min(1, "First name is required."),
   lastName: z.string().min(1, "Last name is required."),
   email: z.string().email("Enter a valid email."),
-  password: z.string().min(8, "Password must be at least 8 characters."),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters.")
+    .max(100, "Password must be at most 100 characters."),
+  phoneNumber: z
+    .string()
+    .min(1, "Phone number is required.")
+    .max(50, "Phone number must be at most 50 characters."),
 });
 
-type Fields = "firstName" | "lastName" | "email" | "password";
+type Fields =
+  | "firstName"
+  | "lastName"
+  | "email"
+  | "password"
+  | "phoneNumber"
+  | "trades"
+  | "yearsOfExperience"
+  | "serviceRadiusKm"
+  | "location"
+  | "bio";
 
-const TRADES = [
-  { id: "plumbing", label: "Plumbing", icon: "🔧" },
-  { id: "electrical", label: "Electrical", icon: "⚡" },
-  { id: "hvac", label: "HVAC", icon: "❄️" },
-  { id: "carpentry", label: "Carpentry", icon: "🪚" },
-  { id: "painting", label: "Painting", icon: "🎨" },
-  { id: "it", label: "IT / Smart home", icon: "💻" },
+// All 15 backend ServiceCategory values, in display order.
+const TRADES: { id: string; label: string; icon: string; category: string }[] = [
+  { id: "plumbing", label: "Plumbing", icon: "🔧", category: "PLUMBING" },
+  { id: "electrical", label: "Electrical", icon: "⚡", category: "ELECTRICAL" },
+  { id: "hvac", label: "HVAC", icon: "❄️", category: "HVAC" },
+  { id: "carpentry", label: "Carpentry", icon: "🪚", category: "CARPENTRY" },
+  { id: "painting", label: "Painting", icon: "🎨", category: "PAINTING" },
+  { id: "roofing", label: "Roofing", icon: "🏠", category: "ROOFING" },
+  { id: "appliance_repair", label: "Appliance repair", icon: "🔌", category: "APPLIANCE_REPAIR" },
+  { id: "locksmith", label: "Locksmith", icon: "🔑", category: "LOCKSMITH" },
+  { id: "cleaning", label: "Cleaning", icon: "🧹", category: "CLEANING" },
+  { id: "gardening", label: "Gardening", icon: "🌱", category: "GARDENING" },
+  { id: "pest_control", label: "Pest control", icon: "🐜", category: "PEST_CONTROL" },
+  { id: "moving", label: "Moving", icon: "📦", category: "MOVING" },
+  { id: "tutoring", label: "Tutoring", icon: "📚", category: "TUTORING" },
+  { id: "it", label: "IT / Smart home", icon: "💻", category: "IT_SUPPORT" },
+  { id: "other", label: "Other", icon: "✨", category: "OTHER" },
 ];
+
+const BIO_MAX = 2000;
 
 function passwordStrength(pw: string): number {
   if (pw.length === 0) return 0;
@@ -61,50 +90,152 @@ function IconLock() {
   );
 }
 
-export function RegisterProviderPage() {
-  const navigate = useNavigate();
-  const registerMutation = useRegisterMutation();
+function IconPhone() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M3 2.5h3l1.5 3.5L5.5 7a8 8 0 0 0 3.5 3.5l1-2 3.5 1.5v3a1 1 0 0 1-1 1A12 12 0 0 1 2 3.5a1 1 0 0 1 1-1z" />
+    </svg>
+  );
+}
 
-  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", password: "" });
+function IconPin() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M8 14s5-4.5 5-9a5 5 0 0 0-10 0c0 4.5 5 9 5 9z" />
+      <circle cx="8" cy="5" r="2" />
+    </svg>
+  );
+}
+
+export function RegisterProviderPage() {
+  const registerMutation = useRegisterProviderMutation();
+
+  const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    phoneNumber: "",
+  });
   const [errors, setErrors] = useState<Partial<Record<Fields, string>>>({});
   const [submitted, setSubmitted] = useState(false);
 
-  // Provider-specific UI state (not sent to backend yet — flagged below)
+  // Provider-profile fields
   const [selectedTrades, setSelectedTrades] = useState<string[]>([]);
   const [hourlyRate, setHourlyRate] = useState(65);
-  const [experience, setExperience] = useState("");
-  const [radius, setRadius] = useState("");
+  const [yearsOfExperience, setYearsOfExperience] = useState<string>("");
+  const [radius, setRadius] = useState<string>("");
+  const [bio, setBio] = useState("");
+
+  // Location
+  const [lat, setLat] = useState<string>("");
+  const [lon, setLon] = useState<string>("");
+  const [geoStatus, setGeoStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
+  const [geoMessage, setGeoMessage] = useState<string>("");
 
   const pwStrength = passwordStrength(form.password);
-  const canSubmit = Object.values(form).every((v) => v.trim() !== "");
 
-  const set = (field: Fields) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const set = (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
   const toggleTrade = (id: string) =>
     setSelectedTrades((prev) =>
-      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id],
     );
+
+  const useMyLocation = () => {
+    if (!("geolocation" in navigator)) {
+      setGeoStatus("error");
+      setGeoMessage("Geolocation is not supported in this browser.");
+      return;
+    }
+    setGeoStatus("loading");
+    setGeoMessage("");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLat(pos.coords.latitude.toFixed(6));
+        setLon(pos.coords.longitude.toFixed(6));
+        setGeoStatus("ok");
+        setGeoMessage("Location captured.");
+        setErrors((c) => ({ ...c, location: undefined }));
+      },
+      (err) => {
+        setGeoStatus("error");
+        setGeoMessage(err.message || "Could not get your location. Enter it manually below.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
 
     const parsed = schema.safeParse({
       firstName: form.firstName.trim(),
       lastName: form.lastName.trim(),
       email: form.email.trim(),
       password: form.password,
+      phoneNumber: form.phoneNumber.trim(),
     });
 
-    if (!parsed.success) {
-      setErrors(mapZodErrors(parsed.error));
+    const nextErrors: Partial<Record<Fields, string>> = parsed.success
+      ? {}
+      : mapZodErrors(parsed.error);
+
+    if (selectedTrades.length === 0) {
+      nextErrors.trades = "Select at least one trade.";
+    }
+
+    const years = yearsOfExperience === "" ? NaN : Number(yearsOfExperience);
+    if (!Number.isFinite(years) || years < 0 || years > 80) {
+      nextErrors.yearsOfExperience = "Enter years of experience between 0 and 80.";
+    }
+
+    const radiusKm = radius === "" ? NaN : Number(radius);
+    if (!Number.isFinite(radiusKm) || radiusKm < 1 || radiusKm > 500) {
+      nextErrors.serviceRadiusKm = "Select a service radius.";
+    }
+
+    const latNum = lat === "" ? NaN : Number(lat);
+    const lonNum = lon === "" ? NaN : Number(lon);
+    if (
+      !Number.isFinite(latNum) || latNum < -90 || latNum > 90 ||
+      !Number.isFinite(lonNum) || lonNum < -180 || lonNum > 180
+    ) {
+      nextErrors.location =
+        "A valid location is required. Use the locate button or enter coordinates manually.";
+    }
+
+    if (bio.length > BIO_MAX) {
+      nextErrors.bio = `Bio must be at most ${BIO_MAX} characters.`;
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
       return;
     }
+
     setErrors({});
 
+    const categories = TRADES
+      .filter((t) => selectedTrades.includes(t.id))
+      .map((t) => t.category);
+
     try {
-      await registerMutation.mutateAsync(parsed.data);
+      await registerMutation.mutateAsync({
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        phoneNumber: form.phoneNumber.trim(),
+        locationLat: latNum,
+        locationLon: lonNum,
+        pricePerHour: hourlyRate,
+        yearsOfExperience: years,
+        serviceRadiusKm: radiusKm,
+        categories,
+        bio: bio.trim() || undefined,
+      });
       setSubmitted(true);
     } catch (error) {
       setErrors({ email: getErrorMessage(error) });
@@ -209,7 +340,7 @@ export function RegisterProviderPage() {
                 </svg>
               </div>
               <h2 className="h1">Application submitted!</h2>
-              <p className="body muted">Confirm your email to complete your provider profile.</p>
+              <p className="body muted">Your application is pending administrator approval. You'll be notified by email once it's reviewed.</p>
               <Link to="/login" className="btn btn-primary btn-full" style={{ marginTop: 8 }}>
                 Go to sign in →
               </Link>
@@ -275,7 +406,7 @@ export function RegisterProviderPage() {
                       <label className="field-label" htmlFor="prov-password">Password</label>
                       <div className={`input-wrap${errors.password ? " error" : ""}`}>
                         <IconLock />
-                        <input id="prov-password" className="input" type="password" placeholder="Min. 8 characters"
+                        <input id="prov-password" className="input" type="password" placeholder="8–100 characters"
                           autoComplete="new-password" value={form.password} onChange={set("password")} />
                       </div>
                       {form.password && (
@@ -285,14 +416,92 @@ export function RegisterProviderPage() {
                       )}
                       {errors.password && <span className="field-error">{errors.password}</span>}
                     </div>
+
+                    <div className="field">
+                      <label className="field-label" htmlFor="prov-phone">Phone number</label>
+                      <div className={`input-wrap${errors.phoneNumber ? " error" : ""}`}>
+                        <IconPhone />
+                        <input id="prov-phone" className="input" type="tel" placeholder="+386 41 234 567"
+                          autoComplete="tel" value={form.phoneNumber} onChange={set("phoneNumber")} />
+                      </div>
+                      {errors.phoneNumber && <span className="field-error">{errors.phoneNumber}</span>}
+                      <span className="field-hint">Customers will use this to reach you about jobs.</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Section 2 — Trade (UI only, not in backend yet) */}
+                {/* Section 2 — Location */}
                 <div>
                   <div className="panel-title">
                     <span className="num">02</span>
-                    <span className="label">Your trade</span>
+                    <span className="label">Service location</span>
+                    <span className="rule" />
+                  </div>
+                  <p className="field-hint" style={{ marginBottom: 10 }}>
+                    We use your location to match you with nearby job requests.
+                  </p>
+
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={useMyLocation}
+                    disabled={geoStatus === "loading"}
+                    style={{ gap: 8 }}
+                  >
+                    <IconPin />
+                    {geoStatus === "loading" ? "Locating…" : "Use my current location"}
+                  </button>
+
+                  {geoStatus === "ok" && geoMessage && (
+                    <p style={{ fontSize: 13, color: "var(--emerald-700)", margin: "8px 0 0" }}>
+                      ✓ {geoMessage}
+                    </p>
+                  )}
+                  {geoStatus === "error" && geoMessage && (
+                    <p style={{ fontSize: 13, color: "var(--red-600, #DC2626)", margin: "8px 0 0" }}>
+                      {geoMessage}
+                    </p>
+                  )}
+
+                  <div className="row" style={{ gap: 12, alignItems: "flex-start", marginTop: 12 }}>
+                    <div className="field grow">
+                      <label className="field-label" htmlFor="prov-lat">Latitude</label>
+                      <div className={`input-wrap${errors.location ? " error" : ""}`}>
+                        <input
+                          id="prov-lat"
+                          className="input"
+                          inputMode="decimal"
+                          placeholder="46.5547"
+                          value={lat}
+                          onChange={(e) => setLat(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="field grow">
+                      <label className="field-label" htmlFor="prov-lon">Longitude</label>
+                      <div className={`input-wrap${errors.location ? " error" : ""}`}>
+                        <input
+                          id="prov-lon"
+                          className="input"
+                          inputMode="decimal"
+                          placeholder="15.6459"
+                          value={lon}
+                          onChange={(e) => setLon(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  {errors.location && <span className="field-error" style={{ marginTop: 8 }}>{errors.location}</span>}
+                  <span className="field-hint" style={{ marginTop: 6, display: "block" }}>
+                    Latitude must be between −90 and 90, longitude between −180 and 180.
+                  </span>
+                </div>
+
+                {/* Section 3 — Trades */}
+                <div>
+                  <div className="panel-title">
+                    <span className="num">03</span>
+                    <span className="label">Your trades</span>
                     <span className="rule" />
                   </div>
                   <p className="field-hint" style={{ marginBottom: 10 }}>Select all that apply.</p>
@@ -310,45 +519,58 @@ export function RegisterProviderPage() {
                       </button>
                     ))}
                   </div>
+                  {errors.trades && <span className="field-error" style={{ marginTop: 8 }}>{errors.trades}</span>}
                 </div>
 
-                {/* Section 3 — Experience & coverage (UI only) */}
+                {/* Section 4 — Experience & coverage */}
                 <div>
                   <div className="panel-title">
-                    <span className="num">03</span>
-                    <span className="label">Experience</span>
+                    <span className="num">04</span>
+                    <span className="label">Experience & coverage</span>
                     <span className="rule" />
                   </div>
                   <div className="row" style={{ gap: 12, alignItems: "flex-start" }}>
                     <div className="field grow">
-                      <label className="field-label">Years of experience</label>
-                      <select className="fselect" value={experience} onChange={(e) => setExperience(e.target.value)}>
-                        <option value="">Select…</option>
-                        <option value="1">Less than 1 year</option>
-                        <option value="2">1–3 years</option>
-                        <option value="5">3–5 years</option>
-                        <option value="10">5–10 years</option>
-                        <option value="20">10+ years</option>
-                      </select>
+                      <label className="field-label" htmlFor="prov-years">Years of experience</label>
+                      <div className={`input-wrap${errors.yearsOfExperience ? " error" : ""}`}>
+                        <input
+                          id="prov-years"
+                          className="input"
+                          type="number"
+                          min={0}
+                          max={80}
+                          step={1}
+                          placeholder="e.g. 7"
+                          value={yearsOfExperience}
+                          onChange={(e) => setYearsOfExperience(e.target.value)}
+                        />
+                      </div>
+                      {errors.yearsOfExperience && <span className="field-error">{errors.yearsOfExperience}</span>}
                     </div>
                     <div className="field grow">
-                      <label className="field-label">Service radius</label>
-                      <select className="fselect" value={radius} onChange={(e) => setRadius(e.target.value)}>
+                      <label className="field-label" htmlFor="prov-radius">Service radius</label>
+                      <select
+                        id="prov-radius"
+                        className="fselect"
+                        value={radius}
+                        onChange={(e) => setRadius(e.target.value)}
+                      >
                         <option value="">Select…</option>
                         <option value="10">Up to 10 km</option>
                         <option value="25">Up to 25 km</option>
                         <option value="50">Up to 50 km</option>
                         <option value="100">Up to 100 km</option>
-                        <option value="any">Anywhere</option>
+                        <option value="500">Up to 500 km</option>
                       </select>
+                      {errors.serviceRadiusKm && <span className="field-error">{errors.serviceRadiusKm}</span>}
                     </div>
                   </div>
                 </div>
 
-                {/* Section 4 — Rate (UI only) */}
+                {/* Section 5 — Rate */}
                 <div>
                   <div className="panel-title">
-                    <span className="num">04</span>
+                    <span className="num">05</span>
                     <span className="label">Hourly rate</span>
                     <span className="rule" />
                   </div>
@@ -372,17 +594,45 @@ export function RegisterProviderPage() {
                   </div>
                 </div>
 
+                {/* Section 6 — Bio */}
+                <div>
+                  <div className="panel-title">
+                    <span className="num">06</span>
+                    <span className="label">About you</span>
+                    <span className="rule" />
+                  </div>
+                  <div className="field">
+                    <label className="field-label" htmlFor="prov-bio">Short bio (optional)</label>
+                    <textarea
+                      id="prov-bio"
+                      className="input"
+                      placeholder="Tell customers about your experience, certifications, and the kinds of jobs you take on."
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      rows={4}
+                      maxLength={BIO_MAX}
+                      style={{ minHeight: 96, padding: "10px 12px", lineHeight: 1.5, resize: "vertical" }}
+                    />
+                    <div className="row" style={{ justifyContent: "space-between", marginTop: 4 }}>
+                      {errors.bio
+                        ? <span className="field-error">{errors.bio}</span>
+                        : <span className="field-hint">Visible on your provider profile.</span>}
+                      <span className="field-hint">{bio.length} / {BIO_MAX}</span>
+                    </div>
+                  </div>
+                </div>
+
                 <p className="field-hint" style={{
                   background: "var(--slate-50)", border: "1px solid var(--border)",
                   borderRadius: 8, padding: "10px 14px", lineHeight: 1.6,
                 }}>
-                  <strong>Note:</strong> Trade, experience, radius, and rate fields are part of the provider profile — they will be saved once provider profile management is available in the backend.
+                  <strong>Note:</strong> Your application will be reviewed by an administrator before you can sign in.
                 </p>
 
                 <button
                   type="submit"
                   className="btn btn-primary btn-full btn-lg"
-                  disabled={!canSubmit || registerMutation.isPending}
+                  disabled={registerMutation.isPending}
                 >
                   {registerMutation.isPending ? "Submitting application…" : "Submit application"}
                 </button>

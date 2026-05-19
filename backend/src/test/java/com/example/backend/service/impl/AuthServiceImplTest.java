@@ -195,7 +195,7 @@ public class AuthServiceImplTest {
         // use a small JwtTokenProvider stub to avoid Mockito inline mocking issues on newer JDKs
         JwtTokenProvider jwtTokenProviderStub = new JwtTokenProvider() {
             @Override
-            public String generateAccessToken(String email) {
+            public String generateAccessToken(String email, com.example.backend.domain.user.UserRole role) {
                 return "access-token";
             }
 
@@ -274,7 +274,7 @@ public class AuthServiceImplTest {
             }
 
             @Override
-            public String generateAccessToken(String e) {
+            public String generateAccessToken(String e, com.example.backend.domain.user.UserRole role) {
                 return "access-token";
             }
 

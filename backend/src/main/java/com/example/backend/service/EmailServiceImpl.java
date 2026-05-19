@@ -1,6 +1,5 @@
 package com.example.backend.service;
 
-import com.example.backend.service.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -27,17 +26,81 @@ public class EmailServiceImpl implements EmailService {
     @Override
     @Async
     public void sendEmailConfirmation(String to, String firstName, String confirmationUrl) {
-        String subject = "Confirm your email address";
-        String body = buildEmailConfirmationHtml(firstName, confirmationUrl);
-        sendEmail(to, subject, body);
+        sendEmail(to, "Confirm your email address", buildEmailConfirmationHtml(firstName, confirmationUrl));
     }
 
     @Override
     @Async
     public void sendPasswordReset(String to, String firstName, String resetUrl) {
-        String subject = "Reset your password";
-        String body = buildPasswordResetHtml(firstName, resetUrl);
-        sendEmail(to, subject, body);
+        sendEmail(to, "Reset your password", buildPasswordResetHtml(firstName, resetUrl));
+    }
+
+    @Override
+    @Async
+    public void sendProviderApprovalPending(String to, String firstName) {
+        String body = """
+            <!DOCTYPE html>
+            <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2>Your provider application is under review</h2>
+                <p>Hi %s,</p>
+                <p>Thank you for applying to become a service provider. Your application has been
+                submitted and is now <strong>pending approval</strong> by an administrator.</p>
+                <p>You will receive another email once your application has been reviewed.</p>
+                <p>You will not be able to log in until your application is approved.</p>
+            </body></html>
+            """.formatted(escape(firstName));
+        sendEmail(to, "Provider application received — pending approval", body);
+    }
+
+    @Override
+    @Async
+    public void sendAdminNewProviderApprovalRequest(String to, String adminFirstName, String providerEmail, String providerFullName) {
+        String body = """
+            <!DOCTYPE html>
+            <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2>New provider approval request</h2>
+                <p>Hi %s,</p>
+                <p>A new service provider has registered and is awaiting your approval:</p>
+                <ul>
+                    <li><strong>Name:</strong> %s</li>
+                    <li><strong>Email:</strong> %s</li>
+                </ul>
+                <p>Please log in to the admin dashboard to review the application.</p>
+            </body></html>
+            """.formatted(escape(adminFirstName), escape(providerFullName), escape(providerEmail));
+        sendEmail(to, "New provider approval request", body);
+    }
+
+    @Override
+    @Async
+    public void sendProviderApproved(String to, String firstName) {
+        String body = """
+            <!DOCTYPE html>
+            <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2>Your provider account has been approved</h2>
+                <p>Hi %s,</p>
+                <p>Great news — your provider application has been <strong>approved</strong>.
+                You can now log in and start receiving service requests.</p>
+            </body></html>
+            """.formatted(escape(firstName));
+        sendEmail(to, "Provider application approved", body);
+    }
+
+    @Override
+    @Async
+    public void sendProviderDeclined(String to, String firstName, String reason) {
+        String body = """
+            <!DOCTYPE html>
+            <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2>Your provider application was declined</h2>
+                <p>Hi %s,</p>
+                <p>Unfortunately, your provider application has been <strong>declined</strong>.</p>
+                <p><strong>Reason:</strong> %s</p>
+                <p>If you believe this is a mistake or would like to provide additional information,
+                please contact support.</p>
+            </body></html>
+            """.formatted(escape(firstName), escape(reason));
+        sendEmail(to, "Provider application declined", body);
     }
 
     private void sendEmail(String to, String subject, String htmlBody) {
@@ -218,6 +281,13 @@ public class EmailServiceImpl implements EmailService {
               </table>
             </body>
             </html>
-            """.formatted(firstName, resetUrl, resetUrl);
+            """.formatted(escape(firstName), resetUrl);
+    }
+
+    private String escape(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;");
     }
 }

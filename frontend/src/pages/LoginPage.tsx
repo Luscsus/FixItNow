@@ -73,7 +73,11 @@ export function LoginPage() {
     }
 
     setSession(result);
-    navigate("/");
+    if (result.role === "PROVIDER") {
+      navigate("/dashboard/provider");
+    } else {
+      navigate("/dashboard/user");
+    }
   };
 
   return (

@@ -2,16 +2,35 @@ package com.example.backend.dto;
 
 import com.example.backend.domain.ticket.TicketPriority;
 import com.example.backend.domain.ticket.TicketStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@Getter
+@Setter
 public class TicketResponse {
 
     private Long id;
     private String serviceType;
     private String description;
     private String location;
+    @Schema(
+        description = "Ticket lifecycle status",
+        example = "PENDING_APPROVAL",
+        allowableValues = {
+            "PENDING_APPROVAL",
+            "DECLINED",
+            "APPROVED",
+            "IN_TRANSIT",
+            "PENDING_PROVIDER_INVOICE",
+            "PENDING_PAYMENT",
+            "COMPLETED",
+            "CANCELLED"
+        }
+    )
     private TicketStatus status;
     private TicketPriority priority;
     private BigDecimal estimatedCost;
@@ -34,77 +53,4 @@ public class TicketResponse {
         this.createdAt = createdAt;
         this.assignedServiceProviderName = assignedServiceProviderName;
     }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getServiceType() {
-        return serviceType;
-    }
-
-    public void setServiceType(String serviceType) {
-        this.serviceType = serviceType;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getLocation() {
-        return location;
-    }
-
-    public void setLocation(String location) {
-        this.location = location;
-    }
-
-    public TicketStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(TicketStatus status) {
-        this.status = status;
-    }
-
-    public TicketPriority getPriority() {
-        return priority;
-    }
-
-    public void setPriority(TicketPriority priority) {
-        this.priority = priority;
-    }
-
-    public BigDecimal getEstimatedCost() {
-        return estimatedCost;
-    }
-
-    public void setEstimatedCost(BigDecimal estimatedCost) {
-        this.estimatedCost = estimatedCost;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public String getAssignedServiceProviderName() {
-        return assignedServiceProviderName;
-    }
-
-    public void setAssignedServiceProviderName(String assignedServiceProviderName) {
-        this.assignedServiceProviderName = assignedServiceProviderName;
-    }
 }
-

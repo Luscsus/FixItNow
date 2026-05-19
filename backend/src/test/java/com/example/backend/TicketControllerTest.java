@@ -72,6 +72,7 @@ class TicketControllerTest {
     @Test
     void createTicketEndpointShouldReturnCreatedTicket() throws Exception {
         UserPrincipal principal = authenticatedPrincipal();
+        UUID userId = principal.getUser().getId();
 
         CreateTicketRequest request = new CreateTicketRequest();
         request.setServiceType("pušča pipa");
@@ -86,7 +87,7 @@ class TicketControllerTest {
             request.getServiceType(),
             request.getDescription(),
             request.getLocation(),
-            TicketStatus.OPEN,
+            TicketStatus.PENDING_APPROVAL,
             TicketPriority.URGENT,
             new BigDecimal("49.99"),
             LocalDateTime.now(),
@@ -100,22 +101,23 @@ class TicketControllerTest {
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.serviceType").value("pušča pipa"))
-            .andExpect(jsonPath("$.status").value("OPEN"))
+            .andExpect(jsonPath("$.status").value("PENDING_APPROVAL"))
             .andExpect(jsonPath("$.priority").value("URGENT"));
 
-        verify(ticketService).createTicket(any(), eq(principal.getUser().getId()));
+        verify(ticketService).createTicket(any(), eq(userId));
     }
 
     @Test
     void getUserTicketsEndpointShouldReturnList() throws Exception {
         UserPrincipal principal = authenticatedPrincipal();
+        UUID userId = principal.getUser().getId();
 
         TicketResponse response = new TicketResponse(
             2L,
             "elektrika",
             "Stikalo ne deluje",
             "Maribor",
-            TicketStatus.IN_PROGRESS,
+            TicketStatus.IN_TRANSIT,
             TicketPriority.MEDIUM,
             null,
             LocalDateTime.now(),
@@ -128,7 +130,7 @@ class TicketControllerTest {
             .andExpect(jsonPath("$[0].id").value(2))
             .andExpect(jsonPath("$[0].assignedServiceProviderName").value("Elektro Servis"));
 
-        verify(ticketService).getUserTickets(eq(principal.getUser().getId()));
+        verify(ticketService).getUserTickets(eq(userId));
     }
 
     @Test
@@ -138,7 +140,7 @@ class TicketControllerTest {
             "vodovod",
             "Nujno popravilo",
             "Celje",
-            TicketStatus.OPEN,
+            TicketStatus.PENDING_APPROVAL,
             TicketPriority.HIGH,
             null,
             LocalDateTime.now(),
@@ -161,20 +163,20 @@ class TicketControllerTest {
             "ključavnica",
             "Zamenjava ključavnice",
             "Kranj",
-            TicketStatus.IN_PROGRESS,
+            TicketStatus.IN_TRANSIT,
             TicketPriority.MEDIUM,
             null,
             LocalDateTime.now(),
             null
         );
-        when(ticketService.updateTicketStatus(4L, TicketStatus.IN_PROGRESS)).thenReturn(response);
+        when(ticketService.updateTicketStatus(4L, TicketStatus.IN_TRANSIT)).thenReturn(response);
 
         mockMvc.perform(put("/api/tickets/4/status")
-                .param("newStatus", "IN_PROGRESS"))
+                .param("newStatus", "IN_TRANSIT"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+            .andExpect(jsonPath("$.status").value("IN_TRANSIT"));
 
-        verify(ticketService).updateTicketStatus(4L, TicketStatus.IN_PROGRESS);
+        verify(ticketService).updateTicketStatus(4L, TicketStatus.IN_TRANSIT);
     }
 
     @Test
@@ -184,7 +186,7 @@ class TicketControllerTest {
             "streha",
             "Zamenjava strešne kritine",
             "Novo mesto",
-            TicketStatus.OPEN,
+            TicketStatus.PENDING_APPROVAL,
             TicketPriority.HIGH,
             null,
             LocalDateTime.now(),

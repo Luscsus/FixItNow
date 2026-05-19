@@ -21,6 +21,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
+
 @RestController
 @RequestMapping("/api/tickets")
 public class TicketController {
@@ -57,6 +60,21 @@ public class TicketController {
     @PreAuthorize("hasRole('SERVICE_PROVIDER')")
     public ResponseEntity<TicketResponse> updateTicketStatus(
         @PathVariable Long ticketId,
+        @Parameter(
+            description = "New ticket status",
+            schema = @Schema(
+                allowableValues = {
+                    "PENDING_APPROVAL",
+                    "DECLINED",
+                    "APPROVED",
+                    "IN_TRANSIT",
+                    "PENDING_PROVIDER_INVOICE",
+                    "PENDING_PAYMENT",
+                    "COMPLETED",
+                    "CANCELLED"
+                }
+            )
+        )
         @RequestParam TicketStatus newStatus
     ) {
         return ResponseEntity.ok(ticketService.updateTicketStatus(ticketId, newStatus));
@@ -71,4 +89,3 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.findNearbyTickets(latitude, longitude, radiusKm));
     }
 }
-

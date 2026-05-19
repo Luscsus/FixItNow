@@ -1,5 +1,6 @@
 package com.example.backend.security;
 
+import com.example.backend.domain.user.UserRole;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -24,19 +25,38 @@ public class JwtTokenProvider {
     private long tempTokenExpirationMs;
 
     private static final String CLAIM_TOKEN_TYPE = "type";
+    private static final String CLAIM_ROLE = "role";
     private static final String TOKEN_TYPE_ACCESS = "access";
     private static final String TOKEN_TYPE_TEMP = "temp";
 
-    public String generateAccessToken(String email) {
-        return buildToken(email, TOKEN_TYPE_ACCESS, accessTokenExpirationMs);
+    public String generateAccessToken(String email, UserRole role) {
+        return Jwts.builder()
+            .subject(email)
+            .claim(CLAIM_TOKEN_TYPE, TOKEN_TYPE_ACCESS)
+            .claim(CLAIM_ROLE, role.name())
+            .issuedAt(new Date())
+            .expiration(new Date(System.currentTimeMillis() + accessTokenExpirationMs))
+            .signWith(getSigningKey())
+            .compact();
     }
 
     public String generateTempToken(String email) {
-        return buildToken(email, TOKEN_TYPE_TEMP, tempTokenExpirationMs);
+        return Jwts.builder()
+            .subject(email)
+            .claim(CLAIM_TOKEN_TYPE, TOKEN_TYPE_TEMP)
+            .issuedAt(new Date())
+            .expiration(new Date(System.currentTimeMillis() + tempTokenExpirationMs))
+            .signWith(getSigningKey())
+            .compact();
     }
 
     public String extractEmail(String token) {
         return extractClaims(token).getSubject();
+    }
+
+    public String extractRole(String token) {
+        Object role = extractClaims(token).get(CLAIM_ROLE);
+        return role == null ? null : role.toString();
     }
 
     public String extractEmailFromTempToken(String token) {
@@ -56,16 +76,6 @@ public class JwtTokenProvider {
             log.warn("Invalid JWT: {}", e.getMessage());
             return false;
         }
-    }
-
-    private String buildToken(String email, String tokenType, long expirationMs) {
-        return Jwts.builder()
-            .subject(email)
-            .claim(CLAIM_TOKEN_TYPE, tokenType)
-            .issuedAt(new Date())
-            .expiration(new Date(System.currentTimeMillis() + expirationMs))
-            .signWith(getSigningKey())
-            .compact();
     }
 
     private Claims extractClaims(String token) {

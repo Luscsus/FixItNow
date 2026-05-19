@@ -6,18 +6,20 @@ import {
   type ReactNode,
 } from "react";
 
-import type { AuthSession } from "@/domain/auth";
+import type { AuthSession, UserRole } from "@/domain/auth";
 
 type AuthState = {
   accessToken: string;
   refreshToken: string;
   tempToken: string;
+  role: UserRole | null;
 };
 
 type AuthContextValue = {
   accessToken: string;
   refreshToken: string;
   tempToken: string;
+  role: UserRole | null;
   isAuthenticated: boolean;
   setSession: (session: AuthSession) => void;
   setTempToken: (tempToken: string) => void;
@@ -33,6 +35,7 @@ function readStoredSession(): AuthState {
     accessToken: "",
     refreshToken: "",
     tempToken: "",
+    role: null,
   };
 
   const raw = window.localStorage.getItem(storageKey);
@@ -46,6 +49,7 @@ function readStoredSession(): AuthState {
       accessToken: parsed.accessToken ?? "",
       refreshToken: parsed.refreshToken ?? "",
       tempToken: parsed.tempToken ?? "",
+      role: parsed.role ?? null,
     };
   } catch {
     return fallback;
@@ -65,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         accessToken: session.accessToken,
         refreshToken: session.refreshToken,
         tempToken: "",
+        role: session.role,
       };
       setState(nextState);
       persistSession(nextState);
@@ -84,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         accessToken: "",
         refreshToken: "",
         tempToken: "",
+        role: null,
       };
       setState(nextState);
       persistSession(nextState);
@@ -93,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       accessToken: state.accessToken,
       refreshToken: state.refreshToken,
       tempToken: state.tempToken,
+      role: state.role,
       isAuthenticated: state.accessToken !== "",
       setSession,
       setTempToken,

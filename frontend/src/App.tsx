@@ -6,11 +6,13 @@ import { ConfirmEmailPage } from "@/pages/ConfirmEmailPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { ProfilePage } from "@/pages/ProfilePage";
+import { ProviderDashboardPage } from "@/pages/ProviderDashboardPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { RegisterProviderPage } from "@/pages/RegisterProviderPage";
 import { RegisterUserPage } from "@/pages/RegisterUserPage";
 import { ResetPasswordPage } from "@/pages/ResetPasswordPage";
 import { TwoFactorVerifyPage } from "@/pages/TwoFactorVerifyPage";
+import { UserDashboardPage } from "@/pages/UserDashboardPage";
 import { HomePage } from "@/pages/HomePage";
 
 function App() {
@@ -31,6 +33,8 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/dashboard/user" element={<UserDashboardPage />} />
+          <Route path="/dashboard/provider" element={<ProviderDashboardPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Route>

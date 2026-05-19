@@ -1,5 +1,6 @@
 package com.example.backend.security;
 
+import com.example.backend.domain.user.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -27,10 +28,11 @@ public class JwtTokenProviderTest {
     @Test
     void generateAccessToken_and_extractEmail_shouldWork() {
         String email = "user@example.com";
-        String token = provider.generateAccessToken(email);
+        String token = provider.generateAccessToken(email, UserRole.CUSTOMER);
         assertNotNull(token);
         assertEquals(email, provider.extractEmail(token));
         assertTrue(provider.isTokenValid(token));
+        assertEquals(UserRole.CUSTOMER.name(), provider.extractRole(token));
     }
 
     @Test
@@ -46,7 +48,7 @@ public class JwtTokenProviderTest {
     @Test
     void tamperedToken_isInvalid() {
         String email = "user3@example.com";
-        String token = provider.generateAccessToken(email);
+        String token = provider.generateAccessToken(email, UserRole.CUSTOMER);
         // tamper
         String tampered = token + "x";
         assertFalse(provider.isTokenValid(tampered));
@@ -55,7 +57,7 @@ public class JwtTokenProviderTest {
     @Test
     void extractTempFromAccess_throws() {
         String email = "user4@example.com";
-        String token = provider.generateAccessToken(email);
+        String token = provider.generateAccessToken(email, UserRole.CUSTOMER);
         assertThrows(io.jsonwebtoken.JwtException.class, () -> provider.extractEmailFromTempToken(token));
     }
 }

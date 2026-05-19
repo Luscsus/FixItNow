@@ -1,7 +1,9 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { AppLayout } from "@/components/layout/AppLayout";
+import { AdminRoute } from "@/components/routing/AdminRoute";
 import { ProtectedRoute } from "@/components/routing/ProtectedRoute";
+import { AdminDashboardPage } from "@/pages/AdminDashboardPage";
 import { ConfirmEmailPage } from "@/pages/ConfirmEmailPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { LoginPage } from "@/pages/LoginPage";
@@ -27,6 +29,11 @@ function App() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/two-factor" element={<TwoFactorVerifyPage />} />
+
+      {/* Admin dashboard (full-screen, no AppLayout, ADMIN role required) */}
+      <Route element={<AdminRoute />}>
+        <Route path="/dashboard/admin" element={<AdminDashboardPage />} />
+      </Route>
 
       {/* Marketing pages with navbar */}
       <Route element={<AppLayout />}>

@@ -33,15 +33,6 @@ export async function register(payload: RegisterRequestDto): Promise<Message> {
   return mapMessageResponse(data)
 }
 
-export async function registerCustomer(payload: RegisterRequestDto): Promise<Message> {
-  const data = await requestJson<MessageResponseDto>('/api/v1/auth/register/customer', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  })
-
-  return mapMessageResponse(data)
-}
-
 export async function registerProvider(payload: ProviderRegisterRequestDto): Promise<Message> {
   const data = await requestJson<MessageResponseDto>('/api/v1/auth/register/provider', {
     method: 'POST',

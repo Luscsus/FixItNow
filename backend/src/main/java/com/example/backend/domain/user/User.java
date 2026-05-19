@@ -43,7 +43,7 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     @Builder.Default
-    private UserRole role = UserRole.USER;
+    private UserRole role = UserRole.CUSTOMER;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)

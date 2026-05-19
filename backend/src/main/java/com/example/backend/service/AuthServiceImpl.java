@@ -61,15 +61,6 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public MessageResponse register(RegisterRequest request) {
-        return registerWithRole(request, UserRole.USER);
-    }
-
-    @Override
-    public MessageResponse registerCustomer(RegisterRequest request) {
-        return registerWithRole(request, UserRole.CUSTOMER);
-    }
-
-    private MessageResponse registerWithRole(RegisterRequest request, UserRole role) {
         if (userRepository.existsByEmail(request.getEmail().toLowerCase())) {
             throw new EmailAlreadyExistsException("Email is already registered.");
         }
@@ -79,7 +70,7 @@ public class AuthServiceImpl implements AuthService {
             .password(passwordEncoder.encode(request.getPassword()))
             .firstName(request.getFirstName())
             .lastName(request.getLastName())
-            .role(role)
+            .role(UserRole.CUSTOMER)
             .status(UserStatus.PENDING_VERIFICATION)
             .build();
 
@@ -89,7 +80,7 @@ public class AuthServiceImpl implements AuthService {
         String confirmationUrl = frontendUrl + "/confirm-email?token=" + token;
         emailService.sendEmailConfirmation(user.getEmail(), user.getFirstName(), confirmationUrl);
 
-        log.info("Registered new user: {} (role={})", user.getEmail(), role);
+        log.info("Registered new customer: {}", user.getEmail());
         return new MessageResponse("Registration successful. Please check your email to verify your account.");
     }
 

@@ -28,11 +28,11 @@ public class JwtTokenProviderTest {
     @Test
     void generateAccessToken_and_extractEmail_shouldWork() {
         String email = "user@example.com";
-        String token = provider.generateAccessToken(email, UserRole.USER);
+        String token = provider.generateAccessToken(email, UserRole.CUSTOMER);
         assertNotNull(token);
         assertEquals(email, provider.extractEmail(token));
         assertTrue(provider.isTokenValid(token));
-        assertEquals(UserRole.USER.name(), provider.extractRole(token));
+        assertEquals(UserRole.CUSTOMER.name(), provider.extractRole(token));
     }
 
     @Test
@@ -48,7 +48,7 @@ public class JwtTokenProviderTest {
     @Test
     void tamperedToken_isInvalid() {
         String email = "user3@example.com";
-        String token = provider.generateAccessToken(email, UserRole.USER);
+        String token = provider.generateAccessToken(email, UserRole.CUSTOMER);
         // tamper
         String tampered = token + "x";
         assertFalse(provider.isTokenValid(tampered));
@@ -57,7 +57,7 @@ public class JwtTokenProviderTest {
     @Test
     void extractTempFromAccess_throws() {
         String email = "user4@example.com";
-        String token = provider.generateAccessToken(email, UserRole.USER);
+        String token = provider.generateAccessToken(email, UserRole.CUSTOMER);
         assertThrows(io.jsonwebtoken.JwtException.class, () -> provider.extractEmailFromTempToken(token));
     }
 }

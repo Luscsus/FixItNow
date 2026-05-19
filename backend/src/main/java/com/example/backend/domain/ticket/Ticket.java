@@ -1,5 +1,6 @@
 package com.example.backend.domain.ticket;
 
+import com.example.backend.domain.user.Provider;
 import com.example.backend.domain.user.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -64,14 +65,14 @@ public class Ticket {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_service_provider_id")
-    private User assignedServiceProvider;
+    private Provider assignedServiceProvider;
 
     public Ticket() {
     }
 
     public Ticket(Long id, User user, String serviceType, String description,
                   TicketStatus status, TicketPriority priority, BigDecimal estimatedCost,
-                  LocalDateTime createdAt, LocalDateTime updatedAt, User assignedServiceProvider) {
+                  LocalDateTime createdAt, LocalDateTime updatedAt, Provider assignedServiceProvider) {
         this.id = id;
         this.user = user;
         this.serviceType = serviceType;

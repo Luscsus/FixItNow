@@ -3,6 +3,7 @@ package com.example.backend;
 import com.example.backend.domain.ticket.Ticket;
 import com.example.backend.domain.ticket.TicketPriority;
 import com.example.backend.domain.ticket.TicketStatus;
+import com.example.backend.domain.location.Location;
 import com.example.backend.domain.user.User;
 import com.example.backend.dto.CreateTicketRequest;
 import com.example.backend.dto.TicketResponse;
@@ -45,6 +46,7 @@ class TicketServiceTest {
 
 	private UUID userId;
 	private User user;
+	private Location userLocation;
 
 	@BeforeEach
 	void setUp() {
@@ -55,6 +57,11 @@ class TicketServiceTest {
 		user.setPassword("secret");
 		user.setFirstName("Test");
 		user.setLastName("User");
+		userLocation = new Location();
+		userLocation.setAddress("Ljubljana");
+		userLocation.setLatitude(46.0569);
+		userLocation.setLongitude(14.5058);
+		user.setLocation(userLocation);
 	}
 
 	@Test
@@ -74,7 +81,7 @@ class TicketServiceTest {
 
 		assertNotNull(response);
 		assertEquals("pušča pipa", response.getServiceType());
-		assertEquals(TicketStatus.OPEN, response.getStatus());
+		assertEquals(TicketStatus.PENDING_APPROVAL, response.getStatus());
 		assertEquals(TicketPriority.HIGH, response.getPriority());
 		assertEquals("Ljubljana", response.getLocation());
 		verify(ticketRepository).save(any(Ticket.class));
@@ -97,25 +104,33 @@ class TicketServiceTest {
 		Ticket first = new Ticket();
 		first.setId(1L);
 		first.setUser(user);
+		Location firstLocation = new Location();
+		firstLocation.setAddress("A loc");
+		firstLocation.setLatitude(46.0);
+		firstLocation.setLongitude(14.0);
+		user.setLocation(firstLocation);
 		first.setServiceType("A");
 		first.setDescription("A desc");
-		first.setLocation("A loc");
-		first.setStatus(TicketStatus.OPEN);
+		first.setStatus(TicketStatus.PENDING_APPROVAL);
 		first.setPriority(TicketPriority.MEDIUM);
 		first.setCreatedAt(LocalDateTime.now().minusHours(1));
 
 		Ticket second = new Ticket();
 		second.setId(2L);
 		second.setUser(user);
+		Location secondLocation = new Location();
+		secondLocation.setAddress("B loc");
+		secondLocation.setLatitude(46.1);
+		secondLocation.setLongitude(14.1);
+		user.setLocation(secondLocation);
 		second.setServiceType("B");
 		second.setDescription("B desc");
-		second.setLocation("B loc");
-		second.setStatus(TicketStatus.IN_PROGRESS);
+		second.setStatus(TicketStatus.IN_TRANSIT);
 		second.setPriority(TicketPriority.LOW);
 		second.setCreatedAt(LocalDateTime.now());
 
 		when(userRepository.existsById(userId)).thenReturn(true);
-		when(ticketRepository.findByUserIdOrderByCreatedAtDesc(userId)).thenReturn(List.of(second, first));
+		when(ticketRepository.findByUser_IdOrderByCreatedAtDesc(userId)).thenReturn(List.of(second, first));
 
 		List<TicketResponse> responses = ticketService.getUserTickets(userId);
 
@@ -129,16 +144,20 @@ class TicketServiceTest {
 		Ticket ticket = new Ticket();
 		ticket.setId(10L);
 		ticket.setUser(user);
+		Location location = new Location();
+		location.setAddress("loc");
+		location.setLatitude(46.0);
+		location.setLongitude(14.0);
+		user.setLocation(location);
 		ticket.setStatus(TicketStatus.COMPLETED);
 		ticket.setPriority(TicketPriority.MEDIUM);
 		ticket.setServiceType("service");
 		ticket.setDescription("desc");
-		ticket.setLocation("loc");
 
 		when(ticketRepository.findById(10L)).thenReturn(Optional.of(ticket));
 
 		assertThrows(InvalidTicketStatusTransitionException.class,
-			() -> ticketService.updateTicketStatus(10L, TicketStatus.OPEN));
+			() -> ticketService.updateTicketStatus(10L, TicketStatus.PENDING_APPROVAL));
 	}
 
 	@Test
@@ -149,26 +168,42 @@ class TicketServiceTest {
 
 	@Test
 	void findNearbyTicketsShouldFilterByRadius() {
+		User nearUser = new User();
+		nearUser.setId(UUID.randomUUID());
+		nearUser.setEmail("near@example.com");
+		nearUser.setPassword("secret");
+		nearUser.setFirstName("Near");
+		nearUser.setLastName("User");
+		Location nearLocation = new Location();
+		nearLocation.setAddress("Ljubljana");
+		nearLocation.setLatitude(46.0569);
+		nearLocation.setLongitude(14.5058);
+		nearUser.setLocation(nearLocation);
 		Ticket near = new Ticket();
 		near.setId(1L);
-		near.setUser(user);
+		near.setUser(nearUser);
 		near.setServiceType("near");
 		near.setDescription("near desc");
-		near.setLocation("Ljubljana");
-		near.setLatitude(46.0569);
-		near.setLongitude(14.5058);
-		near.setStatus(TicketStatus.OPEN);
+		near.setStatus(TicketStatus.PENDING_APPROVAL);
 		near.setPriority(TicketPriority.MEDIUM);
 
+		User farUser = new User();
+		farUser.setId(UUID.randomUUID());
+		farUser.setEmail("far@example.com");
+		farUser.setPassword("secret");
+		farUser.setFirstName("Far");
+		farUser.setLastName("User");
+		Location farLocation = new Location();
+		farLocation.setAddress("Koper");
+		farLocation.setLatitude(45.5481);
+		farLocation.setLongitude(13.7302);
+		farUser.setLocation(farLocation);
 		Ticket far = new Ticket();
 		far.setId(2L);
-		far.setUser(user);
+		far.setUser(farUser);
 		far.setServiceType("far");
 		far.setDescription("far desc");
-		far.setLocation("Koper");
-		far.setLatitude(45.5481);
-		far.setLongitude(13.7302);
-		far.setStatus(TicketStatus.OPEN);
+		far.setStatus(TicketStatus.PENDING_APPROVAL);
 		far.setPriority(TicketPriority.MEDIUM);
 
 		when(ticketRepository.findAllWithCoordinates()).thenReturn(List.of(near, far));

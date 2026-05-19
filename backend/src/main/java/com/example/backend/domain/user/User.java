@@ -1,5 +1,6 @@
 package com.example.backend.domain.user;
 
+import com.example.backend.domain.location.Location;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -59,6 +60,10 @@ public class User {
 
     @Column(length = 100)
     private String twoFactorSecret;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "location_id")
+    private Location location;
 
     @CreatedDate
     @Column(nullable = false, updatable = false)

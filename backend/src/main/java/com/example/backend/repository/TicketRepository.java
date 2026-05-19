@@ -13,13 +13,13 @@ import java.util.UUID;
 @Repository
 public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
-	List<Ticket> findByUserIdOrderByCreatedAtDesc(UUID userId);
+	List<Ticket> findByUser_IdOrderByCreatedAtDesc(UUID userId);
 
 	List<Ticket> findByStatus(TicketStatus status);
 
 	List<Ticket> findByStatusAndPriority(TicketStatus status, TicketPriority priority);
 
-	@Query("select t from Ticket t where t.latitude is not null and t.longitude is not null")
+	@Query("select t from Ticket t join fetch t.user u join fetch u.location l where l.latitude is not null and l.longitude is not null")
 	List<Ticket> findAllWithCoordinates();
 }
 

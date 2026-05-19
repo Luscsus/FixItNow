@@ -25,7 +25,6 @@ public class TicketService {
 
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
-
     public TicketService(TicketRepository ticketRepository, UserRepository userRepository) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
@@ -40,11 +39,9 @@ public class TicketService {
         ticket.setUser(user);
         ticket.setServiceType(request.getServiceType());
         ticket.setDescription(request.getDescription());
-        ticket.setLocation(request.getLocation());
-        ticket.setLatitude(request.getLatitude());
-        ticket.setLongitude(request.getLongitude());
+        updateUserLocation(user, request);
         ticket.setPriority(request.getPriority() != null ? request.getPriority() : TicketPriority.MEDIUM);
-        ticket.setStatus(TicketStatus.OPEN);
+        ticket.setStatus(TicketStatus.PENDING_APPROVAL);
 
         return toResponse(ticketRepository.save(ticket));
     }
@@ -54,7 +51,7 @@ public class TicketService {
         if (!userRepository.existsById(userId)) {
             throw new UserNotFoundException("User not found: " + userId);
         }
-        return ticketRepository.findByUserIdOrderByCreatedAtDesc(userId)
+        return ticketRepository.findByUser_IdOrderByCreatedAtDesc(userId)
             .stream()
             .map(this::toResponse)
             .toList();
@@ -89,7 +86,8 @@ public class TicketService {
 
         return ticketRepository.findAllWithCoordinates()
             .stream()
-            .map(ticket -> new NearbyTicket(ticket, haversine(latitude, longitude, ticket.getLatitude(), ticket.getLongitude())))
+            .map(ticket -> new NearbyTicket(ticket, haversine(latitude, longitude,
+                ticket.getUser().getLocation().getLatitude(), ticket.getUser().getLocation().getLongitude())))
             .filter(candidate -> candidate.distanceKm <= effectiveRadius)
             .sorted(Comparator.comparingDouble(candidate -> candidate.distanceKm))
             .map(candidate -> toResponse(candidate.ticket))
@@ -106,25 +104,62 @@ public class TicketService {
             return false;
         }
         return switch (current) {
-            case OPEN -> next == TicketStatus.IN_PROGRESS || next == TicketStatus.CANCELLED;
-            case IN_PROGRESS -> next == TicketStatus.COMPLETED || next == TicketStatus.CANCELLED;
-            case COMPLETED, CANCELLED -> next == current;
+            case PENDING_APPROVAL -> next == TicketStatus.APPROVED
+                || next == TicketStatus.DECLINED
+                || next == TicketStatus.CANCELLED;
+            case APPROVED -> next == TicketStatus.IN_TRANSIT
+                || next == TicketStatus.CANCELLED;
+            case IN_TRANSIT -> next == TicketStatus.PENDING_PROVIDER_INVOICE
+                || next == TicketStatus.CANCELLED;
+            case PENDING_PROVIDER_INVOICE -> next == TicketStatus.PENDING_PAYMENT
+                || next == TicketStatus.CANCELLED;
+            case PENDING_PAYMENT -> next == TicketStatus.COMPLETED
+                || next == TicketStatus.CANCELLED;
+            case DECLINED, COMPLETED, CANCELLED -> next == current;
         };
     }
 
     private TicketResponse toResponse(Ticket ticket) {
-        String providerName = ticket.getAssignedServiceProvider() != null ? ticket.getAssignedServiceProvider().getName() : null;
+        String providerName = ticket.getAssignedServiceProvider() != null
+            ? formatProviderName(ticket.getAssignedServiceProvider())
+            : null;
         return new TicketResponse(
             ticket.getId(),
             ticket.getServiceType(),
             ticket.getDescription(),
-            ticket.getLocation(),
+            ticket.getUser() != null && ticket.getUser().getLocation() != null
+                ? ticket.getUser().getLocation().getAddress()
+                : null,
             ticket.getStatus(),
             ticket.getPriority(),
             ticket.getEstimatedCost(),
             ticket.getCreatedAt(),
             providerName
         );
+    }
+
+    private void updateUserLocation(User user, CreateTicketRequest request) {
+        if (request.getLocation() == null || request.getLocation().isBlank()) {
+            return;
+        }
+        if (user.getLocation() == null) {
+            com.example.backend.domain.location.Location location = new com.example.backend.domain.location.Location();
+            location.setAddress(request.getLocation());
+            location.setLatitude(request.getLatitude());
+            location.setLongitude(request.getLongitude());
+            user.setLocation(location);
+        } else {
+            user.getLocation().setAddress(request.getLocation());
+            user.getLocation().setLatitude(request.getLatitude());
+            user.getLocation().setLongitude(request.getLongitude());
+        }
+        userRepository.save(user);
+    }
+
+    private String formatProviderName(User provider) {
+        String fullName = ((provider.getFirstName() != null ? provider.getFirstName() : "") + " "
+            + (provider.getLastName() != null ? provider.getLastName() : "")).trim();
+        return fullName.isBlank() ? provider.getEmail() : fullName;
     }
 
     private double haversine(Double lat1, Double lon1, Double lat2, Double lon2) {

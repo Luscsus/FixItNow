@@ -7,8 +7,6 @@ public interface AuthService {
 
     MessageResponse register(RegisterRequest request);
 
-    MessageResponse registerCustomer(RegisterRequest request);
-
     MessageResponse registerProvider(ProviderRegisterRequest request);
 
     AuthResponse login(LoginRequest request);

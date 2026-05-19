@@ -6,7 +6,7 @@ export function mapAuthResponse(dto: AuthResponseDto): AuthSession {
     accessToken: dto.accessToken ?? '',
     refreshToken: dto.refreshToken ?? '',
     tokenType: dto.tokenType ?? 'Bearer',
-    role: (dto.role as UserRole) ?? 'USER',
+    role: (dto.role as UserRole) ?? 'CUSTOMER',
     requiresTwoFactor: dto.requiresTwoFactor ?? false,
     tempToken: dto.tempToken ?? '',
   }

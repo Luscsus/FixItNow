@@ -12,6 +12,7 @@ import com.example.backend.exception.TicketNotFoundException;
 import com.example.backend.exception.UserNotFoundException;
 import com.example.backend.repository.TicketRepository;
 import com.example.backend.repository.UserRepository;
+import com.example.backend.repository.LocationRepository;
 import com.example.backend.service.TicketService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,9 @@ class TicketServiceTest {
 
 	@Mock
 	private UserRepository userRepository;
+
+	@Mock
+	private LocationRepository locationRepository;
 
 	@InjectMocks
 	private TicketService ticketService;
@@ -75,6 +79,7 @@ class TicketServiceTest {
 		request.setPriority(TicketPriority.HIGH);
 
 		when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+		when(locationRepository.save(any(Location.class))).thenAnswer(invocation -> invocation.getArgument(0));
 		when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
 		TicketResponse response = ticketService.createTicket(request, userId);
@@ -108,7 +113,7 @@ class TicketServiceTest {
 		firstLocation.setAddress("A loc");
 		firstLocation.setLatitude(46.0);
 		firstLocation.setLongitude(14.0);
-		user.setLocation(firstLocation);
+		first.setLocation(firstLocation);
 		first.setServiceType("A");
 		first.setDescription("A desc");
 		first.setStatus(TicketStatus.PENDING_APPROVAL);
@@ -122,7 +127,7 @@ class TicketServiceTest {
 		secondLocation.setAddress("B loc");
 		secondLocation.setLatitude(46.1);
 		secondLocation.setLongitude(14.1);
-		user.setLocation(secondLocation);
+		second.setLocation(secondLocation);
 		second.setServiceType("B");
 		second.setDescription("B desc");
 		second.setStatus(TicketStatus.IN_TRANSIT);
@@ -148,7 +153,7 @@ class TicketServiceTest {
 		location.setAddress("loc");
 		location.setLatitude(46.0);
 		location.setLongitude(14.0);
-		user.setLocation(location);
+		ticket.setLocation(location);
 		ticket.setStatus(TicketStatus.COMPLETED);
 		ticket.setPriority(TicketPriority.MEDIUM);
 		ticket.setServiceType("service");
@@ -182,6 +187,7 @@ class TicketServiceTest {
 		Ticket near = new Ticket();
 		near.setId(1L);
 		near.setUser(nearUser);
+		near.setLocation(nearLocation);
 		near.setServiceType("near");
 		near.setDescription("near desc");
 		near.setStatus(TicketStatus.PENDING_APPROVAL);
@@ -201,6 +207,7 @@ class TicketServiceTest {
 		Ticket far = new Ticket();
 		far.setId(2L);
 		far.setUser(farUser);
+		far.setLocation(farLocation);
 		far.setServiceType("far");
 		far.setDescription("far desc");
 		far.setStatus(TicketStatus.PENDING_APPROVAL);
@@ -214,4 +221,3 @@ class TicketServiceTest {
 		assertEquals(1L, responses.get(0).getId());
 	}
 }
-

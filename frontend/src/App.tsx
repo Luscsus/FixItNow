@@ -16,6 +16,7 @@ import { ResetPasswordPage } from "@/pages/ResetPasswordPage";
 import { TwoFactorVerifyPage } from "@/pages/TwoFactorVerifyPage";
 import { UserDashboardPage } from "@/pages/UserDashboardPage";
 import { HomePage } from "@/pages/HomePage";
+import { NewTicketPage } from "@/pages/NewTicketsPage";
 
 function App() {
   return (
@@ -45,6 +46,7 @@ function App() {
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Route>
+      <Route path="/tickets/new" element={<NewTicketPage />} />
     </Routes>
   );
 }

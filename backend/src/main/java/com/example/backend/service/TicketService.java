@@ -10,7 +10,9 @@ import com.example.backend.exception.TicketNotFoundException;
 import com.example.backend.exception.UserNotFoundException;
 import com.example.backend.repository.TicketRepository;
 import com.example.backend.repository.UserRepository;
+import com.example.backend.repository.LocationRepository;
 import com.example.backend.domain.user.User;
+import com.example.backend.domain.location.Location;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,9 +27,13 @@ public class TicketService {
 
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
-    public TicketService(TicketRepository ticketRepository, UserRepository userRepository) {
+    private final LocationRepository locationRepository;
+
+    public TicketService(TicketRepository ticketRepository, UserRepository userRepository,
+                         LocationRepository locationRepository) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
+        this.locationRepository = locationRepository;
     }
 
     @Transactional
@@ -39,7 +45,8 @@ public class TicketService {
         ticket.setUser(user);
         ticket.setServiceType(request.getServiceType());
         ticket.setDescription(request.getDescription());
-        updateUserLocation(user, request);
+        Location location = upsertLocation(user, request);
+        ticket.setLocation(location);
         ticket.setPriority(request.getPriority() != null ? request.getPriority() : TicketPriority.MEDIUM);
         ticket.setStatus(TicketStatus.PENDING_APPROVAL);
 
@@ -86,8 +93,9 @@ public class TicketService {
 
         return ticketRepository.findAllWithCoordinates()
             .stream()
+            .filter(ticket -> ticket.getLocation() != null)
             .map(ticket -> new NearbyTicket(ticket, haversine(latitude, longitude,
-                ticket.getUser().getLocation().getLatitude(), ticket.getUser().getLocation().getLongitude())))
+                ticket.getLocation().getLatitude(), ticket.getLocation().getLongitude())))
             .filter(candidate -> candidate.distanceKm <= effectiveRadius)
             .sorted(Comparator.comparingDouble(candidate -> candidate.distanceKm))
             .map(candidate -> toResponse(candidate.ticket))
@@ -127,9 +135,7 @@ public class TicketService {
             ticket.getId(),
             ticket.getServiceType(),
             ticket.getDescription(),
-            ticket.getUser() != null && ticket.getUser().getLocation() != null
-                ? ticket.getUser().getLocation().getAddress()
-                : null,
+            ticket.getLocation() != null ? ticket.getLocation().getAddress() : null,
             ticket.getStatus(),
             ticket.getPriority(),
             ticket.getEstimatedCost(),
@@ -138,22 +144,23 @@ public class TicketService {
         );
     }
 
-    private void updateUserLocation(User user, CreateTicketRequest request) {
+    private Location upsertLocation(User user, CreateTicketRequest request) {
         if (request.getLocation() == null || request.getLocation().isBlank()) {
-            return;
+            return user.getLocation();
         }
-        if (user.getLocation() == null) {
-            com.example.backend.domain.location.Location location = new com.example.backend.domain.location.Location();
-            location.setAddress(request.getLocation());
-            location.setLatitude(request.getLatitude());
-            location.setLongitude(request.getLongitude());
-            user.setLocation(location);
-        } else {
-            user.getLocation().setAddress(request.getLocation());
-            user.getLocation().setLatitude(request.getLatitude());
-            user.getLocation().setLongitude(request.getLongitude());
+
+        Location location = user.getLocation();
+        if (location == null) {
+            location = new Location();
         }
+        location.setAddress(request.getLocation());
+        location.setLatitude(request.getLatitude());
+        location.setLongitude(request.getLongitude());
+        location = locationRepository.save(location);
+
+        user.setLocation(location);
         userRepository.save(user);
+        return location;
     }
 
     private String formatProviderName(User provider) {
@@ -182,4 +189,3 @@ public class TicketService {
         }
     }
 }
-

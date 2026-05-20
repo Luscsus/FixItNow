@@ -80,7 +80,7 @@ class TicketControllerTest {
         request.setLocation("Ljubljana");
         request.setLatitude(46.0569);
         request.setLongitude(14.5058);
-        request.setPriority(TicketPriority.URGENT);
+        request.setPriority(TicketPriority.CRITICAL);
 
         TicketResponse response = new TicketResponse(
             1L,
@@ -88,7 +88,7 @@ class TicketControllerTest {
             request.getDescription(),
             request.getLocation(),
             TicketStatus.PENDING_APPROVAL,
-            TicketPriority.URGENT,
+            TicketPriority.CRITICAL,
             new BigDecimal("49.99"),
             LocalDateTime.now(),
             null
@@ -102,7 +102,7 @@ class TicketControllerTest {
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.serviceType").value("pušča pipa"))
             .andExpect(jsonPath("$.status").value("PENDING_APPROVAL"))
-            .andExpect(jsonPath("$.priority").value("URGENT"));
+            .andExpect(jsonPath("$.priority").value("CRITICAL"));
 
         verify(ticketService).createTicket(any(), eq(userId));
     }
@@ -203,4 +203,3 @@ class TicketControllerTest {
         verify(ticketService).findNearbyTickets(46.0, 14.5, 5.0);
     }
 }
-

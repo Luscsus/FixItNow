@@ -1,4 +1,4 @@
-package com.example.backend.controller;
+package com.example.backend.web.controller;
 
 import com.example.backend.domain.ticket.TicketStatus;
 import com.example.backend.dto.CreateTicketRequest;

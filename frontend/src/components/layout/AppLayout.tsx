@@ -1,6 +1,13 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "@/context/auth";
 
+const NAV_LINKS = [
+  { label: "How it works",    href: "/#how"  },
+  { label: "Find a provider", href: "/browse" },
+  { label: "Pricing",         href: "#"       },
+  { label: "For providers",   href: "#"       },
+] as const;
+
 export function AppLayout() {
   const { isAuthenticated, clearSession } = useAuth();
 
@@ -27,10 +34,10 @@ export function AppLayout() {
 
           {/* Center nav */}
           <nav style={{ display: "flex", gap: 4, marginLeft: 8 }}>
-            {["How it works", "Find a provider", "Pricing", "For providers"].map((label) => (
-              <a
+            {NAV_LINKS.map(({ label, href }) => (
+              <Link
                 key={label}
-                href="#"
+                to={href}
                 style={{
                   padding: "8px 14px",
                   borderRadius: 8,
@@ -44,7 +51,7 @@ export function AppLayout() {
                 onMouseLeave={(e) => { (e.target as HTMLElement).style.background = "transparent"; (e.target as HTMLElement).style.color = "var(--text-muted)"; }}
               >
                 {label}
-              </a>
+              </Link>
             ))}
           </nav>
 

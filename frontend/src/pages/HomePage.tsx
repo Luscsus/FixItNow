@@ -1,4 +1,6 @@
-import { Link } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAllProvidersQuery } from "@/hooks/useAllProvidersQuery";
 
 /* ── SVG icon helpers ── */
 function IconArrow({ size = 14 }: { size?: number }) {
@@ -51,14 +53,38 @@ function IconPin({ size = 14 }: { size?: number }) {
     </svg>
   );
 }
-function IconClock({ size = 14 }: { size?: number }) {
+function IconHammer({ size = 20 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 6v6l4 2" />
+      <path d="M15 12l-8.5 8.5a2.12 2.12 0 01-3-3L12 9" />
+      <path d="M17.64 15L22 10.64" />
+      <path d="M20.91 11.7l-1.25-1.25c-.6-.6-.93-1.4-.93-2.25v-.86L16.01 4.6a5.56 5.56 0 00-3.94-1.64H9l.92.82A6.18 6.18 0 0112 8.4v1.56l2 2h2.47l2.26 1.91" />
     </svg>
   );
 }
+function IconKey({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="7.5" cy="15.5" r="5.5" />
+      <path d="M21 2l-9.6 9.6" />
+      <path d="M15.5 7.5l3 3L22 7l-3-3" />
+    </svg>
+  );
+}
+
+/* ── Category definitions ── */
+const ALL_CATEGORIES = [
+  { key: "PLUMBING",   label: "Plumbing",   Icon: IconDrop },
+  { key: "ELECTRICAL", label: "Electrical", Icon: IconBolt },
+  { key: "HVAC",       label: "HVAC",       Icon: IconSpark },
+  { key: "HARDWARE",   label: "Hardware",   Icon: IconWrench },
+  { key: "IT",         label: "IT",         Icon: IconCmd },
+  { key: "CARPENTRY",  label: "Carpentry",  Icon: IconHammer },
+  { key: "LOCKSMITH",  label: "Locksmith",  Icon: IconKey },
+];
+
+const RADIUS_OPTIONS = [5, 10, 25, 50, 100];
+
 
 const tickerItems = [
   { cat: "PLUMBING", label: "Kitchen sink leak" },
@@ -72,6 +98,46 @@ const tickerItems = [
 ];
 
 export function HomePage() {
+  const navigate = useNavigate();
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [radiusKm, setRadiusKm] = useState(25);
+  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
+
+  const { data: allProviders = [] } = useAllProvidersQuery();
+
+  const categoryCountMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    allProviders.forEach((p) => p.categories.forEach((cat) => { map[cat] = (map[cat] ?? 0) + 1; }));
+    return map;
+  }, [allProviders]);
+
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+        () => {},
+      );
+    }
+  }, []);
+
+  const toggleCategory = (key: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(key) ? prev.filter((c) => c !== key) : [...prev, key],
+    );
+  };
+
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const params = new URLSearchParams();
+    selectedCategories.forEach((cat) => params.append("categories", cat));
+    if (minPrice) params.set("minPrice", minPrice);
+    if (maxPrice) params.set("maxPrice", maxPrice);
+    params.set("radiusKm", String(radiusKm));
+    navigate(`/browse?${params}`);
+  };
+
   return (
     <div style={{ background: "var(--bg-canvas)" }}>
 
@@ -97,7 +163,7 @@ export function HomePage() {
                   <span>PS</span>
                   <span>SO</span>
                 </span>
-                <span><b>2,841 providers</b> ready to take a look</span>
+                <span><b>{allProviders.length > 0 ? allProviders.length.toLocaleString() : "…"} providers</b> ready to take a look</span>
               </div>
 
               {/* Display heading */}
@@ -112,7 +178,7 @@ export function HomePage() {
               </p>
 
               {/* Problem box */}
-              <form className="problem-box" onSubmit={(e) => e.preventDefault()}>
+              <form className="problem-box" onSubmit={handleSearch}>
                 <div className="problem-label">What needs fixing?</div>
                 <textarea
                   className="problem-textarea"
@@ -120,35 +186,125 @@ export function HomePage() {
                   rows={2}
                 />
 
+                {/* Selectable category chips */}
                 <div className="problem-row">
-                  <span className="problem-chip" aria-pressed="true">
-                    <IconDrop size={15} /> Plumbing
-                  </span>
-                  <span className="problem-chip"><IconBolt size={15} /> Electrical</span>
-                  <span className="problem-chip"><IconSpark size={15} /> HVAC</span>
-                  <span className="problem-chip"><IconWrench size={15} /> Hardware</span>
-                  <span className="problem-chip"><IconCmd size={15} /> IT</span>
-                  <span className="problem-chip" style={{ color: "var(--text-muted)", fontWeight: 500 }}>+ 12 more</span>
+                  {ALL_CATEGORIES.map(({ key, label, Icon }) => {
+                    const active = selectedCategories.includes(key);
+                    return (
+                      <span
+                        key={key}
+                        role="button"
+                        className="problem-chip"
+                        aria-pressed={active}
+                        onClick={() => toggleCategory(key)}
+                        style={{
+                          cursor: "pointer",
+                          userSelect: "none",
+                          background: active ? "var(--navy-900)" : undefined,
+                          color: active ? "#fff" : undefined,
+                          borderColor: active ? "var(--navy-900)" : undefined,
+                          transition: "background 0.15s, color 0.15s",
+                        }}
+                      >
+                        <Icon size={15} /> {label}
+                        {categoryCountMap[key] != null && (
+                          <span style={{ fontSize: 11, opacity: 0.6, marginLeft: 2 }}>({categoryCountMap[key]})</span>
+                        )}
+                      </span>
+                    );
+                  })}
                 </div>
 
+                {/* Meta row: location, radius, price range, submit */}
                 <div className="problem-meta">
                   <span className="problem-mini">
                     <IconPin size={14} />
-                    <b>Oakwood HQ</b> · 4 mi
+                    {coords ? (
+                      <b>GPS location</b>
+                    ) : (
+                      <span style={{ color: "var(--text-muted)" }}>No location</span>
+                    )}
                   </span>
-                  <span className="problem-mini">
-                    <IconClock size={14} />
-                    <b>Today</b> · before 5 PM
+
+                  <span className="problem-mini" style={{ gap: 5 }}>
+                    <span>Within</span>
+                    <select
+                      value={radiusKm}
+                      onChange={(e) => setRadiusKm(Number(e.target.value))}
+                      style={{
+                        border: "none",
+                        background: "transparent",
+                        fontFamily: "inherit",
+                        fontSize: "inherit",
+                        fontWeight: 700,
+                        color: "inherit",
+                        cursor: "pointer",
+                        padding: 0,
+                        outline: "none",
+                      }}
+                    >
+                      {RADIUS_OPTIONS.map((r) => (
+                        <option key={r} value={r}>{r} km</option>
+                      ))}
+                    </select>
                   </span>
-                  <span className="problem-mini">
-                    <span style={{ width: 8, height: 8, borderRadius: 4, background: "var(--amber-500)", display: "inline-block", flexShrink: 0 }} />
-                    Set urgency: <b>High</b>
+
+                  <span className="problem-mini" style={{ gap: 4 }}>
+                    <span style={{ fontSize: 13, color: "var(--text-muted)" }}>$</span>
+                    <input
+                      type="number"
+                      min={0}
+                      placeholder="min"
+                      value={minPrice}
+                      onChange={(e) => setMinPrice(e.target.value)}
+                      style={{
+                        width: 52,
+                        border: "none",
+                        borderBottom: "1.5px solid var(--border)",
+                        background: "transparent",
+                        fontFamily: "inherit",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: "inherit",
+                        outline: "none",
+                        padding: "0 2px",
+                        textAlign: "center",
+                      }}
+                    />
+                    <span style={{ color: "var(--text-muted)" }}>–</span>
+                    <input
+                      type="number"
+                      min={0}
+                      placeholder="max"
+                      value={maxPrice}
+                      onChange={(e) => setMaxPrice(e.target.value)}
+                      style={{
+                        width: 52,
+                        border: "none",
+                        borderBottom: "1.5px solid var(--border)",
+                        background: "transparent",
+                        fontFamily: "inherit",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: "inherit",
+                        outline: "none",
+                        padding: "0 2px",
+                        textAlign: "center",
+                      }}
+                    />
+                    <span style={{ fontSize: 12, color: "var(--text-muted)" }}>/hr</span>
                   </span>
-                  <button type="submit" className="btn btn-primary" style={{ marginLeft: "auto" }}>
-                    Find someone <IconArrow size={16} />
+
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    style={{ marginLeft: "auto" }}
+                  >
+                    <span>Find someone</span> <IconArrow size={16} />
                   </button>
                 </div>
               </form>
+
 
               <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "14px 0 0", maxWidth: 660 }}>
                 No account needed to browse. Free to file a ticket — you only pay the provider for the work they do.{" "}
@@ -233,7 +389,7 @@ export function HomePage() {
                 Plumbing
               </div>
               <div className="cat-count" style={{ color: "rgba(255,255,255,0.5)" }}>
-                428 providers · avg ~11 min response
+                {categoryCountMap["PLUMBING"] ?? "…"} providers · avg ~11 min response
               </div>
             </div>
           </a>
@@ -242,28 +398,28 @@ export function HomePage() {
             <span className="cat-arrow"><IconArrow size={14} /></span>
             <div className="cat-icon" style={{ background: "rgba(245,158,11,0.18)", color: "var(--amber-700)" }}><IconBolt size={22} /></div>
             <div className="cat-name">Electrical</div>
-            <div className="cat-count">512 providers</div>
+            <div className="cat-count">{categoryCountMap["ELECTRICAL"] ?? "…"} providers</div>
           </a>
 
           <a className="cat cat-hvac" href="#">
             <span className="cat-arrow"><IconArrow size={14} /></span>
             <div className="cat-icon" style={{ background: "rgba(30,58,138,0.12)", color: "var(--navy-700)" }}><IconSpark size={22} /></div>
             <div className="cat-name">HVAC</div>
-            <div className="cat-count">301 providers</div>
+            <div className="cat-count">{categoryCountMap["HVAC"] ?? "…"} providers</div>
           </a>
 
           <a className="cat cat-hard" href="#">
             <span className="cat-arrow"><IconArrow size={14} /></span>
             <div className="cat-icon"><IconWrench size={22} /></div>
             <div className="cat-name">Hardware</div>
-            <div className="cat-count">189 providers</div>
+            <div className="cat-count">{categoryCountMap["HARDWARE"] ?? "…"} providers</div>
           </a>
 
           <a className="cat cat-soft" href="#">
             <span className="cat-arrow"><IconArrow size={14} /></span>
             <div className="cat-icon" style={{ background: "rgba(5,150,105,0.18)", color: "var(--emerald-700)" }}><IconCmd size={22} /></div>
             <div className="cat-name">IT &amp; Software</div>
-            <div className="cat-count">88 providers</div>
+            <div className="cat-count">{categoryCountMap["IT"] ?? "…"} providers</div>
           </a>
         </div>
       </section>
@@ -325,7 +481,7 @@ export function HomePage() {
               <div className="proof-cell">
                 <div className="lbl">Average rating</div>
                 <div className="big">4.8<span style={{ fontSize: 22, color: "var(--amber-500)", marginLeft: 4 }}>★</span></div>
-                <div className="hint">Across 2,841 providers</div>
+                <div className="hint">Across {allProviders.length > 0 ? allProviders.length.toLocaleString() : "…"} providers</div>
               </div>
               <div className="proof-cell">
                 <div className="lbl">Same-day fix</div>

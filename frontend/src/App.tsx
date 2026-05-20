@@ -16,6 +16,7 @@ import { ResetPasswordPage } from "@/pages/ResetPasswordPage";
 import { TwoFactorVerifyPage } from "@/pages/TwoFactorVerifyPage";
 import { UserDashboardPage } from "@/pages/UserDashboardPage";
 import { HomePage } from "@/pages/HomePage";
+import { BrowseProvidersPage } from "@/pages/BrowseProvidersPage";
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
       {/* Marketing pages with navbar */}
       <Route element={<AppLayout />}>
         <Route path="/" element={<HomePage />} />
+        <Route path="/browse" element={<BrowseProvidersPage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/dashboard/user" element={<UserDashboardPage />} />

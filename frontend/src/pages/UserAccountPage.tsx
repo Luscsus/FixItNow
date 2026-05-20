@@ -52,7 +52,7 @@ export function UserAccountPage() {
             </div>
             <div className="acct-hero-actions">
               <button className="btn btn-secondary">Edit profile</button>
-              <Link to="/dashboard/user" className="btn btn-accent">+ New ticket</Link>
+              <Link to="/tickets/new" className="btn btn-accent">+ New ticket</Link>
             </div>
           </div>
 

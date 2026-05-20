@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export function UserDashboardPage() {
   return (
     <div>
@@ -58,7 +60,7 @@ export function UserDashboardPage() {
             <option value="urgency">By urgency</option>
             <option value="milestone">By next milestone</option>
           </select>
-          <a href="#" className="btn btn-primary btn-sm">+ New ticket</a>
+          <Link to="/tickets/new" className="btn btn-primary btn-sm">+ New ticket</Link>
         </div>
 
         {/* ── Panel 01: Active tickets ── */}

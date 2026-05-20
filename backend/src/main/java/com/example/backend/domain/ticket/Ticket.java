@@ -1,6 +1,6 @@
 package com.example.backend.domain.ticket;
 
-import com.example.backend.domain.user.Provider;
+import com.example.backend.domain.location.Location;
 import com.example.backend.domain.user.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -38,6 +38,10 @@ public class Ticket {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "location_id")
+    private Location location;
+
     @Column(name = "service_type", nullable = false, length = 255)
     private String serviceType;
 
@@ -65,16 +69,17 @@ public class Ticket {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_service_provider_id")
-    private Provider assignedServiceProvider;
+    private User assignedServiceProvider;
 
     public Ticket() {
     }
 
-    public Ticket(Long id, User user, String serviceType, String description,
+    public Ticket(Long id, User user, Location location, String serviceType, String description,
                   TicketStatus status, TicketPriority priority, BigDecimal estimatedCost,
-                  LocalDateTime createdAt, LocalDateTime updatedAt, Provider assignedServiceProvider) {
+                  LocalDateTime createdAt, LocalDateTime updatedAt, User assignedServiceProvider) {
         this.id = id;
         this.user = user;
+        this.location = location;
         this.serviceType = serviceType;
         this.description = description;
         this.status = status;

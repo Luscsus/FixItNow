@@ -7,6 +7,7 @@ import {
 } from "react";
 
 import type { AuthSession, UserRole } from "@/domain/auth";
+import { jwtUserInfo } from "@/lib/jwt";
 
 type AuthState = {
   accessToken: string;
@@ -15,12 +16,21 @@ type AuthState = {
   role: UserRole | null;
 };
 
+export type UserInfo = {
+  email: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  initials: string;
+};
+
 type AuthContextValue = {
   accessToken: string;
   refreshToken: string;
   tempToken: string;
   role: UserRole | null;
   isAuthenticated: boolean;
+  userInfo: UserInfo;
   setSession: (session: AuthSession) => void;
   setTempToken: (tempToken: string) => void;
   clearSession: () => void;
@@ -101,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       tempToken: state.tempToken,
       role: state.role,
       isAuthenticated: state.accessToken !== "",
+      userInfo: state.accessToken ? jwtUserInfo(state.accessToken) : { email: "", firstName: "", lastName: "", fullName: "", initials: "" },
       setSession,
       setTempToken,
       clearSession,

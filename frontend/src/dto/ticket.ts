@@ -14,11 +14,13 @@ export type TicketResponseDto = {
   id: number;
   serviceType: string;
   description: string;
+  location: string;
   status: TicketStatusDto;
   priority: TicketPriorityDto;
-  estimatedCost: number;
+  estimatedCost: number | null;
   createdAt: string;
   assignedServiceProviderName: string | null;
+  submittedByName: string | null;
 };
 
 export type CreateTicketRequestDto = {
@@ -26,4 +28,5 @@ export type CreateTicketRequestDto = {
   description: string;
   location: string;
   priority: TicketPriorityDto;
+  assignedProviderId?: string | null;
 };

@@ -1,12 +1,13 @@
 import { useMemo, useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
 import type { TicketPriority } from "@/domain/ticket";
+import type { Provider } from "@/domain/admin";
 import { useCreateTicketMutation } from "@/hooks/useCreateTicketMutation";
 import { useToast } from "@/components/ui/toast";
 
 type Urgency = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-type ProviderMode = "SPECIFIC" | "AUTOMATCH" | "OPEN";
+type ProviderMode = "SPECIFIC" | "OPEN";
 
 const categories = ["Electrical", "Plumbing", "Hardware", "Software", "HVAC", "Other"];
 
@@ -19,18 +20,32 @@ const urgencySummary: Record<Urgency, { label: string; color: string }> = {
 
 export function NewTicketPage() {
   const navigate = useNavigate();
+  const routerLocation = useLocation();
   const { notify } = useToast();
 
-  const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("");
-  const [description, setDescription] = useState("");
-  const [location, setLocation] = useState("");
-  const [urgency, setUrgency] = useState<Urgency | "">("");
-  const [preferredWindow, setPreferredWindow] = useState("");
-  const [access, setAccess] = useState("");
-  const [providerName] = useState("");
-  const [providerMode, setProviderMode] = useState<ProviderMode>("AUTOMATCH");
-  const [note, setNote] = useState("");
+  type FormState = {
+    title?: string;
+    category?: string;
+    description?: string;
+    location?: string;
+    urgency?: Urgency | "";
+    note?: string;
+    providerMode?: ProviderMode;
+  };
+  const routerState = routerLocation.state as { selectedProvider?: Provider; formState?: FormState } | null;
+  const incomingProvider = routerState?.selectedProvider ?? null;
+  const savedForm = routerState?.formState;
+
+  const [title, setTitle] = useState(savedForm?.title ?? "");
+  const [category, setCategory] = useState(savedForm?.category ?? "");
+  const [description, setDescription] = useState(savedForm?.description ?? "");
+  const [location, setLocation] = useState(savedForm?.location ?? "");
+  const [urgency, setUrgency] = useState<Urgency | "">(savedForm?.urgency ?? "");
+  const [providerMode, setProviderMode] = useState<ProviderMode>(
+    incomingProvider ? "SPECIFIC" : (savedForm?.providerMode ?? "OPEN")
+  );
+  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(incomingProvider);
+  const [note, setNote] = useState(savedForm?.note ?? "");
 
   const ticketId = useMemo(() => "", []);
   const createTicketMutation = useCreateTicketMutation();
@@ -65,9 +80,14 @@ export function NewTicketPage() {
       description: description.trim(),
       location: location.trim(),
       priority: urgency as TicketPriority,
+      assignedProviderId: providerMode === "SPECIFIC" && selectedProvider ? selectedProvider.id : null,
     };
 
-    await createTicketMutation.mutateAsync(payload);
+    try {
+      await createTicketMutation.mutateAsync(payload);
+    } catch {
+      // Error state is handled by the isError useEffect above
+    }
   }
 
   return (
@@ -166,27 +186,17 @@ export function NewTicketPage() {
             </div>
 
             <div className="form-grid">
-              <div className="row gap-16 new-ticket-loc-row">
-                <div className="field grow">
-                  <label className="field-label">Location</label>
-                  <div className="input-wrap">
-                    <input
-                      className="input"
-                      value={location}
-                      placeholder="e.g. Oakwood HQ · Bldg C · Floor 2 · Kitchen"
-                      onChange={(e) => setLocation(e.target.value)}
-                    />
-                  </div>
-                  <span className="field-hint">Be as specific as you can — building, floor, room.</span>
+              <div className="field">
+                <label className="field-label">Location</label>
+                <div className="input-wrap">
+                  <input
+                    className="input"
+                    value={location}
+                    placeholder="e.g. Oakwood HQ · Bldg C · Floor 2 · Kitchen"
+                    onChange={(e) => setLocation(e.target.value)}
+                  />
                 </div>
-
-                <div className="field new-ticket-asset-field">
-                  <label className="field-label">Asset / serial #</label>
-                  <div className="input-wrap">
-                    <input className="input mono" placeholder="optional" />
-                  </div>
-                  <span className="field-hint">If it&apos;s a tagged piece of equipment.</span>
-                </div>
+                <span className="field-hint">Be as specific as you can — building, floor, room.</span>
               </div>
 
               <div className="field">
@@ -227,33 +237,6 @@ export function NewTicketPage() {
                 </div>
               </div>
 
-              <div className="row gap-16 new-ticket-loc-row">
-                <div className="field grow">
-                  <label className="field-label">Preferred window</label>
-                  <div className="input-wrap">
-                    <input
-                      className="input"
-                      value={preferredWindow}
-                      placeholder="e.g. Today · before 5 PM"
-                      onChange={(e) => setPreferredWindow(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="field new-ticket-asset-field">
-                  <label className="field-label">Access</label>
-                  <select
-                    className="select new-ticket-access"
-                    value={access}
-                    onChange={(e) => setAccess(e.target.value)}
-                  >
-                    <option value="" disabled>Select access</option>
-                    <option>Someone will be on site</option>
-                    <option>Use building keycode</option>
-                    <option>Coordinate with front desk</option>
-                  </select>
-                </div>
-              </div>
             </div>
           </section>
 
@@ -271,44 +254,86 @@ export function NewTicketPage() {
                 <button
                   aria-pressed={providerMode === "SPECIFIC"}
                   type="button"
-                  onClick={() => setProviderMode("SPECIFIC")}
+                  onClick={() => {
+                    setProviderMode("SPECIFIC");
+                    setSelectedProvider(null);
+                  }}
                 >
                   Specific provider
                 </button>
                 <button
-                  aria-pressed={providerMode === "AUTOMATCH"}
-                  type="button"
-                  onClick={() => setProviderMode("AUTOMATCH")}
-                >
-                  Auto-match
-                </button>
-                <button
                   aria-pressed={providerMode === "OPEN"}
                   type="button"
-                  onClick={() => setProviderMode("OPEN")}
+                  onClick={() => {
+                    setProviderMode("OPEN");
+                    setSelectedProvider(null);
+                  }}
                 >
                   Open to anyone
                 </button>
               </div>
 
-              <div className="card provider-card">
-                <div className="avatar new-ticket-provider-avatar">MC</div>
-
-                <div>
-                  <div className="row" style={{ gap: 8 }}>
-                    <b className="new-ticket-provider-name">{providerName || "Select provider"}</b>
-                    {providerName ? <span className="verified-md">✓ Verified</span> : null}
+              {providerMode === "SPECIFIC" ? (
+                selectedProvider ? (
+                  <div className="card provider-card">
+                    <div
+                      className="avatar"
+                      style={{
+                        width: 36, height: 36, fontSize: 13,
+                        background: "var(--amber-500)", color: "var(--navy-900)",
+                        borderRadius: "50%", display: "grid", placeItems: "center",
+                        fontWeight: 700, flexShrink: 0,
+                      }}
+                    >
+                      {((selectedProvider.firstName?.[0] ?? "") + (selectedProvider.lastName?.[0] ?? "")).toUpperCase() || "?"}
+                    </div>
+                    <div>
+                      <div className="row" style={{ gap: 8 }}>
+                        <b className="new-ticket-provider-name">
+                          {[selectedProvider.firstName, selectedProvider.lastName].filter(Boolean).join(" ") || selectedProvider.email}
+                        </b>
+                        <span className="verified-md">✓ Selected</span>
+                      </div>
+                      <div className="muted new-ticket-provider-meta">
+                        {selectedProvider.categories.map((c) =>
+                          c.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (l) => l.toUpperCase())
+                        ).join(", ")}
+                        {selectedProvider.pricePerHour != null ? ` · $${selectedProvider.pricePerHour}/hr` : ""}
+                      </div>
+                    </div>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      type="button"
+                      onClick={() => navigate("/providers", { state: { formState: { title, category, description, location, urgency, note, providerMode } } })}
+                    >
+                      Change
+                    </button>
                   </div>
-
-                  <div className="muted new-ticket-provider-meta">
-                    {providerName
-                      ? "Master plumber · Oakwood Pros · ★ 4.9 · responds in ~11 min · 2.3 mi"
-                      : "Auto-match will pick the best fit."}
+                ) : (
+                  <div className="card provider-card" style={{ flexDirection: "column", alignItems: "flex-start", gap: 12 }}>
+                    <div className="muted" style={{ fontSize: 13.5 }}>
+                      No provider selected yet. Browse and pick one from the provider directory.
+                    </div>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      type="button"
+                      onClick={() => navigate("/providers", { state: { formState: { title, category, description, location, urgency, note, providerMode } } })}
+                    >
+                      Browse providers →
+                    </button>
+                  </div>
+                )
+              ) : (
+                <div className="card provider-card">
+                  <div style={{ width: 36, height: 36, background: "var(--slate-100)", color: "var(--slate-500)", borderRadius: 18, display: "grid", placeItems: "center", border: "1.5px dashed var(--slate-300)", fontSize: 16, flexShrink: 0 }}>?</div>
+                  <div>
+                    <b className="new-ticket-provider-name">Open to anyone</b>
+                    <div className="muted new-ticket-provider-meta">
+                      All available providers will see this ticket and can assign themselves.
+                    </div>
                   </div>
                 </div>
-
-                <button className="btn btn-ghost btn-sm" type="button">Change</button>
-              </div>
+              )}
 
               <div className="field">
                 <label className="field-label">
@@ -365,18 +390,24 @@ export function NewTicketPage() {
             </div>
             <div className="summary-row">
               <span className="key">Provider</span>
-              <span className="val">{providerMode === "SPECIFIC" ? providerName : "Auto-selected"}</span>
+              <span className="val">
+                {providerMode === "SPECIFIC" && selectedProvider
+                  ? [selectedProvider.firstName, selectedProvider.lastName].filter(Boolean).join(" ") || selectedProvider.email
+                  : providerMode === "SPECIFIC"
+                    ? "Not selected"
+                    : "Open to anyone"}
+              </span>
             </div>
             <div className="summary-row new-ticket-summary-last-row">
               <span className="key">Photos</span>
-              <span className="val mono">02 attached</span>
+              <span className="val mono">—</span>
             </div>
 
             <div className="est">
               <div className="est-row">Estimated cost</div>
-              <div className="est-big">$95 - $185</div>
+              <div className="est-big">TBD</div>
               <div className="est-row new-ticket-est-gap">Estimated response</div>
-              <div className="est-big">~ 11 min</div>
+              <div className="est-big">TBD</div>
             </div>
 
             <p className="new-ticket-est-note">

@@ -36,13 +36,14 @@ public class TicketResponse {
     private BigDecimal estimatedCost;
     private LocalDateTime createdAt;
     private String assignedServiceProviderName;
+    private String submittedByName;
 
     public TicketResponse() {
     }
 
     public TicketResponse(Long id, String serviceType, String description, String location, TicketStatus status,
                           TicketPriority priority, BigDecimal estimatedCost, LocalDateTime createdAt,
-                          String assignedServiceProviderName) {
+                          String assignedServiceProviderName, String submittedByName) {
         this.id = id;
         this.serviceType = serviceType;
         this.description = description;
@@ -52,5 +53,6 @@ public class TicketResponse {
         this.estimatedCost = estimatedCost;
         this.createdAt = createdAt;
         this.assignedServiceProviderName = assignedServiceProviderName;
+        this.submittedByName = submittedByName;
     }
 }

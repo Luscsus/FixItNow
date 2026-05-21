@@ -2,7 +2,7 @@ import type { UserResponseDto } from "@/dto/user";
 import type { ProviderResponseDto } from "@/dto/admin";
 import type { User } from "@/domain/user";
 import type { Provider } from "@/domain/admin";
-import { mapProvider } from "@/mappers/adminMapper";
+import { mapProvider, mapProviders } from "@/mappers/adminMapper";
 import { requestJson } from "@/services/httpClient";
 
 function authHeader(accessToken: string): HeadersInit {
@@ -32,4 +32,11 @@ export async function getCurrentProvider(accessToken: string): Promise<Provider>
     headers: authHeader(accessToken),
   });
   return mapProvider(data);
+}
+
+export async function listProviders(accessToken: string): Promise<Provider[]> {
+  const data = await requestJson<ProviderResponseDto[]>("/api/v1/providers", {
+    headers: authHeader(accessToken),
+  });
+  return mapProviders(data);
 }

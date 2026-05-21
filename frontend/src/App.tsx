@@ -17,6 +17,7 @@ import { TwoFactorVerifyPage } from "@/pages/TwoFactorVerifyPage";
 import { UserDashboardPage } from "@/pages/UserDashboardPage";
 import { HomePage } from "@/pages/HomePage";
 import { NewTicketPage } from "@/pages/NewTicketsPage";
+import { BrowseProvidersPage } from "@/pages/BrowseProvidersPage";
 
 function App() {
   return (
@@ -47,6 +48,7 @@ function App() {
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Route>
       <Route path="/tickets/new" element={<NewTicketPage />} />
+      <Route path="/providers" element={<BrowseProvidersPage />} />
     </Routes>
   );
 }

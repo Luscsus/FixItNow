@@ -14,10 +14,12 @@ export type Ticket = {
   id: number;
   serviceType: string;
   description: string;
+  location: string;
   status: TicketStatus;
   priority: TicketPriority;
-  estimatedCost: number;
+  estimatedCost: number | null;
   createdAt: Date;
   assignedServiceProviderName?: string | null;
+  submittedByName?: string | null;
 };
 

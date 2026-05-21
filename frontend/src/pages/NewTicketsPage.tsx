@@ -132,7 +132,7 @@ export function NewTicketPage() {
               <div className="field">
                 <label className="field-label">Category</label>
                 <select
-                  className="select"
+                  className="fselect"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                 >
@@ -310,7 +310,7 @@ export function NewTicketPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="card provider-card" style={{ flexDirection: "column", alignItems: "flex-start", gap: 12 }}>
+                  <div className="card provider-card" style={{ gridTemplateColumns: "1fr auto", alignItems: "center" }}>
                     <div className="muted" style={{ fontSize: 13.5 }}>
                       No provider selected yet. Browse and pick one from the provider directory.
                     </div>

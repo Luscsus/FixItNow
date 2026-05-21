@@ -10,6 +10,7 @@ import com.example.backend.dto.TicketResponse;
 import com.example.backend.exception.InvalidTicketStatusTransitionException;
 import com.example.backend.exception.TicketNotFoundException;
 import com.example.backend.exception.UserNotFoundException;
+import com.example.backend.repository.ProviderRepository;
 import com.example.backend.repository.TicketRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.LocationRepository;
@@ -44,6 +45,9 @@ class TicketServiceTest {
 
 	@Mock
 	private LocationRepository locationRepository;
+
+	@Mock
+	private ProviderRepository providerRepository;
 
 	@InjectMocks
 	private TicketService ticketService;

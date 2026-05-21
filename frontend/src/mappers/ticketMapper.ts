@@ -6,11 +6,13 @@ export function mapTicket(dto: TicketResponseDto): Ticket {
     id: dto.id,
     serviceType: dto.serviceType,
     description: dto.description,
+    location: dto.location,
     status: dto.status,
     priority: dto.priority,
     estimatedCost: dto.estimatedCost,
     createdAt: new Date(dto.createdAt),
     assignedServiceProviderName: dto.assignedServiceProviderName ?? null,
+    submittedByName: dto.submittedByName ?? null,
   };
 }
 

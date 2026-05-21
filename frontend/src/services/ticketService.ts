@@ -48,6 +48,28 @@ export async function updateTicketStatus(
   return mapTicket(data);
 }
 
+export async function listProviderTickets(accessToken?: string): Promise<Ticket[]> {
+  const data = await requestJson<TicketResponseDto[]>("/api/tickets/provider", {
+    headers: authHeader(accessToken),
+  });
+  return mapTickets(data);
+}
+
+export async function listOpenTickets(accessToken?: string): Promise<Ticket[]> {
+  const data = await requestJson<TicketResponseDto[]>("/api/tickets/open", {
+    headers: authHeader(accessToken),
+  });
+  return mapTickets(data);
+}
+
+export async function acceptTicket(ticketId: number, accessToken?: string): Promise<Ticket> {
+  const data = await requestJson<TicketResponseDto>(`/api/tickets/${ticketId}/accept`, {
+    method: "POST",
+    headers: authHeader(accessToken),
+  });
+  return mapTicket(data);
+}
+
 export async function getNearbyTickets(
   latitude: number,
   longitude: number,

@@ -237,7 +237,6 @@ export function AdminDashboardPage() {
                   gridTemplateColumns: "40px 1fr",
                   gap: 12,
                   padding: "16px 18px",
-                  borderBottom: "1px solid var(--border)",
                   cursor: "pointer",
                   position: "relative",
                   background: isSelected ? "var(--navy-50)" : "var(--card)",
@@ -335,7 +334,7 @@ export function AdminDashboardPage() {
                   <div style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600 }}>
                     {f.label}
                   </div>
-                  <div style={{ marginTop: 8, fontSize: 14.5, fontWeight: 500, letterSpacing: "-0.005em", fontFamily: f.mono ? "var(--font-mono)" : undefined, fontSize: f.mono ? 13 : 14.5 }}>
+                  <div style={{ marginTop: 8, fontWeight: 500, letterSpacing: "-0.005em", fontFamily: f.mono ? "var(--font-mono)" : undefined, fontSize: f.mono ? 13 : 14.5 }}>
                     {f.value}
                   </div>
                 </div>

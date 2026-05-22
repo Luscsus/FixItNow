@@ -8,9 +8,13 @@ import com.example.backend.dto.TicketResponse;
 import com.example.backend.exception.InvalidTicketStatusTransitionException;
 import com.example.backend.exception.TicketNotFoundException;
 import com.example.backend.exception.UserNotFoundException;
+import com.example.backend.repository.ProviderRepository;
 import com.example.backend.repository.TicketRepository;
 import com.example.backend.repository.UserRepository;
+import com.example.backend.repository.LocationRepository;
+import com.example.backend.domain.user.Provider;
 import com.example.backend.domain.user.User;
+import com.example.backend.domain.location.Location;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,9 +29,15 @@ public class TicketService {
 
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
-    public TicketService(TicketRepository ticketRepository, UserRepository userRepository) {
+    private final LocationRepository locationRepository;
+    private final ProviderRepository providerRepository;
+
+    public TicketService(TicketRepository ticketRepository, UserRepository userRepository,
+                         LocationRepository locationRepository, ProviderRepository providerRepository) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
+        this.locationRepository = locationRepository;
+        this.providerRepository = providerRepository;
     }
 
     @Transactional
@@ -39,9 +49,16 @@ public class TicketService {
         ticket.setUser(user);
         ticket.setServiceType(request.getServiceType());
         ticket.setDescription(request.getDescription());
-        updateUserLocation(user, request);
+        Location location = upsertLocation(user, request);
+        ticket.setLocation(location);
         ticket.setPriority(request.getPriority() != null ? request.getPriority() : TicketPriority.MEDIUM);
         ticket.setStatus(TicketStatus.PENDING_APPROVAL);
+
+        if (request.getAssignedProviderId() != null) {
+            Provider provider = providerRepository.findById(request.getAssignedProviderId())
+                .orElseThrow(() -> new UserNotFoundException("Provider not found: " + request.getAssignedProviderId()));
+            ticket.setAssignedServiceProvider(provider);
+        }
 
         return toResponse(ticketRepository.save(ticket));
     }
@@ -78,6 +95,42 @@ public class TicketService {
     }
 
     @Transactional(readOnly = true)
+    public List<TicketResponse> getProviderTickets(UUID providerId) {
+        return ticketRepository.findByAssignedServiceProvider_IdOrderByCreatedAtDesc(providerId)
+            .stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TicketResponse> getOpenTickets() {
+        return ticketRepository.findByAssignedServiceProviderIsNullAndStatusOrderByCreatedAtDesc(TicketStatus.PENDING_APPROVAL)
+            .stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
+    @Transactional
+    public TicketResponse acceptOpenTicket(Long ticketId, UUID providerId) {
+        Ticket ticket = getTicketOrThrow(ticketId);
+        if (ticket.getStatus() != TicketStatus.PENDING_APPROVAL) {
+            throw new InvalidTicketStatusTransitionException(
+                "Ticket " + ticketId + " is not available for acceptance (status: " + ticket.getStatus() + ")"
+            );
+        }
+        if (ticket.getAssignedServiceProvider() != null) {
+            throw new InvalidTicketStatusTransitionException(
+                "Ticket " + ticketId + " is already assigned to a provider"
+            );
+        }
+        Provider provider = providerRepository.findById(providerId)
+            .orElseThrow(() -> new UserNotFoundException("Provider not found: " + providerId));
+        ticket.setAssignedServiceProvider(provider);
+        ticket.setStatus(TicketStatus.APPROVED);
+        return toResponse(ticketRepository.save(ticket));
+    }
+
+    @Transactional(readOnly = true)
     public List<TicketResponse> findNearbyTickets(Double latitude, Double longitude, Double radiusKm) {
         double effectiveRadius = radiusKm == null ? 5.0 : radiusKm;
         if (latitude == null || longitude == null || effectiveRadius < 0) {
@@ -86,8 +139,9 @@ public class TicketService {
 
         return ticketRepository.findAllWithCoordinates()
             .stream()
+            .filter(ticket -> ticket.getLocation() != null)
             .map(ticket -> new NearbyTicket(ticket, haversine(latitude, longitude,
-                ticket.getUser().getLocation().getLatitude(), ticket.getUser().getLocation().getLongitude())))
+                ticket.getLocation().getLatitude(), ticket.getLocation().getLongitude())))
             .filter(candidate -> candidate.distanceKm <= effectiveRadius)
             .sorted(Comparator.comparingDouble(candidate -> candidate.distanceKm))
             .map(candidate -> toResponse(candidate.ticket))
@@ -123,37 +177,40 @@ public class TicketService {
         String providerName = ticket.getAssignedServiceProvider() != null
             ? formatProviderName(ticket.getAssignedServiceProvider())
             : null;
+        String submittedByName = ticket.getUser() != null
+            ? formatProviderName(ticket.getUser())
+            : null;
         return new TicketResponse(
             ticket.getId(),
             ticket.getServiceType(),
             ticket.getDescription(),
-            ticket.getUser() != null && ticket.getUser().getLocation() != null
-                ? ticket.getUser().getLocation().getAddress()
-                : null,
+            ticket.getLocation() != null ? ticket.getLocation().getAddress() : null,
             ticket.getStatus(),
             ticket.getPriority(),
             ticket.getEstimatedCost(),
             ticket.getCreatedAt(),
-            providerName
+            providerName,
+            submittedByName
         );
     }
 
-    private void updateUserLocation(User user, CreateTicketRequest request) {
+    private Location upsertLocation(User user, CreateTicketRequest request) {
         if (request.getLocation() == null || request.getLocation().isBlank()) {
-            return;
+            return user.getLocation();
         }
-        if (user.getLocation() == null) {
-            com.example.backend.domain.location.Location location = new com.example.backend.domain.location.Location();
-            location.setAddress(request.getLocation());
-            location.setLatitude(request.getLatitude());
-            location.setLongitude(request.getLongitude());
-            user.setLocation(location);
-        } else {
-            user.getLocation().setAddress(request.getLocation());
-            user.getLocation().setLatitude(request.getLatitude());
-            user.getLocation().setLongitude(request.getLongitude());
+
+        Location location = user.getLocation();
+        if (location == null) {
+            location = new Location();
         }
+        location.setAddress(request.getLocation());
+        location.setLatitude(request.getLatitude());
+        location.setLongitude(request.getLongitude());
+        location = locationRepository.save(location);
+
+        user.setLocation(location);
         userRepository.save(user);
+        return location;
     }
 
     private String formatProviderName(User provider) {
@@ -182,4 +239,3 @@ public class TicketService {
         }
     }
 }
-

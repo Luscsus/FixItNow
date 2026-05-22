@@ -57,7 +57,7 @@ public class TicketController {
     }
 
     @PutMapping("/{ticketId}/status")
-    @PreAuthorize("hasRole('SERVICE_PROVIDER')")
+    @PreAuthorize("hasRole('PROVIDER')")
     public ResponseEntity<TicketResponse> updateTicketStatus(
         @PathVariable Long ticketId,
         @Parameter(
@@ -78,6 +78,27 @@ public class TicketController {
         @RequestParam TicketStatus newStatus
     ) {
         return ResponseEntity.ok(ticketService.updateTicketStatus(ticketId, newStatus));
+    }
+
+    @GetMapping("/provider")
+    @PreAuthorize("hasRole('PROVIDER')")
+    public ResponseEntity<List<TicketResponse>> getProviderTickets(@AuthenticationPrincipal UserPrincipal userDetails) {
+        return ResponseEntity.ok(ticketService.getProviderTickets(userDetails.getUser().getId()));
+    }
+
+    @GetMapping("/open")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<TicketResponse>> getOpenTickets() {
+        return ResponseEntity.ok(ticketService.getOpenTickets());
+    }
+
+    @PostMapping("/{ticketId}/accept")
+    @PreAuthorize("hasRole('PROVIDER')")
+    public ResponseEntity<TicketResponse> acceptOpenTicket(
+        @PathVariable Long ticketId,
+        @AuthenticationPrincipal UserPrincipal userDetails
+    ) {
+        return ResponseEntity.ok(ticketService.acceptOpenTicket(ticketId, userDetails.getUser().getId()));
     }
 
     @GetMapping("/nearby")

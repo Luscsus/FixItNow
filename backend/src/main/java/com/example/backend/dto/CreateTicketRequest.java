@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 public class CreateTicketRequest {
@@ -24,17 +26,20 @@ public class CreateTicketRequest {
 
     private TicketPriority priority;
 
+    private UUID assignedProviderId;
+
     public CreateTicketRequest() {
     }
 
     public CreateTicketRequest(String serviceType, String description, String location, Double latitude,
-                               Double longitude, TicketPriority priority) {
+                               Double longitude, TicketPriority priority, UUID assignedProviderId) {
         this.serviceType = serviceType;
         this.description = description;
         this.location = location;
         this.latitude = latitude;
         this.longitude = longitude;
         this.priority = priority;
+        this.assignedProviderId = assignedProviderId;
     }
 }
 

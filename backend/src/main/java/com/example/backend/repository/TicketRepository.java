@@ -19,7 +19,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
 	List<Ticket> findByStatusAndPriority(TicketStatus status, TicketPriority priority);
 
-	@Query("select t from Ticket t join fetch t.user u join fetch u.location l where l.latitude is not null and l.longitude is not null")
+	List<Ticket> findByAssignedServiceProvider_IdOrderByCreatedAtDesc(UUID providerId);
+
+	List<Ticket> findByAssignedServiceProviderIsNullAndStatusOrderByCreatedAtDesc(TicketStatus status);
+
+	@Query("select t from Ticket t join fetch t.location l where l.latitude is not null and l.longitude is not null")
 	List<Ticket> findAllWithCoordinates();
 }
-

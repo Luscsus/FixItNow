@@ -4,10 +4,13 @@ import {
   useMemo,
   useState,
   type ReactNode,
+  useEffect,
 } from "react";
 
 import type { AuthSession, UserRole } from "@/domain/auth";
 import { jwtUserInfo } from "@/lib/jwt";
+import { setAuthRefreshHandler } from "@/services/httpClient";
+import { refreshToken as refreshTokenApi } from "@/services/authService";
 
 type AuthState = {
   accessToken: string;
@@ -72,6 +75,52 @@ function persistSession(state: AuthState) {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>(() => readStoredSession());
+
+  // Set up token refresh handler when component mounts
+  useEffect(() => {
+    const handleTokenRefresh = async (): Promise<string | null> => {
+      if (!state.refreshToken) {
+        // Clear session if no refresh token available
+        const nextState: AuthState = {
+          accessToken: "",
+          refreshToken: "",
+          tempToken: "",
+          role: null,
+        };
+        setState(nextState);
+        persistSession(nextState);
+        return null;
+      }
+
+      try {
+        const newSession = await refreshTokenApi({ refreshToken: state.refreshToken });
+        const nextState: AuthState = {
+          accessToken: newSession.accessToken,
+          refreshToken: newSession.refreshToken,
+          tempToken: "",
+          role: newSession.role as UserRole,
+        };
+        setState(nextState);
+        persistSession(nextState);
+        return newSession.accessToken;
+      } catch (error) {
+        // If refresh fails, clear the session
+        console.error("Token refresh failed:", error);
+        const nextState: AuthState = {
+          accessToken: "",
+          refreshToken: "",
+          tempToken: "",
+          role: null,
+        };
+        setState(nextState);
+        persistSession(nextState);
+        return null;
+      }
+    };
+
+    // Set up refresh handler that returns the new token
+    setAuthRefreshHandler(handleTokenRefresh);
+  }, [state.refreshToken]);
 
   const value = useMemo<AuthContextValue>(() => {
     const setSession = (session: AuthSession) => {

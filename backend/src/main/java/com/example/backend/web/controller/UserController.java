@@ -2,6 +2,8 @@ package com.example.backend.web.controller;
 
 import com.example.backend.domain.user.Provider;
 import com.example.backend.domain.user.User;
+import com.example.backend.domain.user.UserStatus;
+import com.example.backend.repository.ProviderRepository;
 import com.example.backend.security.UserPrincipal;
 import com.example.backend.web.dto.response.ProviderResponse;
 import com.example.backend.web.dto.response.UserSummaryResponse;
@@ -14,11 +16,15 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
 @Tag(name = "Current user", description = "Endpoints for the currently authenticated user's profile.")
 public class UserController {
+
+    private final ProviderRepository providerRepository;
 
     @Operation(summary = "Get the currently authenticated user's profile (any role).")
     @GetMapping("/users/me")

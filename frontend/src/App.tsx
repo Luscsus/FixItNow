@@ -18,6 +18,7 @@ import { UserDashboardPage } from "@/pages/UserDashboardPage";
 import { HomePage } from "@/pages/HomePage";
 import { NewTicketPage } from "@/pages/NewTicketsPage";
 import { BrowseProvidersPage } from "@/pages/BrowseProvidersPage";
+import { ProviderAccountPage } from "@/pages/ProviderAccountPage";
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
       <Route element={<AppLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/browse" element={<BrowseProvidersPage />} />
+        <Route path="/providers/:id" element={<ProviderAccountPage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/dashboard/user" element={<UserDashboardPage />} />

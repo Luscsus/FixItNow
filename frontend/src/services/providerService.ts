@@ -40,6 +40,10 @@ interface RawPagedResponse {
   totalElements: number
 }
 
+export async function getProviderById(id: string): Promise<ProviderDto> {
+  return requestJson<ProviderDto>(`/api/v1/providers/${id}`)
+}
+
 export async function searchProviders(params: URLSearchParams): Promise<ProviderDto[]> {
   const data = await requestJson<RawPagedResponse | ProviderDto[]>(
     `/api/v1/providers/search?${params}`,

@@ -4,21 +4,36 @@ import {
   useMemo,
   useState,
   type ReactNode,
+  useEffect,
 } from "react";
 
-import type { AuthSession } from "@/domain/auth";
+import type { AuthSession, UserRole } from "@/domain/auth";
+import { jwtUserInfo } from "@/lib/jwt";
+import { setAuthRefreshHandler } from "@/services/httpClient";
+import { refreshToken as refreshTokenApi } from "@/services/authService";
 
 type AuthState = {
   accessToken: string;
   refreshToken: string;
   tempToken: string;
+  role: UserRole | null;
+};
+
+export type UserInfo = {
+  email: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  initials: string;
 };
 
 type AuthContextValue = {
   accessToken: string;
   refreshToken: string;
   tempToken: string;
+  role: UserRole | null;
   isAuthenticated: boolean;
+  userInfo: UserInfo;
   setSession: (session: AuthSession) => void;
   setTempToken: (tempToken: string) => void;
   clearSession: () => void;
@@ -33,6 +48,7 @@ function readStoredSession(): AuthState {
     accessToken: "",
     refreshToken: "",
     tempToken: "",
+    role: null,
   };
 
   const raw = window.localStorage.getItem(storageKey);
@@ -46,6 +62,7 @@ function readStoredSession(): AuthState {
       accessToken: parsed.accessToken ?? "",
       refreshToken: parsed.refreshToken ?? "",
       tempToken: parsed.tempToken ?? "",
+      role: parsed.role ?? null,
     };
   } catch {
     return fallback;
@@ -59,12 +76,59 @@ function persistSession(state: AuthState) {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>(() => readStoredSession());
 
+  // Set up token refresh handler when component mounts
+  useEffect(() => {
+    const handleTokenRefresh = async (): Promise<string | null> => {
+      if (!state.refreshToken) {
+        // Clear session if no refresh token available
+        const nextState: AuthState = {
+          accessToken: "",
+          refreshToken: "",
+          tempToken: "",
+          role: null,
+        };
+        setState(nextState);
+        persistSession(nextState);
+        return null;
+      }
+
+      try {
+        const newSession = await refreshTokenApi({ refreshToken: state.refreshToken });
+        const nextState: AuthState = {
+          accessToken: newSession.accessToken,
+          refreshToken: newSession.refreshToken,
+          tempToken: "",
+          role: newSession.role as UserRole,
+        };
+        setState(nextState);
+        persistSession(nextState);
+        return newSession.accessToken;
+      } catch (error) {
+        // If refresh fails, clear the session
+        console.error("Token refresh failed:", error);
+        const nextState: AuthState = {
+          accessToken: "",
+          refreshToken: "",
+          tempToken: "",
+          role: null,
+        };
+        setState(nextState);
+        persistSession(nextState);
+        return null;
+      }
+    };
+
+    // Set up refresh handler that returns the new token
+    setAuthRefreshHandler(handleTokenRefresh);
+  }, [state.refreshToken]);
+
   const value = useMemo<AuthContextValue>(() => {
     const setSession = (session: AuthSession) => {
       const nextState: AuthState = {
         accessToken: session.accessToken,
         refreshToken: session.refreshToken,
         tempToken: "",
+        role: session.role,
       };
       setState(nextState);
       persistSession(nextState);
@@ -84,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         accessToken: "",
         refreshToken: "",
         tempToken: "",
+        role: null,
       };
       setState(nextState);
       persistSession(nextState);
@@ -93,7 +158,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       accessToken: state.accessToken,
       refreshToken: state.refreshToken,
       tempToken: state.tempToken,
+      role: state.role,
       isAuthenticated: state.accessToken !== "",
+      userInfo: state.accessToken ? jwtUserInfo(state.accessToken) : { email: "", firstName: "", lastName: "", fullName: "", initials: "" },
       setSession,
       setTempToken,
       clearSession,

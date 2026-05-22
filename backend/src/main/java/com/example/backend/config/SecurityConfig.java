@@ -34,6 +34,7 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_ENDPOINTS = {
         "/api/v1/auth/register",
+        "/api/v1/auth/register/provider",
         "/api/v1/auth/login",
         "/api/v1/auth/confirm-email",
         "/api/v1/auth/resend-confirmation",
@@ -42,6 +43,7 @@ public class SecurityConfig {
         "/api/v1/auth/refresh",
         "/api/v1/auth/logout",
         "/api/v1/auth/2fa/verify",
+        "/api/v1/providers/search",
         "/actuator/health",
         "/swagger-ui/**",
         "/swagger-ui.html",
@@ -70,7 +72,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         // Your browser origin (Vite default): http://localhost:5173
-        // This is read from application.yml -> app.frontend-url (or .env FRONTEND_URL)
+        // This is read from application.yml -> app.frontend-url (or ..env FRONTEND_URL)
         config.setAllowedOrigins(List.of(frontendUrl));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));

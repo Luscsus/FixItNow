@@ -1,7 +1,9 @@
 package com.example.backend.domain.user;
 
+import com.example.backend.domain.location.Location;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -19,7 +21,7 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class User {
 
     @Id
@@ -42,7 +44,7 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     @Builder.Default
-    private UserRole role = UserRole.USER;
+    private UserRole role = UserRole.CUSTOMER;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
@@ -59,6 +61,10 @@ public class User {
 
     @Column(length = 100)
     private String twoFactorSecret;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "location_id")
+    private Location location;
 
     @CreatedDate
     @Column(nullable = false, updatable = false)

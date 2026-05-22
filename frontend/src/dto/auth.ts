@@ -2,6 +2,7 @@ export type AuthResponseDto = {
   accessToken?: string
   refreshToken?: string
   tokenType?: string
+  role?: string
   requiresTwoFactor?: boolean
   tempToken?: string
 }
@@ -16,6 +17,21 @@ export type RegisterRequestDto = {
   password: string
   firstName: string
   lastName: string
+}
+
+export type ProviderRegisterRequestDto = {
+  email: string
+  password: string
+  firstName: string
+  lastName: string
+  phoneNumber?: string
+  locationLat: number
+  locationLon: number
+  pricePerHour: number
+  yearsOfExperience: number
+  serviceRadiusKm: number
+  categories: string[]
+  bio?: string
 }
 
 export type ForgotPasswordRequestDto = {

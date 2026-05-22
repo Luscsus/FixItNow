@@ -73,7 +73,11 @@ export function LoginPage() {
     }
 
     setSession(result);
-    navigate("/");
+    if (result.role === "PROVIDER") {
+      navigate("/dashboard/provider");
+    } else {
+      navigate("/dashboard/user");
+    }
   };
 
   return (
@@ -173,6 +177,14 @@ export function LoginPage() {
                 />
               </div>
               {errors.email && <span className="field-error">{errors.email}</span>}
+              {showConfirmLink && (
+                <Link
+                  to="/confirm-email"
+                  style={{ fontSize: 13, color: "var(--navy-700)", fontWeight: 500, textDecoration: "none", marginTop: 2 }}
+                >
+                  Confirm or resend email confirmation →
+                </Link>
+              )}
             </div>
 
             <div className="field">
@@ -241,13 +253,6 @@ export function LoginPage() {
             </button>
           </form>
 
-          {showConfirmLink && (
-            <p style={{ marginTop: 16, fontSize: 13, color: "var(--text-muted)" }}>
-              <Link to="/confirm-email" style={{ color: "var(--navy-700)", fontWeight: 500 }}>
-                Confirm or resend email confirmation →
-              </Link>
-            </p>
-          )}
         </div>
       </div>
     </div>

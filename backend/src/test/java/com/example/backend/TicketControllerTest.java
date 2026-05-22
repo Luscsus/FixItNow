@@ -1,6 +1,6 @@
 package com.example.backend;
 
-import com.example.backend.controller.TicketController;
+import com.example.backend.web.controller.TicketController;
 import com.example.backend.domain.ticket.TicketPriority;
 import com.example.backend.domain.ticket.TicketStatus;
 import com.example.backend.domain.user.User;

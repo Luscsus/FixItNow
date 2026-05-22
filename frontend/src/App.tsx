@@ -16,6 +16,7 @@ import { ResetPasswordPage } from "@/pages/ResetPasswordPage";
 import { TwoFactorVerifyPage } from "@/pages/TwoFactorVerifyPage";
 import { UserDashboardPage } from "@/pages/UserDashboardPage";
 import { HomePage } from "@/pages/HomePage";
+import { NewTicketPage } from "@/pages/NewTicketsPage";
 import { BrowseProvidersPage } from "@/pages/BrowseProvidersPage";
 
 function App() {
@@ -43,10 +44,15 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/dashboard/user" element={<UserDashboardPage />} />
-          <Route path="/dashboard/provider" element={<ProviderDashboardPage />} />
+          <Route
+            path="/dashboard/provider"
+            element={<ProviderDashboardPage />}
+          />
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Route>
+      <Route path="/tickets/new" element={<NewTicketPage />} />
+      <Route path="/providers" element={<BrowseProvidersPage />} />
     </Routes>
   );
 }

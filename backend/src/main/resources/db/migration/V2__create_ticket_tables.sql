@@ -15,6 +15,7 @@ ALTER TABLE users
 CREATE TABLE IF NOT EXISTS tickets (
     id BIGSERIAL PRIMARY KEY,
     user_id UUID NOT NULL,
+    location_id BIGINT,
     service_type VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
     assigned_service_provider_id UUID,
@@ -24,10 +25,10 @@ CREATE TABLE IF NOT EXISTS tickets (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_tickets_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT fk_tickets_service_provider FOREIGN KEY (assigned_service_provider_id) REFERENCES providers(id)
+    CONSTRAINT fk_tickets_location FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL,
+    CONSTRAINT fk_tickets_service_provider FOREIGN KEY (assigned_service_provider_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_locations_address ON locations (address);
 CREATE INDEX IF NOT EXISTS idx_tickets_user_id ON tickets (user_id);
 CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets (status);
-

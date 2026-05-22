@@ -72,7 +72,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         // Your browser origin (Vite default): http://localhost:5173
-        // This is read from application.yml -> app.frontend-url (or .env FRONTEND_URL)
+        // This is read from application.yml -> app.frontend-url (or ..env FRONTEND_URL)
         config.setAllowedOrigins(List.of(frontendUrl));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));

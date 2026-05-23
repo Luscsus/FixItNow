@@ -44,6 +44,7 @@ public class SecurityConfig {
         "/api/v1/auth/logout",
         "/api/v1/auth/2fa/verify",
         "/api/v1/providers/search",
+        "/api/v1/providers/categories",
         "/actuator/health",
         "/swagger-ui/**",
         "/swagger-ui.html",

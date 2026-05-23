@@ -1,4 +1,5 @@
 import type React from "react";
+import type { ComponentType } from "react";
 import {
   IconDrop,
   IconBolt,
@@ -7,31 +8,41 @@ import {
   IconCmd,
   IconHammer,
   IconKey,
+  IconBook,
+  IconLeaf,
+  IconHome,
+  IconBrush,
+  IconSparkles,
+  IconTruck,
+  IconBug,
+  IconDots,
 } from "./BrowseIcons";
 
 export type Segment = "category" | "location" | "experience" | "budget" | "sort";
 
 export const PAGE_SIZE = 8;
 
-export const ALL_CATEGORIES = [
-  { key: "PLUMBING", label: "Plumbing", Icon: IconDrop },
-  { key: "ELECTRICAL", label: "Electrical", Icon: IconBolt },
-  { key: "HVAC", label: "HVAC", Icon: IconSpark },
-  { key: "HARDWARE", label: "Hardware", Icon: IconWrench },
-  { key: "IT", label: "IT / Software", Icon: IconCmd },
-  { key: "CARPENTRY", label: "Carpentry", Icon: IconHammer },
-  { key: "LOCKSMITH", label: "Locksmith", Icon: IconKey },
-];
-
-export const CATEGORY_LABEL: Record<string, string> = {
-  PLUMBING: "Plumbing",
-  ELECTRICAL: "Electrical",
-  HVAC: "HVAC",
-  HARDWARE: "Hardware",
-  IT: "IT / Software",
-  CARPENTRY: "Carpentry",
-  LOCKSMITH: "Locksmith",
+export const CATEGORY_META: Record<string, { label: string; Icon: ComponentType<{ size?: number }> }> = {
+  PLUMBING:        { label: "Plumbing",        Icon: IconDrop },
+  ELECTRICAL:      { label: "Electrical",      Icon: IconBolt },
+  HVAC:            { label: "HVAC",            Icon: IconSpark },
+  CARPENTRY:       { label: "Carpentry",       Icon: IconHammer },
+  ROOFING:         { label: "Roofing",         Icon: IconHome },
+  PAINTING:        { label: "Painting",        Icon: IconBrush },
+  APPLIANCE_REPAIR:{ label: "Appliance Repair",Icon: IconWrench },
+  LOCKSMITH:       { label: "Locksmith",       Icon: IconKey },
+  CLEANING:        { label: "Cleaning",        Icon: IconSparkles },
+  GARDENING:       { label: "Gardening",       Icon: IconLeaf },
+  PEST_CONTROL:    { label: "Pest Control",    Icon: IconBug },
+  MOVING:          { label: "Moving",          Icon: IconTruck },
+  IT_SUPPORT:      { label: "IT Support",      Icon: IconCmd },
+  TUTORING:        { label: "Tutoring",        Icon: IconBook },
+  OTHER:           { label: "Other",           Icon: IconDots },
 };
+
+export const CATEGORY_LABEL: Record<string, string> = Object.fromEntries(
+  Object.entries(CATEGORY_META).map(([k, v]) => [k, v.label]),
+);
 
 export const EXP_PRESETS = [
   { label: "Any", value: 0 },

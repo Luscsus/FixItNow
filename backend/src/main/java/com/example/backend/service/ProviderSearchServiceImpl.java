@@ -1,6 +1,8 @@
 package com.example.backend.service;
 
 import com.example.backend.domain.user.Provider;
+import com.example.backend.domain.user.ServiceCategory;
+import com.example.backend.domain.user.UserStatus;
 import com.example.backend.repository.ProviderRepository;
 import com.example.backend.repository.ProviderSpecification;
 import com.example.backend.web.dto.request.ProviderSearchParams;
@@ -10,6 +12,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +23,7 @@ public class ProviderSearchServiceImpl implements ProviderSearchService {
     private final ProviderRepository providerRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public Page<ProviderSearchResult> search(ProviderSearchParams params) {
         Specification<Provider> spec = Specification
             .where(ProviderSpecification.isActive())
@@ -29,6 +35,12 @@ public class ProviderSearchServiceImpl implements ProviderSearchService {
 
         return providerRepository.findAll(spec, PageRequest.of(params.getPage(), params.getSize()))
             .map(p -> ProviderSearchResult.from(p, computeDistance(p, params)));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<ServiceCategory> getActiveCategories() {
+        return providerRepository.findDistinctCategoriesByStatus(UserStatus.ACTIVE);
     }
 
     private Double computeDistance(Provider provider, ProviderSearchParams params) {

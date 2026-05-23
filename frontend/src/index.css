@@ -93,6 +93,23 @@ input, textarea, select { font: inherit; color: inherit; }
 }
 .brand-now { color: var(--accent); }
 
+/* ─── Skeleton shimmer ─── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+.skeleton {
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--slate-200) 25%,
+    var(--slate-100) 50%,
+    var(--slate-200) 75%
+  );
+  background-size: 1200px 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
 /* ─── Eyebrow ─── */
 .eyebrow {
   font-family: var(--font-mono);

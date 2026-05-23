@@ -4,6 +4,7 @@ import com.example.backend.domain.ticket.Ticket;
 import com.example.backend.domain.ticket.TicketPriority;
 import com.example.backend.domain.ticket.TicketStatus;
 import com.example.backend.domain.location.Location;
+import com.example.backend.domain.user.ServiceCategory;
 import com.example.backend.domain.user.User;
 import com.example.backend.dto.CreateTicketRequest;
 import com.example.backend.dto.TicketResponse;
@@ -76,6 +77,7 @@ class TicketServiceTest {
 	void createTicketShouldPersistOpenTicketForExistingUser() {
 		CreateTicketRequest request = new CreateTicketRequest();
 		request.setServiceType("pušča pipa");
+		request.setCategory(ServiceCategory.PLUMBING);
 		request.setDescription("V kuhinji pušča pipa");
 		request.setLocation("Ljubljana");
 		request.setLatitude(46.0569);
@@ -100,6 +102,7 @@ class TicketServiceTest {
 	void createTicketShouldThrowWhenUserMissing() {
 		CreateTicketRequest request = new CreateTicketRequest();
 		request.setServiceType("elektrika");
+		request.setCategory(ServiceCategory.ELECTRICAL);
 		request.setDescription("Stikalo ne deluje");
 		request.setLocation("Maribor");
 

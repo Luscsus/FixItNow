@@ -1,6 +1,7 @@
 package com.example.backend.domain.ticket;
 
 import com.example.backend.domain.location.Location;
+import com.example.backend.domain.user.ServiceCategory;
 import com.example.backend.domain.user.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -45,6 +46,10 @@ public class Ticket {
     @Column(name = "service_type", nullable = false, length = 255)
     private String serviceType;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
+    private ServiceCategory category = ServiceCategory.OTHER;
+
     @Column(columnDefinition = "TEXT", nullable = false)
     private String description;
 
@@ -74,13 +79,14 @@ public class Ticket {
     public Ticket() {
     }
 
-    public Ticket(Long id, User user, Location location, String serviceType, String description,
-                  TicketStatus status, TicketPriority priority, BigDecimal estimatedCost,
+    public Ticket(Long id, User user, Location location, String serviceType, ServiceCategory category,
+                  String description, TicketStatus status, TicketPriority priority, BigDecimal estimatedCost,
                   LocalDateTime createdAt, LocalDateTime updatedAt, User assignedServiceProvider) {
         this.id = id;
         this.user = user;
         this.location = location;
         this.serviceType = serviceType;
+        this.category = category;
         this.description = description;
         this.status = status;
         this.priority = priority;

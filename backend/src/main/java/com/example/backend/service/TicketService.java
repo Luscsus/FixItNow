@@ -4,6 +4,7 @@ import com.example.backend.domain.ticket.Ticket;
 import com.example.backend.domain.ticket.TicketPriority;
 import com.example.backend.domain.ticket.TicketStatus;
 import com.example.backend.dto.CreateTicketRequest;
+import com.example.backend.dto.OpenTicketSummary;
 import com.example.backend.dto.TicketResponse;
 import com.example.backend.exception.InvalidTicketStatusTransitionException;
 import com.example.backend.exception.TicketNotFoundException;
@@ -48,6 +49,7 @@ public class TicketService {
         Ticket ticket = new Ticket();
         ticket.setUser(user);
         ticket.setServiceType(request.getServiceType());
+        ticket.setCategory(request.getCategory());
         ticket.setDescription(request.getDescription());
         Location location = upsertLocation(user, request);
         ticket.setLocation(location);
@@ -103,11 +105,8 @@ public class TicketService {
     }
 
     @Transactional(readOnly = true)
-    public List<TicketResponse> getOpenTickets() {
-        return ticketRepository.findByAssignedServiceProviderIsNullAndStatusOrderByCreatedAtDesc(TicketStatus.PENDING_APPROVAL)
-            .stream()
-            .map(this::toResponse)
-            .toList();
+    public List<OpenTicketSummary> getOpenTickets() {
+        return ticketRepository.findTop20OpenTicketSummaries();
     }
 
     @Transactional
@@ -183,6 +182,7 @@ public class TicketService {
         return new TicketResponse(
             ticket.getId(),
             ticket.getServiceType(),
+            ticket.getCategory(),
             ticket.getDescription(),
             ticket.getLocation() != null ? ticket.getLocation().getAddress() : null,
             ticket.getStatus(),

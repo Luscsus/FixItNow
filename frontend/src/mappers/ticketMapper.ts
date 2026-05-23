@@ -5,6 +5,7 @@ export function mapTicket(dto: TicketResponseDto): Ticket {
   return {
     id: dto.id,
     serviceType: dto.serviceType,
+    category: dto.category,
     description: dto.description,
     location: dto.location,
     status: dto.status,

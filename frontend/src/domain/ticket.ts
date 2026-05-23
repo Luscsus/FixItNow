@@ -10,9 +10,27 @@ export type TicketStatus =
   | "COMPLETED"
   | "CANCELLED";
 
+export type ServiceCategory =
+  | "PLUMBING"
+  | "ELECTRICAL"
+  | "CARPENTRY"
+  | "PAINTING"
+  | "CLEANING"
+  | "GARDENING"
+  | "MOVING"
+  | "APPLIANCE_REPAIR"
+  | "HVAC"
+  | "ROOFING"
+  | "LOCKSMITH"
+  | "PEST_CONTROL"
+  | "TUTORING"
+  | "IT_SUPPORT"
+  | "OTHER";
+
 export type Ticket = {
   id: number;
   serviceType: string;
+  category: ServiceCategory;
   description: string;
   location: string;
   status: TicketStatus;

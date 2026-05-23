@@ -60,6 +60,58 @@ DECLARE
         'PENDING_PROVIDER_INVOICE','PENDING_PAYMENT','COMPLETED','CANCELLED'
     ];
     ticket_priorities TEXT[] := ARRAY['LOW','MEDIUM','HIGH','CRITICAL'];
+    service_titles TEXT[] := ARRAY[
+        'Leaking Kitchen Sink',
+        'Dripping Bathroom Faucet',
+        'Non-functional Electrical Outlets',
+        'Ceiling Fan Installation',
+        'Hardwood Floor Repair',
+        'Interior Apartment Painting',
+        'Post-renovation Deep Clean',
+        'Garden Maintenance & Lawn Mowing',
+        'Apartment Moving Assistance',
+        'Washing Machine Repair',
+        'AC Unit Noise & Cooling Issue',
+        'Roof Leak Repair',
+        'Emergency Lockout',
+        'Mice Infestation Extermination',
+        'High School Math Tutoring',
+        'Slow Computer & Malware Removal',
+        'Running Toilet Repair',
+        'Circuit Breaker Tripping',
+        'Deck Sanding & Waterproofing',
+        'Exterior Window Frame Painting',
+        'Full Home Carpet Cleaning',
+        'Tree Trimming & Yard Cleanup',
+        'Grand Piano Relocation',
+        'Dishwasher Drainage Issue',
+        'Furnace Efficiency Problem',
+        'Clogged Gutter Cleaning',
+        'Door Lock Replacement',
+        'Kitchen Ant Infestation',
+        'English Tutoring for Adults',
+        'Home Network Setup',
+        'Burst Pipe Emergency',
+        'Security Lighting Installation',
+        'Custom Built-in Shelving',
+        'Full Exterior House Painting',
+        'Post-construction Kitchen Clean',
+        'Hedge Trimming & Shrub Shaping',
+        'Furniture Assembly & Arrangement',
+        'Refrigerator Not Cooling',
+        'Water Heater Replacement',
+        'Chimney Inspection & Cleaning'
+    ];
+    ticket_categories TEXT[] := ARRAY[
+        'PLUMBING','PLUMBING','ELECTRICAL','ELECTRICAL','CARPENTRY',
+        'PAINTING','CLEANING','GARDENING','MOVING','APPLIANCE_REPAIR',
+        'HVAC','ROOFING','LOCKSMITH','PEST_CONTROL','TUTORING',
+        'IT_SUPPORT','PLUMBING','ELECTRICAL','CARPENTRY','PAINTING',
+        'CLEANING','GARDENING','MOVING','APPLIANCE_REPAIR','HVAC',
+        'ROOFING','LOCKSMITH','PEST_CONTROL','TUTORING','IT_SUPPORT',
+        'PLUMBING','ELECTRICAL','CARPENTRY','PAINTING','CLEANING',
+        'GARDENING','MOVING','APPLIANCE_REPAIR','HVAC','ROOFING'
+    ];
     service_descriptions TEXT[] := ARRAY[
         'Kitchen sink is leaking and needs immediate repair.',
         'Bathroom faucet dripping constantly, needs replacement.',
@@ -330,13 +382,14 @@ BEGIN
         END IF;
 
         INSERT INTO tickets (
-            user_id, location_id, service_type, description,
+            user_id, location_id, service_type, category, description,
             assigned_service_provider_id, status, priority,
             estimated_cost, created_at, updated_at
         ) VALUES (
             tick_uid,
             tick_loc_ids[i],
-            categories[((i - 1) % array_length(categories, 1)) + 1],
+            service_titles[((i - 1) % array_length(service_titles, 1)) + 1],
+            ticket_categories[((i - 1) % array_length(ticket_categories, 1)) + 1],
             service_descriptions[((i - 1) % array_length(service_descriptions, 1)) + 1],
             tick_prov_id,
             tick_status,

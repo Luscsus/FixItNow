@@ -1,7 +1,9 @@
 package com.example.backend.dto;
 
 import com.example.backend.domain.ticket.TicketPriority;
+import com.example.backend.domain.user.ServiceCategory;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -13,6 +15,9 @@ public class CreateTicketRequest {
 
     @NotBlank
     private String serviceType;
+
+    @NotNull
+    private ServiceCategory category;
 
     @NotBlank
     private String description;
@@ -31,9 +36,10 @@ public class CreateTicketRequest {
     public CreateTicketRequest() {
     }
 
-    public CreateTicketRequest(String serviceType, String description, String location, Double latitude,
-                               Double longitude, TicketPriority priority, UUID assignedProviderId) {
+    public CreateTicketRequest(String serviceType, ServiceCategory category, String description, String location,
+                               Double latitude, Double longitude, TicketPriority priority, UUID assignedProviderId) {
         this.serviceType = serviceType;
+        this.category = category;
         this.description = description;
         this.location = location;
         this.latitude = latitude;

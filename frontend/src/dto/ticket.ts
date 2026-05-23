@@ -10,9 +10,27 @@ export type TicketStatusDto =
   | "COMPLETED"
   | "CANCELLED";
 
+export type ServiceCategoryDto =
+  | "PLUMBING"
+  | "ELECTRICAL"
+  | "CARPENTRY"
+  | "PAINTING"
+  | "CLEANING"
+  | "GARDENING"
+  | "MOVING"
+  | "APPLIANCE_REPAIR"
+  | "HVAC"
+  | "ROOFING"
+  | "LOCKSMITH"
+  | "PEST_CONTROL"
+  | "TUTORING"
+  | "IT_SUPPORT"
+  | "OTHER";
+
 export type TicketResponseDto = {
   id: number;
   serviceType: string;
+  category: ServiceCategoryDto;
   description: string;
   location: string;
   status: TicketStatusDto;
@@ -25,6 +43,7 @@ export type TicketResponseDto = {
 
 export type CreateTicketRequestDto = {
   serviceType: string;
+  category: ServiceCategoryDto;
   description: string;
   location: string;
   priority: TicketPriorityDto;

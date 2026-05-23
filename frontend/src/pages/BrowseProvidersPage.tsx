@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useSearchParams, useNavigate, useLocation } from "react-router-dom";
+import { useActiveCategoriesQuery } from "@/hooks/useActiveCategoriesQuery";
 import { useAllProvidersQuery } from "@/hooks/useAllProvidersQuery";
 import { useProviderSearchQuery } from "@/hooks/useProviderSearchQuery";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -34,6 +35,7 @@ export function BrowseProvidersPage() {
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(
     null,
   );
+  const [geoSettled, setGeoSettled] = useState(false);
 
   /* ── UI state ── */
   const [sortBy, setSortBy] = useState("default");
@@ -52,9 +54,9 @@ export function BrowseProvidersPage() {
     minPrice,
     maxPrice,
     minYearsOfExperience: minExp,
-    latitude: coords?.lat ?? 0,
-    longitude: coords?.lon ?? 0,
-    radiusKm: coords ? radiusKm : 20020,
+    latitude: coords?.lat ?? null,
+    longitude: coords?.lon ?? null,
+    radiusKm: coords ? radiusKm : null,
     page: page - 1,
     size: PAGE_SIZE,
   };
@@ -64,9 +66,11 @@ export function BrowseProvidersPage() {
     data: searchData,
     isLoading,
     error: searchError,
-  } = useProviderSearchQuery(debouncedSearchParams);
-  const { data: allProviders = [] } = useAllProvidersQuery();
+  } = useProviderSearchQuery(debouncedSearchParams, geoSettled);
 
+  const { data: allProviders = [] } = useAllProvidersQuery();
+  const { data: activeCategories = [] } = useActiveCategoriesQuery();
+  const effectiveLoading = !geoSettled || isLoading;
   const results = searchData?.content ?? null;
   const totalPages = searchData?.totalPages ?? 0;
   const totalElements = searchData?.totalElements ?? 0;
@@ -110,12 +114,25 @@ export function BrowseProvidersPage() {
   }, [coords, sortBy]);
 
   useEffect(() => {
-    if (!("geolocation" in navigator)) return;
+    // Delay enabling the query by 450ms (> 400ms debounce) after coords are known,
+    // so debouncedSearchParams has processed any coord update before the query fires.
+    const settle = (pos?: GeolocationPosition) => {
+      if (pos) setCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+      setTimeout(() => setGeoSettled(true), 450);
+    };
+
+    if (!("geolocation" in navigator)) {
+      settle();
+      return;
+    }
+
+    const geoTimer = setTimeout(() => settle(), 1500);
     navigator.geolocation.getCurrentPosition(
-      (pos) =>
-        setCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-      () => {},
+      (pos) => { clearTimeout(geoTimer); settle(pos); },
+      () => { clearTimeout(geoTimer); settle(); },
+      { timeout: 1500 },
     );
+    return () => clearTimeout(geoTimer);
   }, []);
 
   useEffect(() => {
@@ -286,10 +303,10 @@ export function BrowseProvidersPage() {
               maxWidth: 600,
             }}
           >
-            {allProviders.length > 0
-              ? allProviders.length.toLocaleString()
+            {totalElements > 0
+              ? totalElements.toLocaleString()
               : "…"}{" "}
-            vetted providers. Use the filters below to narrow by trade,
+            providers available. Use the filters below to narrow by trade,
             distance, experience, or budget.
           </p>
         </div>
@@ -312,7 +329,8 @@ export function BrowseProvidersPage() {
           setMinExp={setMinExp}
           setPage={setPage}
           coords={coords}
-          isLoading={isLoading}
+          isLoading={effectiveLoading}
+          categories={activeCategories}
           categoryCountMap={categoryCountMap}
           openSeg={openSeg}
           setOpenSeg={setOpenSeg}
@@ -342,6 +360,7 @@ export function BrowseProvidersPage() {
             setMinExp={setMinExp}
             setPage={setPage}
             coords={coords}
+            categories={activeCategories}
             categoryCountMap={categoryCountMap}
             onReset={handleReset}
           />
@@ -349,7 +368,7 @@ export function BrowseProvidersPage() {
           <ResultsSection
             resultsRef={resultsRef}
             sortRef={sortRef}
-            isLoading={isLoading}
+            isLoading={effectiveLoading}
             error={error}
             sortedResults={sortedResults}
             sortBy={sortBy}

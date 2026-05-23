@@ -4,6 +4,43 @@ import { BrowsePagination } from "./BrowsePagination";
 import { ProviderCard } from "./ProviderCard";
 import { type Segment, SORT_OPTIONS, DROPDOWN } from "./browseConstants";
 
+function SkeletonCard() {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "96px 1fr auto",
+        gap: 20,
+        background: "var(--card)",
+        border: "1px solid var(--border)",
+        borderRadius: 12,
+        padding: 20,
+        alignItems: "flex-start",
+      }}
+    >
+      <div className="skeleton" style={{ width: 96, height: 96, borderRadius: 14 }} />
+      <div>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8 }}>
+          <div className="skeleton" style={{ height: 20, width: 140 }} />
+          <div className="skeleton" style={{ height: 18, width: 62, borderRadius: 4 }} />
+        </div>
+        <div className="skeleton" style={{ height: 13, width: 190, borderRadius: 4, marginBottom: 10 }} />
+        <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+          <div className="skeleton" style={{ height: 22, width: 72, borderRadius: 999 }} />
+          <div className="skeleton" style={{ height: 22, width: 56, borderRadius: 999 }} />
+        </div>
+        <div className="skeleton" style={{ height: 12, width: "88%", borderRadius: 4, marginBottom: 5 }} />
+        <div className="skeleton" style={{ height: 12, width: "55%", borderRadius: 4 }} />
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end", minWidth: 152 }}>
+        <div className="skeleton" style={{ height: 20, width: 52, borderRadius: 4 }} />
+        <div className="skeleton" style={{ height: 18, width: 84, borderRadius: 4 }} />
+        <div className="skeleton" style={{ height: 32, width: 80, borderRadius: 8 }} />
+      </div>
+    </div>
+  );
+}
+
 interface ResultsSectionProps {
   resultsRef: React.RefObject<HTMLElement | null>;
   sortRef: React.RefObject<HTMLDivElement | null>;
@@ -197,18 +234,7 @@ export function ResultsSection({
       {/* Loading skeletons */}
       {isLoading && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              style={{
-                height: 136,
-                borderRadius: 12,
-                border: "1px solid var(--border)",
-                background: "var(--slate-50, #f8fafc)",
-                opacity: 0.7,
-              }}
-            />
-          ))}
+          {[1, 2, 3].map((i) => <SkeletonCard key={i} />)}
         </div>
       )}
 

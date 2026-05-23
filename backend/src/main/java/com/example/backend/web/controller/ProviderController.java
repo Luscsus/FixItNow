@@ -1,5 +1,6 @@
 package com.example.backend.web.controller;
 
+import com.example.backend.domain.user.ServiceCategory;
 import com.example.backend.service.ProviderSearchService;
 import com.example.backend.web.dto.request.ProviderSearchParams;
 import com.example.backend.web.dto.response.ProviderSearchResult;
@@ -14,6 +15,8 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Set;
+
 @RestController
 @RequestMapping("/api/v1/providers")
 @RequiredArgsConstructor
@@ -21,6 +24,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class ProviderController {
 
     private final ProviderSearchService providerSearchService;
+
+    @Operation(
+        summary = "Get categories with active providers",
+        description = "Returns the set of service categories that have at least one active provider."
+    )
+    @GetMapping("/categories")
+    public ResponseEntity<Set<ServiceCategory>> getActiveCategories() {
+        return ResponseEntity.ok(providerSearchService.getActiveCategories());
+    }
 
     @Operation(
         summary = "Search active providers",

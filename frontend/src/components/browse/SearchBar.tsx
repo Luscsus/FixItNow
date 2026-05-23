@@ -2,7 +2,7 @@ import { IconSearch, IconPin, IconChevron } from "./BrowseIcons";
 import { BrowsePill } from "./BrowsePill";
 import {
   type Segment,
-  ALL_CATEGORIES,
+  CATEGORY_META,
   CATEGORY_LABEL,
   EXP_PRESETS,
   BUDGET_PRESETS,
@@ -115,6 +115,7 @@ interface SearchBarProps {
   setPage: (p: number) => void;
   coords: { lat: number; lon: number } | null;
   isLoading: boolean;
+  categories: string[];
   categoryCountMap: Record<string, number>;
   openSeg: Segment | null;
   setOpenSeg: (s: Segment | null) => void;
@@ -139,6 +140,7 @@ export function SearchBar({
   setPage,
   coords,
   isLoading,
+  categories,
   categoryCountMap,
   openSeg,
   setOpenSeg,
@@ -226,7 +228,7 @@ export function SearchBar({
         </div>
 
         {openSeg === "category" && (
-          <div style={{ ...DROPDOWN, minWidth: 268, padding: "4px 0" }}>
+          <div style={{ ...DROPDOWN, minWidth: 268 }}>
             <div
               style={{
                 padding: "10px 16px 10px",
@@ -267,7 +269,9 @@ export function SearchBar({
                 </button>
               )}
             </div>
-            {ALL_CATEGORIES.map(({ key, label, Icon }) => {
+            <div style={{ maxHeight: 260, overflowY: "auto" }}>
+            {categories.map((key) => {
+              const { label, Icon } = CATEGORY_META[key] ?? { label: key, Icon: null };
               const active = selectedCategories.includes(key);
               return (
                 <div
@@ -313,7 +317,7 @@ export function SearchBar({
                       </span>
                     )}
                   </div>
-                  <Icon size={13} />
+                  {Icon && <Icon size={13} />}
                   <span
                     style={{ flex: 1, fontSize: 13.5, color: "var(--text)" }}
                   >
@@ -331,6 +335,7 @@ export function SearchBar({
                 </div>
               );
             })}
+            </div>
           </div>
         )}
       </div>

@@ -4,10 +4,12 @@ import com.example.backend.domain.user.Provider;
 import com.example.backend.domain.user.ServiceCategory;
 import com.example.backend.domain.user.UserStatus;
 import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Subquery;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 import java.util.Set;
+import java.util.UUID;
 
 public final class ProviderSpecification {
 
@@ -20,9 +22,13 @@ public final class ProviderSpecification {
     public static Specification<Provider> hasAnyCategory(Set<ServiceCategory> categories) {
         if (categories == null || categories.isEmpty()) return null;
         return (root, query, cb) -> {
-            // providers whose categories collection intersects with the requested set
-            query.distinct(true);
-            return root.join("categories").in(categories);
+            // Use a subquery so the outer COUNT query stays simple and returns correct totals.
+            // A direct JOIN + distinct(true) corrupts the Spring Data pagination count query.
+            Subquery<UUID> sub = query.subquery(UUID.class);
+            var subRoot = sub.from(Provider.class);
+            sub.select(subRoot.get("id"))
+               .where(subRoot.join("categories").in(categories));
+            return root.get("id").in(sub);
         };
     }
 

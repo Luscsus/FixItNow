@@ -1,6 +1,6 @@
 import { BrowsePill } from "./BrowsePill";
 import {
-  ALL_CATEGORIES,
+  CATEGORY_META,
   EXP_PRESETS,
   BUDGET_PRESETS,
   FILTER_HEAD,
@@ -8,6 +8,7 @@ import {
 } from "./browseConstants";
 
 interface FilterSidebarProps {
+  categories: string[];
   selectedCategories: string[];
   toggleCategory: (key: string) => void;
   radiusKm: number;
@@ -25,6 +26,7 @@ interface FilterSidebarProps {
 }
 
 export function FilterSidebar({
+  categories,
   selectedCategories,
   toggleCategory,
   radiusKm,
@@ -85,42 +87,48 @@ export function FilterSidebar({
       {/* Trade */}
       <div style={{ marginBottom: 26 }}>
         <h4 style={FILTER_HEAD}>Trade</h4>
-        {ALL_CATEGORIES.map(({ key, label, Icon }) => (
-          <label
-            key={key}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 9,
-              padding: "5px 0",
-              fontSize: 13.5,
-              cursor: "pointer",
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={selectedCategories.includes(key)}
-              onChange={() => toggleCategory(key)}
+        <div style={{ maxHeight: 200, overflowY: "auto" }}>
+        {categories.map((key) => {
+          const meta = CATEGORY_META[key] ?? { label: key, Icon: null };
+          const { label, Icon } = meta;
+          return (
+            <label
+              key={key}
               style={{
-                accentColor: "var(--navy-700, #1e3a8a)",
-                width: 14,
-                height: 14,
-                flexShrink: 0,
-              }}
-            />
-            <Icon size={12} />
-            <span style={{ flex: 1, color: "var(--text)" }}>{label}</span>
-            <span
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 11,
-                color: "var(--text-muted)",
+                display: "flex",
+                alignItems: "center",
+                gap: 9,
+                padding: "5px 0",
+                fontSize: 13.5,
+                cursor: "pointer",
               }}
             >
-              {categoryCountMap[key] ?? 0}
-            </span>
-          </label>
-        ))}
+              <input
+                type="checkbox"
+                checked={selectedCategories.includes(key)}
+                onChange={() => toggleCategory(key)}
+                style={{
+                  accentColor: "var(--navy-700, #1e3a8a)",
+                  width: 14,
+                  height: 14,
+                  flexShrink: 0,
+                }}
+              />
+              {Icon && <Icon size={12} />}
+              <span style={{ flex: 1, color: "var(--text)" }}>{label}</span>
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 11,
+                  color: "var(--text-muted)",
+                }}
+              >
+                {categoryCountMap[key] ?? 0}
+              </span>
+            </label>
+          );
+        })}
+        </div>
       </div>
 
       {/* Distance */}

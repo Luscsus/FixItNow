@@ -1,15 +1,18 @@
 import { useMemo, useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 
-import type { TicketPriority } from "@/domain/ticket";
+import type { TicketPriority, ServiceCategory } from "@/domain/ticket";
 import type { Provider } from "@/domain/admin";
 import { useCreateTicketMutation } from "@/hooks/useCreateTicketMutation";
+import { useActiveCategoriesQuery } from "@/hooks/useActiveCategoriesQuery";
 import { useToast } from "@/components/ui/toast";
 
 type Urgency = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 type ProviderMode = "SPECIFIC" | "OPEN";
 
-const categories = ["Electrical", "Plumbing", "Hardware", "Software", "HVAC", "Other"];
+function formatCategoryLabel(value: string): string {
+  return value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 const urgencySummary: Record<Urgency, { label: string; color: string }> = {
   LOW: { label: "Low · flexible", color: "var(--slate-500)" },
@@ -25,7 +28,7 @@ export function NewTicketPage() {
 
   type FormState = {
     title?: string;
-    category?: string;
+    category?: ServiceCategory | "";
     description?: string;
     location?: string;
     urgency?: Urgency | "";
@@ -37,7 +40,7 @@ export function NewTicketPage() {
   const savedForm = routerState?.formState;
 
   const [title, setTitle] = useState(savedForm?.title ?? "");
-  const [category, setCategory] = useState(savedForm?.category ?? "");
+  const [category, setCategory] = useState<ServiceCategory | "">(savedForm?.category ?? "");
   const [description, setDescription] = useState(savedForm?.description ?? "");
   const [location, setLocation] = useState(savedForm?.location ?? "");
   const [urgency, setUrgency] = useState<Urgency | "">(savedForm?.urgency ?? "");
@@ -49,6 +52,7 @@ export function NewTicketPage() {
 
   const ticketId = useMemo(() => "", []);
   const createTicketMutation = useCreateTicketMutation();
+  const { data: activeCategories = [], isLoading: loadingCategories } = useActiveCategoriesQuery();
 
   const canSubmit = Boolean(title.trim() && description.trim() && location.trim() && urgency && category);
 
@@ -77,6 +81,7 @@ export function NewTicketPage() {
 
     const payload = {
       serviceType: title.trim(),
+      category: category as ServiceCategory,
       description: description.trim(),
       location: location.trim(),
       priority: urgency as TicketPriority,
@@ -134,12 +139,15 @@ export function NewTicketPage() {
                 <select
                   className="fselect"
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
+                  onChange={(e) => setCategory(e.target.value as ServiceCategory)}
+                  disabled={loadingCategories}
                 >
-                  <option value="" disabled>Select a category</option>
-                  {categories.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
+                  <option value="" disabled>
+                    {loadingCategories ? "Loading…" : "Select a category"}
+                  </option>
+                  {activeCategories.map((value) => (
+                    <option key={value} value={value}>
+                      {formatCategoryLabel(value)}
                     </option>
                   ))}
                 </select>
@@ -376,7 +384,7 @@ export function NewTicketPage() {
             </div>
             <div className="summary-row">
               <span className="key">Category</span>
-              <span className="val">{category || "—"}</span>
+              <span className="val">{category ? formatCategoryLabel(category) : "—"}</span>
             </div>
             <div className="summary-row">
               <span className="key">Urgency</span>

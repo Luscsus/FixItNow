@@ -2,6 +2,7 @@ package com.example.backend.dto;
 
 import com.example.backend.domain.ticket.TicketPriority;
 import com.example.backend.domain.ticket.TicketStatus;
+import com.example.backend.domain.user.ServiceCategory;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,6 +16,7 @@ public class TicketResponse {
 
     private Long id;
     private String serviceType;
+    private ServiceCategory category;
     private String description;
     private String location;
     @Schema(
@@ -41,11 +43,12 @@ public class TicketResponse {
     public TicketResponse() {
     }
 
-    public TicketResponse(Long id, String serviceType, String description, String location, TicketStatus status,
-                          TicketPriority priority, BigDecimal estimatedCost, LocalDateTime createdAt,
-                          String assignedServiceProviderName, String submittedByName) {
+    public TicketResponse(Long id, String serviceType, ServiceCategory category, String description, String location,
+                          TicketStatus status, TicketPriority priority, BigDecimal estimatedCost,
+                          LocalDateTime createdAt, String assignedServiceProviderName, String submittedByName) {
         this.id = id;
         this.serviceType = serviceType;
+        this.category = category;
         this.description = description;
         this.location = location;
         this.status = status;

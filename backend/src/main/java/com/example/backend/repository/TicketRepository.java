@@ -3,6 +3,7 @@ package com.example.backend.repository;
 import com.example.backend.domain.ticket.Ticket;
 import com.example.backend.domain.ticket.TicketPriority;
 import com.example.backend.domain.ticket.TicketStatus;
+import com.example.backend.dto.OpenTicketSummary;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -25,4 +26,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
 	@Query("select t from Ticket t join fetch t.location l where l.latitude is not null and l.longitude is not null")
 	List<Ticket> findAllWithCoordinates();
+
+	@Query("SELECT new com.example.backend.dto.OpenTicketSummary(t.serviceType, t.category) " +
+		   "FROM Ticket t WHERE t.status = 'PENDING_APPROVAL' AND t.assignedServiceProvider IS NULL " +
+		   "ORDER BY t.createdAt DESC LIMIT 20")
+	List<OpenTicketSummary> findTop20OpenTicketSummaries();
 }

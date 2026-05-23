@@ -2,6 +2,7 @@ package com.example.backend.web.controller;
 
 import com.example.backend.domain.ticket.TicketStatus;
 import com.example.backend.dto.CreateTicketRequest;
+import com.example.backend.dto.OpenTicketSummary;
 import com.example.backend.dto.TicketResponse;
 import com.example.backend.security.UserPrincipal;
 import com.example.backend.service.TicketService;
@@ -87,8 +88,7 @@ public class TicketController {
     }
 
     @GetMapping("/open")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<TicketResponse>> getOpenTickets() {
+    public ResponseEntity<List<OpenTicketSummary>> getOpenTickets() {
         return ResponseEntity.ok(ticketService.getOpenTickets());
     }
 
@@ -99,6 +99,11 @@ public class TicketController {
         @AuthenticationPrincipal UserPrincipal userDetails
     ) {
         return ResponseEntity.ok(ticketService.acceptOpenTicket(ticketId, userDetails.getUser().getId()));
+    }
+
+    @GetMapping("/public/open")
+    public ResponseEntity<List<OpenTicketSummary>> getPublicOpenTickets() {
+        return ResponseEntity.ok(ticketService.getOpenTickets());
     }
 
     @GetMapping("/nearby")

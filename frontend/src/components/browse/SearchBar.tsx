@@ -114,6 +114,8 @@ interface SearchBarProps {
   setMinExp: (v: number) => void;
   setPage: (p: number) => void;
   coords: { lat: number; lon: number } | null;
+  locationEnabled: boolean;
+  setLocationEnabled: (v: boolean) => void;
   isLoading: boolean;
   categories: string[];
   categoryCountMap: Record<string, number>;
@@ -139,6 +141,8 @@ export function SearchBar({
   setMinExp,
   setPage,
   coords,
+  locationEnabled,
+  setLocationEnabled,
   isLoading,
   categories,
   categoryCountMap,
@@ -152,7 +156,8 @@ export function SearchBar({
     selectedCategories.length === 0
       ? "All trades"
       : selectedCategories.map((c) => CATEGORY_LABEL[c] ?? c).join(", ");
-  const locLabel = coords ? `GPS · ${radiusKm} km radius` : "No location";
+  let locLabel = "Any distance";
+  if (locationEnabled) locLabel = coords ? `GPS · ${radiusKm} km radius` : "Awaiting GPS…";
   const expLabel = minExp > 0 ? `${minExp}+ years` : "Any";
   const budgetLabel =
     minPrice || maxPrice
@@ -161,7 +166,7 @@ export function SearchBar({
 
   const hasFilter = {
     category: selectedCategories.length > 0,
-    location: !!coords,
+    location: locationEnabled,
     experience: minExp > 0,
     budget: !!(minPrice || maxPrice),
   };
@@ -354,90 +359,62 @@ export function SearchBar({
 
         {openSeg === "location" && (
           <div style={{ ...DROPDOWN, minWidth: 288, padding: 18 }}>
-            {coords ? (
+            {/* Toggle row */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <span style={{ fontSize: 13.5, fontWeight: 600 }}>Distance filter</span>
+              <button
+                type="button"
+                onClick={() => { setLocationEnabled(!locationEnabled); setPage(1); }}
+                style={{
+                  width: 38, height: 21, borderRadius: 11, border: "none", padding: 0,
+                  background: locationEnabled ? "var(--navy-700, #1e3a8a)" : "var(--slate-300, #cbd5e1)",
+                  cursor: "pointer", position: "relative", flexShrink: 0,
+                  transition: "background 0.2s",
+                }}
+              >
+                <span style={{
+                  position: "absolute", top: 3,
+                  left: locationEnabled ? 19 : 3,
+                  width: 15, height: 15, borderRadius: "50%", background: "#fff",
+                  transition: "left 0.2s",
+                }} />
+              </button>
+            </div>
+
+            {locationEnabled && coords && (
               <>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    marginBottom: 14,
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: "#10b981",
-                      display: "block",
-                      flexShrink: 0,
-                    }}
-                  />
-                  <span style={{ fontSize: 13.5, fontWeight: 600 }}>
-                    GPS location detected
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#10b981", display: "block", flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>GPS detected</span>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginLeft: "auto" }}>
+                    {coords.lat.toFixed(4)}, {coords.lon.toFixed(4)}
                   </span>
                 </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "var(--text-muted)",
-                    fontFamily: "var(--font-mono)",
-                    marginBottom: 18,
-                  }}
-                >
-                  {coords.lat.toFixed(5)}, {coords.lon.toFixed(5)}
-                </div>
-                <div style={{ ...FILTER_HEAD, marginBottom: 8 }}>
-                  Search radius
-                </div>
+                <div style={{ ...FILTER_HEAD, marginBottom: 8 }}>Search radius</div>
                 <input
-                  type="range"
-                  min={5}
-                  max={100}
-                  value={radiusKm}
+                  type="range" min={5} max={100} value={radiusKm}
                   onChange={(e) => setRadiusKm(Number(e.target.value))}
                   onMouseUp={() => setPage(1)}
-                  style={{
-                    width: "100%",
-                    accentColor: "var(--navy-700, #1e3a8a)",
-                  }}
+                  style={{ width: "100%", accentColor: "var(--navy-700, #1e3a8a)" }}
                 />
                 <div style={RANGE_ROW}>
                   <span>5 km</span>
-                  <span style={{ color: "var(--text)", fontWeight: 600 }}>
-                    {radiusKm} km
-                  </span>
+                  <span style={{ color: "var(--text)", fontWeight: 600 }}>{radiusKm} km</span>
                   <span>100 km</span>
                 </div>
               </>
-            ) : (
-              <div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    marginBottom: 10,
-                  }}
-                >
-                  <span style={{ fontSize: 16 }}>📍</span>
-                  <span style={{ fontWeight: 600, fontSize: 13.5 }}>
-                    No location detected
-                  </span>
-                </div>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: 13,
-                    color: "var(--text-muted)",
-                    lineHeight: 1.55,
-                  }}
-                >
-                  Showing all providers regardless of distance. Enable GPS in
-                  your browser for distance-based filtering and sorting.
-                </p>
-              </div>
+            )}
+
+            {locationEnabled && !coords && (
+              <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.55 }}>
+                Waiting for GPS… Allow location access in your browser if prompted.
+              </p>
+            )}
+
+            {!locationEnabled && (
+              <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.55 }}>
+                Enable to filter results by distance from your location.
+              </p>
             )}
           </div>
         )}

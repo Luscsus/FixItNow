@@ -2,6 +2,9 @@ import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAllProvidersQuery } from "@/hooks/useAllProvidersQuery";
 import { usePublicOpenTicketsQuery } from "@/hooks/usePublicOpenTicketsQuery";
+import { useActiveCategoriesQuery } from "@/hooks/useActiveCategoriesQuery";
+import { CATEGORY_META } from "@/components/browse/browseConstants";
+import { classifyCategory } from "@/lib/classifyCategory";
 
 /* ── SVG icon helpers ── */
 function IconArrow({ size = 14 }: { size?: number }) {
@@ -54,35 +57,14 @@ function IconPin({ size = 14 }: { size?: number }) {
     </svg>
   );
 }
-function IconHammer({ size = 20 }: { size?: number }) {
+function IconChevron({ size = 14, open = false }: { size?: number; open?: boolean }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M15 12l-8.5 8.5a2.12 2.12 0 01-3-3L12 9" />
-      <path d="M17.64 15L22 10.64" />
-      <path d="M20.91 11.7l-1.25-1.25c-.6-.6-.93-1.4-.93-2.25v-.86L16.01 4.6a5.56 5.56 0 00-3.94-1.64H9l.92.82A6.18 6.18 0 0112 8.4v1.56l2 2h2.47l2.26 1.91" />
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      style={{ transition: "transform 0.2s", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>
+      <path d="M3 6l5 5 5-5" />
     </svg>
   );
 }
-function IconKey({ size = 20 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="7.5" cy="15.5" r="5.5" />
-      <path d="M21 2l-9.6 9.6" />
-      <path d="M15.5 7.5l3 3L22 7l-3-3" />
-    </svg>
-  );
-}
-
-/* ── Category definitions ── */
-const ALL_CATEGORIES = [
-  { key: "PLUMBING",   label: "Plumbing",   Icon: IconDrop },
-  { key: "ELECTRICAL", label: "Electrical", Icon: IconBolt },
-  { key: "HVAC",       label: "HVAC",       Icon: IconSpark },
-  { key: "HARDWARE",   label: "Hardware",   Icon: IconWrench },
-  { key: "IT",         label: "IT",         Icon: IconCmd },
-  { key: "CARPENTRY",  label: "Carpentry",  Icon: IconHammer },
-  { key: "LOCKSMITH",  label: "Locksmith",  Icon: IconKey },
-];
 
 const RADIUS_OPTIONS = [5, 10, 25, 50, 100];
 
@@ -96,14 +78,26 @@ export function HomePage() {
   const [radiusKm, setRadiusKm] = useState(25);
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
 
+  const [problemText, setProblemText] = useState("");
+  const [classifying, setClassifying] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [smartMatchActive, setSmartMatchActive] = useState(true);
+
   const { data: allProviders = [] } = useAllProvidersQuery();
   const { data: publicTickets = [] } = usePublicOpenTicketsQuery();
+  const { data: activeCategories = [] } = useActiveCategoriesQuery();
 
   const categoryCountMap = useMemo(() => {
     const map: Record<string, number> = {};
     allProviders.forEach((p) => p.categories.forEach((cat) => { map[cat] = (map[cat] ?? 0) + 1; }));
     return map;
   }, [allProviders]);
+
+  const topCategories = useMemo(() =>
+    [...activeCategories]
+      .sort((a, b) => (categoryCountMap[b] ?? 0) - (categoryCountMap[a] ?? 0))
+      .slice(0, 10),
+  [activeCategories, categoryCountMap]);
 
   useEffect(() => {
     if ("geolocation" in navigator) {
@@ -115,15 +109,34 @@ export function HomePage() {
   }, []);
 
   const toggleCategory = (key: string) => {
+    setSmartMatchActive(false);
     setSelectedCategories((prev) =>
       prev.includes(key) ? prev.filter((c) => c !== key) : [...prev, key],
     );
   };
 
-  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSmartMatch = () => {
+    setSmartMatchActive((v) => !v);
+  };
+
+  const handleSearch = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
+    let cats = selectedCategories;
+
+    if (smartMatchActive && problemText.trim()) {
+      setClassifying(true);
+      try {
+        const category = await classifyCategory(problemText.trim(), activeCategories);
+        cats = [category];
+      } catch {
+        // fall through with current selection
+      } finally {
+        setClassifying(false);
+      }
+    }
+
     const params = new URLSearchParams();
-    selectedCategories.forEach((cat) => params.append("categories", cat));
+    cats.forEach((cat) => params.append("categories", cat));
     if (minPrice) params.set("minPrice", minPrice);
     if (maxPrice) params.set("maxPrice", maxPrice);
     params.set("radiusKm", String(radiusKm));
@@ -176,124 +189,169 @@ export function HomePage() {
                   className="problem-textarea"
                   placeholder="e.g. The kitchen sink is leaking under the cabinet — water's pooling and the towels aren't keeping up."
                   rows={2}
+                  value={problemText}
+                  onChange={(e) => setProblemText(e.target.value)}
                 />
 
-                {/* Selectable category chips */}
-                <div className="problem-row">
-                  {ALL_CATEGORIES.map(({ key, label, Icon }) => {
-                    const active = selectedCategories.includes(key);
-                    return (
-                      <span
-                        key={key}
-                        role="button"
-                        className="problem-chip"
-                        aria-pressed={active}
-                        onClick={() => toggleCategory(key)}
-                        style={{
-                          cursor: "pointer",
-                          userSelect: "none",
-                          background: active ? "var(--navy-900)" : undefined,
-                          color: active ? "#fff" : undefined,
-                          borderColor: active ? "var(--navy-900)" : undefined,
-                          transition: "background 0.15s, color 0.15s",
-                        }}
-                      >
-                        <Icon size={15} /> {label}
-                        {categoryCountMap[key] != null && (
-                          <span style={{ fontSize: 11, opacity: 0.6, marginLeft: 2 }}>({categoryCountMap[key]})</span>
-                        )}
-                      </span>
-                    );
-                  })}
-                </div>
+                {/* Action row — always visible */}
+                <div className="problem-meta" style={{ marginTop: 10 }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, padding: "6px 12px" }}
+                    onClick={() => setFiltersOpen((v) => !v)}
+                  >
+                    Filters <IconChevron size={13} open={filtersOpen} />
+                  </button>
 
-                {/* Meta row: location, radius, price range, submit */}
-                <div className="problem-meta">
-                  <span className="problem-mini">
-                    <IconPin size={14} />
-                    {coords ? (
-                      <b>GPS location</b>
-                    ) : (
-                      <span style={{ color: "var(--text-muted)" }}>No location</span>
-                    )}
-                  </span>
-
-                  <span className="problem-mini" style={{ gap: 5 }}>
-                    <span>Within</span>
-                    <select
-                      value={radiusKm}
-                      onChange={(e) => setRadiusKm(Number(e.target.value))}
-                      style={{
-                        border: "none",
-                        background: "transparent",
-                        fontFamily: "inherit",
-                        fontSize: "inherit",
-                        fontWeight: 700,
-                        color: "inherit",
-                        cursor: "pointer",
-                        padding: 0,
-                        outline: "none",
-                      }}
-                    >
-                      {RADIUS_OPTIONS.map((r) => (
-                        <option key={r} value={r}>{r} km</option>
-                      ))}
-                    </select>
-                  </span>
-
-                  <span className="problem-mini" style={{ gap: 4 }}>
-                    <span style={{ fontSize: 13, color: "var(--text-muted)" }}>$</span>
-                    <input
-                      type="number"
-                      min={0}
-                      placeholder="min"
-                      value={minPrice}
-                      onChange={(e) => setMinPrice(e.target.value)}
-                      style={{
-                        width: 52,
-                        border: "none",
-                        borderBottom: "1.5px solid var(--border)",
-                        background: "transparent",
-                        fontFamily: "inherit",
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: "inherit",
-                        outline: "none",
-                        padding: "0 2px",
-                        textAlign: "center",
-                      }}
-                    />
-                    <span style={{ color: "var(--text-muted)" }}>–</span>
-                    <input
-                      type="number"
-                      min={0}
-                      placeholder="max"
-                      value={maxPrice}
-                      onChange={(e) => setMaxPrice(e.target.value)}
-                      style={{
-                        width: 52,
-                        border: "none",
-                        borderBottom: "1.5px solid var(--border)",
-                        background: "transparent",
-                        fontFamily: "inherit",
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: "inherit",
-                        outline: "none",
-                        padding: "0 2px",
-                        textAlign: "center",
-                      }}
-                    />
-                    <span style={{ fontSize: 12, color: "var(--text-muted)" }}>/hr</span>
-                  </span>
+                  <button
+                    type="button"
+                    className="btn"
+                    style={{
+                      display: "flex", alignItems: "center", gap: 6, fontSize: 13, padding: "6px 12px",
+                      fontWeight: 600,
+                      transition: "background 0.2s, color 0.2s, border-color 0.2s",
+                      ...(smartMatchActive
+                        ? { background: "var(--amber-500)", color: "var(--navy-900)", border: "1.5px solid var(--amber-600)" }
+                        : { background: "#fff", color: "var(--text)", border: "1px solid var(--slate-300)" }
+                      ),
+                    }}
+                    onClick={handleSmartMatch}
+                  >
+                    <IconSpark size={14} /> Smart match
+                  </button>
 
                   <button
                     type="submit"
                     className="btn btn-primary"
                     style={{ marginLeft: "auto" }}
+                    disabled={classifying}
                   >
-                    <span>Find someone</span> <IconArrow size={16} />
+                    {classifying ? "Matching…" : <><span>Find someone</span> <IconArrow size={16} /></>}
                   </button>
+                </div>
+
+                {/* Collapsible filters panel */}
+                <div style={{
+                  overflow: "hidden",
+                  maxHeight: filtersOpen ? 500 : 0,
+                  opacity: filtersOpen ? 1 : 0,
+                  transition: "max-height 0.3s ease, opacity 0.2s ease",
+                }}>
+                  <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14, marginTop: 10 }}>
+                    {/* Category chips */}
+                    <div className="problem-row">
+                      {topCategories.map((key) => {
+                        const meta = CATEGORY_META[key];
+                        const label = meta?.label ?? key;
+                        const Icon = meta?.Icon;
+                        const active = selectedCategories.includes(key);
+                        return (
+                          <span
+                            key={key}
+                            role="button"
+                            className="problem-chip"
+                            aria-pressed={active}
+                            onClick={() => toggleCategory(key)}
+                            style={{
+                              cursor: "pointer",
+                              userSelect: "none",
+                              background: active ? "var(--navy-900)" : undefined,
+                              color: active ? "#fff" : undefined,
+                              borderColor: active ? "var(--navy-900)" : undefined,
+                              transition: "background 0.15s, color 0.15s",
+                            }}
+                          >
+                            {Icon && <Icon size={15} />} {label}
+                            {categoryCountMap[key] != null && (
+                              <span style={{ fontSize: 11, opacity: 0.6, marginLeft: 2 }}>({categoryCountMap[key]})</span>
+                            )}
+                          </span>
+                        );
+                      })}
+                    </div>
+
+                    {/* Location, radius, price */}
+                    <div className="problem-meta" style={{ marginTop: 12 }}>
+                      <span className="problem-mini">
+                        <IconPin size={14} />
+                        {coords ? (
+                          <b>GPS location</b>
+                        ) : (
+                          <span style={{ color: "var(--text-muted)" }}>No location</span>
+                        )}
+                      </span>
+
+                      <span className="problem-mini" style={{ gap: 5 }}>
+                        <span>Within</span>
+                        <select
+                          value={radiusKm}
+                          onChange={(e) => { setSmartMatchActive(false); setRadiusKm(Number(e.target.value)); }}
+                          style={{
+                            border: "none",
+                            background: "transparent",
+                            fontFamily: "inherit",
+                            fontSize: "inherit",
+                            fontWeight: 700,
+                            color: "inherit",
+                            cursor: "pointer",
+                            padding: 0,
+                            outline: "none",
+                          }}
+                        >
+                          {RADIUS_OPTIONS.map((r) => (
+                            <option key={r} value={r}>{r} km</option>
+                          ))}
+                        </select>
+                      </span>
+
+                      <span className="problem-mini" style={{ gap: 4 }}>
+                        <span style={{ fontSize: 13, color: "var(--text-muted)" }}>$</span>
+                        <input
+                          type="number"
+                          min={0}
+                          placeholder="min"
+                          value={minPrice}
+                          onChange={(e) => { setSmartMatchActive(false); setMinPrice(e.target.value); }}
+                          style={{
+                            width: 52,
+                            border: "none",
+                            borderBottom: "1.5px solid var(--border)",
+                            background: "transparent",
+                            fontFamily: "inherit",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: "inherit",
+                            outline: "none",
+                            padding: "0 2px",
+                            textAlign: "center",
+                          }}
+                        />
+                        <span style={{ color: "var(--text-muted)" }}>–</span>
+                        <input
+                          type="number"
+                          min={0}
+                          placeholder="max"
+                          value={maxPrice}
+                          onChange={(e) => { setSmartMatchActive(false); setMaxPrice(e.target.value); }}
+                          style={{
+                            width: 52,
+                            border: "none",
+                            borderBottom: "1.5px solid var(--border)",
+                            background: "transparent",
+                            fontFamily: "inherit",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: "inherit",
+                            outline: "none",
+                            padding: "0 2px",
+                            textAlign: "center",
+                          }}
+                        />
+                        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>/hr</span>
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </form>
 

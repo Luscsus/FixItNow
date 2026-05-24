@@ -35,6 +35,7 @@ export function BrowseProvidersPage() {
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(
     null,
   );
+  const [locationEnabled, setLocationEnabled] = useState(false);
   const [geoSettled, setGeoSettled] = useState(false);
 
   /* ── UI state ── */
@@ -49,14 +50,15 @@ export function BrowseProvidersPage() {
   const resultsRef = useRef<HTMLElement>(null);
 
   /* ── Query ── */
+  const activeCoords = locationEnabled ? coords : null;
   const searchQueryParams = {
     categories: selectedCategories,
     minPrice,
     maxPrice,
     minYearsOfExperience: minExp,
-    latitude: coords?.lat ?? null,
-    longitude: coords?.lon ?? null,
-    radiusKm: coords ? radiusKm : null,
+    latitude: activeCoords?.lat ?? null,
+    longitude: activeCoords?.lon ?? null,
+    radiusKm: activeCoords ? radiusKm : null,
     page: page - 1,
     size: PAGE_SIZE,
   };
@@ -114,25 +116,15 @@ export function BrowseProvidersPage() {
   }, [coords, sortBy]);
 
   useEffect(() => {
-    // Delay enabling the query by 450ms (> 400ms debounce) after coords are known,
-    // so debouncedSearchParams has processed any coord update before the query fires.
-    const settle = (pos?: GeolocationPosition) => {
-      if (pos) setCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude });
-      setTimeout(() => setGeoSettled(true), 450);
-    };
-
-    if (!("geolocation" in navigator)) {
-      settle();
-      return;
+    // Location is off by default — start the query immediately.
+    setGeoSettled(true);
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+        () => {},
+        { timeout: 5000 },
+      );
     }
-
-    const geoTimer = setTimeout(() => settle(), 1500);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => { clearTimeout(geoTimer); settle(pos); },
-      () => { clearTimeout(geoTimer); settle(); },
-      { timeout: 1500 },
-    );
-    return () => clearTimeout(geoTimer);
   }, []);
 
   useEffect(() => {
@@ -165,6 +157,7 @@ export function BrowseProvidersPage() {
     setMinPrice("");
     setMaxPrice("");
     setMinExp(0);
+    setLocationEnabled(false);
     setPage(1);
   };
 
@@ -329,6 +322,8 @@ export function BrowseProvidersPage() {
           setMinExp={setMinExp}
           setPage={setPage}
           coords={coords}
+          locationEnabled={locationEnabled}
+          setLocationEnabled={setLocationEnabled}
           isLoading={effectiveLoading}
           categories={activeCategories}
           categoryCountMap={categoryCountMap}
@@ -360,6 +355,8 @@ export function BrowseProvidersPage() {
             setMinExp={setMinExp}
             setPage={setPage}
             coords={coords}
+            locationEnabled={locationEnabled}
+            setLocationEnabled={setLocationEnabled}
             categories={activeCategories}
             categoryCountMap={categoryCountMap}
             onReset={handleReset}

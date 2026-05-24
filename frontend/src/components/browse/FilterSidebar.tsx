@@ -21,6 +21,8 @@ interface FilterSidebarProps {
   setMinExp: (v: number) => void;
   setPage: (p: number) => void;
   coords: { lat: number; lon: number } | null;
+  locationEnabled: boolean;
+  setLocationEnabled: (v: boolean) => void;
   categoryCountMap: Record<string, number>;
   onReset: () => void;
 }
@@ -39,6 +41,8 @@ export function FilterSidebar({
   setMinExp,
   setPage,
   coords,
+  locationEnabled,
+  setLocationEnabled,
   categoryCountMap,
   onReset,
 }: FilterSidebarProps) {
@@ -132,27 +136,53 @@ export function FilterSidebar({
       </div>
 
       {/* Distance */}
-      {coords && (
-        <div style={{ marginBottom: 26 }}>
-          <h4 style={FILTER_HEAD}>Distance</h4>
-          <input
-            type="range"
-            min={5}
-            max={100}
-            value={radiusKm}
-            onChange={(e) => setRadiusKm(Number(e.target.value))}
-            onMouseUp={() => setPage(1)}
-            style={{ width: "100%", accentColor: "var(--navy-700, #1e3a8a)" }}
-          />
-          <div style={RANGE_ROW}>
-            <span>5 km</span>
-            <span style={{ color: "var(--text)", fontWeight: 600 }}>
-              {radiusKm} km
-            </span>
-            <span>100 km</span>
-          </div>
+      <div style={{ marginBottom: 26 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <h4 style={{ ...FILTER_HEAD, margin: 0 }}>Distance</h4>
+          <button
+            type="button"
+            onClick={() => { setLocationEnabled(!locationEnabled); setPage(1); }}
+            style={{
+              width: 34, height: 19, borderRadius: 10, border: "none", padding: 0,
+              background: locationEnabled ? "var(--navy-700, #1e3a8a)" : "var(--slate-300, #cbd5e1)",
+              cursor: "pointer", position: "relative", flexShrink: 0,
+              transition: "background 0.2s",
+            }}
+          >
+            <span style={{
+              position: "absolute", top: 2,
+              left: locationEnabled ? 17 : 2,
+              width: 15, height: 15, borderRadius: "50%", background: "#fff",
+              transition: "left 0.2s",
+            }} />
+          </button>
         </div>
-      )}
+        {locationEnabled && coords && (
+          <>
+            <input
+              type="range" min={5} max={100} value={radiusKm}
+              onChange={(e) => setRadiusKm(Number(e.target.value))}
+              onMouseUp={() => setPage(1)}
+              style={{ width: "100%", accentColor: "var(--navy-700, #1e3a8a)" }}
+            />
+            <div style={RANGE_ROW}>
+              <span>5 km</span>
+              <span style={{ color: "var(--text)", fontWeight: 600 }}>{radiusKm} km</span>
+              <span>100 km</span>
+            </div>
+          </>
+        )}
+        {locationEnabled && !coords && (
+          <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>
+            Waiting for GPS…
+          </p>
+        )}
+        {!locationEnabled && (
+          <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>
+            Off — showing all distances.
+          </p>
+        )}
+      </div>
 
       {/* Experience */}
       <div style={{ marginBottom: 26 }}>

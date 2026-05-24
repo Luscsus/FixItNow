@@ -41,6 +41,11 @@ export type TicketResponseDto = {
   submittedByName: string | null;
 };
 
+export type OpenTicketSummaryDto = {
+  serviceType: string;
+  category: ServiceCategoryDto;
+};
+
 export type CreateTicketRequestDto = {
   serviceType: string;
   category: ServiceCategoryDto;

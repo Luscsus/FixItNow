@@ -1,4 +1,4 @@
-import type { CreateTicketRequestDto, TicketResponseDto } from "@/dto/ticket";
+import type { CreateTicketRequestDto, OpenTicketSummaryDto, TicketResponseDto } from "@/dto/ticket";
 import type { Ticket, TicketStatus } from "@/domain/ticket";
 import { mapTicket, mapTickets } from "@/mappers/ticketMapper";
 import { requestJson } from "@/services/httpClient";
@@ -68,6 +68,10 @@ export async function acceptTicket(ticketId: number, accessToken?: string): Prom
     headers: authHeader(accessToken),
   });
   return mapTicket(data);
+}
+
+export async function getPublicOpenTickets(): Promise<OpenTicketSummaryDto[]> {
+  return requestJson<OpenTicketSummaryDto[]>("/api/tickets/public/open");
 }
 
 export async function getNearbyTickets(

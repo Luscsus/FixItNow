@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAllProvidersQuery } from "@/hooks/useAllProvidersQuery";
+import { usePublicOpenTicketsQuery } from "@/hooks/usePublicOpenTicketsQuery";
 
 /* ── SVG icon helpers ── */
 function IconArrow({ size = 14 }: { size?: number }) {
@@ -86,16 +87,6 @@ const ALL_CATEGORIES = [
 const RADIUS_OPTIONS = [5, 10, 25, 50, 100];
 
 
-const tickerItems = [
-  { cat: "PLUMBING", label: "Kitchen sink leak" },
-  { cat: "HVAC", label: "AC blowing warm air" },
-  { cat: "ELECTRICAL", label: "Hallway lights flickering" },
-  { cat: "IT", label: "Slack notifications delayed" },
-  { cat: "HARDWARE", label: "Badge reader unresponsive" },
-  { cat: "PLUMBING", label: "Bathroom faucet won't shut off" },
-  { cat: "CARPENTRY", label: "Door hinge broken" },
-  { cat: "LOCKSMITH", label: "Garage gate stuck" },
-];
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -106,6 +97,7 @@ export function HomePage() {
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
 
   const { data: allProviders = [] } = useAllProvidersQuery();
+  const { data: publicTickets = [] } = usePublicOpenTicketsQuery();
 
   const categoryCountMap = useMemo(() => {
     const map: Record<string, number> = {};
@@ -352,10 +344,10 @@ export function HomePage() {
       {/* ── MARQUEE ── */}
       <div className="marquee-wrap" aria-hidden="true">
         <div className="marquee">
-          {[...tickerItems, ...tickerItems].map((item, i) => (
+          {[...publicTickets, ...publicTickets].map((item, i) => (
             <span key={i} className="marquee-item">
-              <span className="mono">{item.cat}</span>
-              {item.label}
+              <span className="mono">{item.category}</span>
+              {item.serviceType}
               <span className="mdot" />
             </span>
           ))}

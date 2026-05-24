@@ -1,7 +1,10 @@
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import type { Ticket, TicketPriority, TicketStatus } from "@/domain/ticket";
 import { useTicketsQuery } from "@/hooks/useTicketsQuery";
+
+type TicketFilter = "active" | "resolved" | "all";
 
 const TERMINAL_STATUSES: TicketStatus[] = ["COMPLETED", "DECLINED", "CANCELLED"];
 
@@ -187,6 +190,7 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
 
 export function UserDashboardPage() {
   const { data: tickets = [], isLoading } = useTicketsQuery();
+  const [filter, setFilter] = useState<TicketFilter>("active");
 
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -204,7 +208,19 @@ export function UserDashboardPage() {
       !TERMINAL_STATUSES.includes(t.status)
   ).length;
 
-  const activeTickets = tickets.filter((t) => !TERMINAL_STATUSES.includes(t.status));
+  const filteredTickets = useMemo(() => {
+    if (filter === "active") return tickets.filter((t) => !TERMINAL_STATUSES.includes(t.status));
+    if (filter === "resolved") return tickets.filter((t) => TERMINAL_STATUSES.includes(t.status));
+    return tickets;
+  }, [tickets, filter]);
+
+  const panelLabel = filter === "active" ? "Your active tickets" : filter === "resolved" ? "Resolved tickets" : "All tickets";
+  const countLabel = filter === "active" ? "ACTIVE" : filter === "resolved" ? "RESOLVED" : "TOTAL";
+  const emptyMessage = filter === "active"
+    ? "No active tickets yet."
+    : filter === "resolved"
+      ? "No resolved tickets yet."
+      : "You haven't filed any tickets yet.";
 
   return (
     <div>
@@ -261,21 +277,21 @@ export function UserDashboardPage() {
         {/* ── Action row ── */}
         <div className="row" style={{ marginBottom: 24, gap: 12 }}>
           <div className="segment">
-            <button aria-pressed={true}>Active</button>
-            <button aria-pressed={false}>Resolved</button>
-            <button aria-pressed={false}>All</button>
+            <button aria-pressed={filter === "active"} onClick={() => setFilter("active")}>Active</button>
+            <button aria-pressed={filter === "resolved"} onClick={() => setFilter("resolved")}>Resolved</button>
+            <button aria-pressed={filter === "all"} onClick={() => setFilter("all")}>All</button>
           </div>
           <span className="grow" />
           <Link to="/tickets/new" className="btn btn-primary btn-sm">+ New ticket</Link>
         </div>
 
-        {/* ── Panel 01: Active tickets ── */}
+        {/* ── Panel 01: Tickets list ── */}
         <div className="panel-title">
           <span className="num">01</span>
-          <span className="label">Your active tickets</span>
+          <span className="label">{panelLabel}</span>
           <span className="rule" />
           <span className="mono muted" style={{ fontSize: 11.5 }}>
-            {String(activeTickets.length).padStart(2, "0")} ACTIVE
+            {String(filteredTickets.length).padStart(2, "0")} {countLabel}
           </span>
         </div>
 
@@ -283,21 +299,23 @@ export function UserDashboardPage() {
           <div style={{ padding: "48px 0", textAlign: "center", color: "var(--slate-400)" }}>
             Loading tickets…
           </div>
-        ) : activeTickets.length === 0 ? (
+        ) : filteredTickets.length === 0 ? (
           <div
             className="card card-pad"
             style={{ textAlign: "center", padding: "48px 24px", marginBottom: 48 }}
           >
             <div style={{ fontSize: 15, color: "var(--slate-500)", marginBottom: 12 }}>
-              No active tickets yet.
+              {emptyMessage}
             </div>
-            <Link to="/tickets/new" className="btn btn-primary btn-sm">
-              + File your first ticket
-            </Link>
+            {filter !== "resolved" && (
+              <Link to="/tickets/new" className="btn btn-primary btn-sm">
+                + File {tickets.length === 0 ? "your first" : "a new"} ticket
+              </Link>
+            )}
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 48 }}>
-            {activeTickets.map((ticket) => (
+            {filteredTickets.map((ticket) => (
               <TicketCard key={ticket.id} ticket={ticket} />
             ))}
           </div>

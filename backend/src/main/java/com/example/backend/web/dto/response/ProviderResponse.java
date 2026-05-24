@@ -8,6 +8,8 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -32,6 +34,7 @@ public class ProviderResponse {
     private String rejectionReason;
     private LocalDateTime approvedAt;
     private LocalDateTime createdAt;
+    private Map<String, Boolean> notificationPreferences;
 
     public static ProviderResponse from(Provider p) {
         return ProviderResponse.builder()
@@ -52,6 +55,7 @@ public class ProviderResponse {
             .rejectionReason(p.getRejectionReason())
             .approvedAt(p.getApprovedAt())
             .createdAt(p.getCreatedAt())
+            .notificationPreferences(p.getNotificationPreferences() != null ? p.getNotificationPreferences() : new HashMap<>())
             .build();
     }
 }

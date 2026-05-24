@@ -46,6 +46,9 @@ export function ProviderHero({ fullName, initials, email, online, setOnline }: P
               />
               <span>{online ? `Online · 3h 12m today` : "Offline"}</span>
             </div>
+            <Link to="/profile/edit" className="btn btn-secondary btn-sm" style={{ marginTop: 12, width: "100%", textAlign: "center" }}>
+              Edit profile
+            </Link>
           </div>
         </div>
 

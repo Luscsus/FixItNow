@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 interface PersonalInfoCardProps {
   firstName: string;
   lastName: string;
@@ -11,7 +13,7 @@ export function PersonalInfoCard({ firstName, lastName, email }: PersonalInfoCar
         <span className="num">01</span>
         <span className="label">Personal info</span>
         <span className="rule" />
-        <a href="#" className="mono muted" style={{ fontSize: 11, letterSpacing: "0.05em" }}>Edit →</a>
+        <Link to="/profile/edit" className="mono muted" style={{ fontSize: 11, letterSpacing: "0.05em", textDecoration: "none" }}>Edit →</Link>
       </div>
 
       <div className="card card-pad" style={{ marginBottom: 32 }}>

@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import type { ProviderDto } from "@/services/providerService";
 import { CATEGORY_LABEL, avatarColor, initials } from "./browseConstants";
+import { SaveProviderButton } from "./SaveProviderButton";
 
 interface ProviderCardProps {
   provider: ProviderDto;
@@ -199,20 +200,23 @@ export function ProviderCard({
           flexShrink: 0,
         }}
       >
-        <span
-          style={{
-            fontSize: 11.5,
-            fontFamily: "var(--font-mono)",
-            color: "var(--emerald-700, #047857)",
-            background: "var(--emerald-100, #d1fae5)",
-            padding: "3px 8px",
-            borderRadius: 4,
-            letterSpacing: "0.04em",
-            textTransform: "uppercase",
-          }}
-        >
-          Active
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <SaveProviderButton providerId={p.id} />
+          <span
+            style={{
+              fontSize: 11.5,
+              fontFamily: "var(--font-mono)",
+              color: "var(--emerald-700, #047857)",
+              background: "var(--emerald-100, #d1fae5)",
+              padding: "3px 8px",
+              borderRadius: 4,
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+            }}
+          >
+            Active
+          </span>
+        </div>
         <span
           style={{
             fontFamily: "var(--font-mono)",

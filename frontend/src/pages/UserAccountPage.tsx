@@ -2,13 +2,13 @@ import { useState } from "react";
 import { useAuth } from "@/context/auth";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { UserHero } from "@/components/user-account/UserHero";
-import { PersonalInfoCard } from "@/components/user-account/PersonalInfoCard";
-import { RecentTicketsCard } from "@/components/user-account/RecentTicketsCard";
-import { BuildingsLocationsCard } from "@/components/user-account/BuildingsLocationsCard";
 import { NotificationsCard } from "@/components/user-account/NotificationsCard";
-import { SecurityCard } from "@/components/user-account/SecurityCard";
+import { OverviewTab } from "@/components/user-account/OverviewTab";
+import { TicketsTab } from "@/components/user-account/TicketsTab";
+import { SavedProvidersTab } from "@/components/user-account/SavedProvidersTab";
+import { BillingTab } from "@/components/user-account/BillingTab";
 
-const TABS = ["Overview", "Tickets", "Saved providers", "Buildings", "Billing", "Settings"] as const;
+const TABS = ["Overview", "Tickets", "Saved providers", "Billing"] as const;
 type Tab = (typeof TABS)[number];
 
 export function UserAccountPage() {
@@ -41,14 +41,16 @@ export function UserAccountPage() {
             ))}
           </div>
 
-          <PersonalInfoCard firstName={firstName} lastName={lastName} email={email} />
-          <RecentTicketsCard />
-          <BuildingsLocationsCard />
+          {activeTab === "Overview" && (
+            <OverviewTab firstName={firstName} lastName={lastName} email={email} />
+          )}
+          {activeTab === "Tickets" && <TicketsTab />}
+          {activeTab === "Saved providers" && <SavedProvidersTab />}
+          {activeTab === "Billing" && <BillingTab />}
         </div>
 
         <aside>
           <NotificationsCard />
-          <SecurityCard email={email} />
 
           <button
             className="btn btn-danger btn-full"

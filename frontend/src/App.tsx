@@ -8,6 +8,7 @@ import { ConfirmEmailPage } from "@/pages/ConfirmEmailPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { ProfilePage } from "@/pages/ProfilePage";
+import { EditProfilePage } from "@/pages/EditProfilePage";
 import { ProviderDashboardPage } from "@/pages/ProviderDashboardPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { RegisterProviderPage } from "@/pages/RegisterProviderPage";
@@ -45,6 +46,7 @@ function App() {
         <Route path="/providers/:id" element={<ProviderAccountPage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/profile/edit" element={<EditProfilePage />} />
           <Route path="/dashboard/user" element={<UserDashboardPage />} />
           <Route
             path="/dashboard/provider"

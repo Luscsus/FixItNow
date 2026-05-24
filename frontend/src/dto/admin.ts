@@ -16,6 +16,7 @@ export type ProviderResponseDto = {
   rejectionReason: string | null
   approvedAt: string | null
   createdAt: string
+  notificationPreferences?: Record<string, boolean> | null
 }
 
 export type DeclineProviderRequestDto = {

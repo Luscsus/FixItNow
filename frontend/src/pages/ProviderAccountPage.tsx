@@ -14,6 +14,7 @@ import { SpecialtiesRatesCard } from "@/components/provider-account/SpecialtiesR
 import { PayoutsCard } from "@/components/provider-account/PayoutsCard";
 import { ProfileCompletionCard } from "@/components/provider-account/ProfileCompletionCard";
 import { SupportCard } from "@/components/provider-account/SupportCard";
+import { NotificationsCard } from "@/components/provider-account/NotificationsCard";
 
 const TABS = ["Today", "Schedule", "Jobs", "Reviews", "Earnings", "Documents", "Profile"] as const;
 type Tab = (typeof TABS)[number];
@@ -78,6 +79,7 @@ export function ProviderAccountPage() {
 
         <aside>
           <SpecialtiesRatesCard />
+          <NotificationsCard />
           <PayoutsCard />
           <ProfileCompletionCard />
           <SupportCard />

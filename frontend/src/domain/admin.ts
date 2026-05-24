@@ -41,4 +41,5 @@ export type Provider = {
   rejectionReason: string | null
   approvedAt: Date | null
   createdAt: Date
+  notificationPreferences: Record<string, boolean>
 }

@@ -20,6 +20,7 @@ export function mapProvider(dto: ProviderResponseDto): Provider {
     rejectionReason: dto.rejectionReason,
     approvedAt: dto.approvedAt ? new Date(dto.approvedAt) : null,
     createdAt: new Date(dto.createdAt),
+    notificationPreferences: dto.notificationPreferences ?? {},
   };
 }
 

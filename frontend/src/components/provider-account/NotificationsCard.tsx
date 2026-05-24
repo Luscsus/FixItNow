@@ -2,42 +2,48 @@ import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "@/context/auth";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useCurrentProvider } from "@/hooks/useCurrentProvider";
 import { updateNotificationPreferences } from "@/services/userService";
 
 const NOTIF_ITEMS = [
-  { key: "providerReplies", title: "Provider replies", sub: "When a provider replies to your ticket" },
-  { key: "statusChanges", title: "Status changes", sub: "When the status of your ticket changes" },
+  { key: "inboundRequests", title: "Inbound requests", sub: "When a new ticket matches your trade and area" },
+  { key: "customerReplies", title: "Customer replies", sub: "When a customer messages you on a ticket" },
+  { key: "jobStatusChanges", title: "Job status changes", sub: "When a ticket you're handling changes status" },
+  { key: "reviewsReceived", title: "Reviews received", sub: "When a customer leaves you a review" },
 ] as const;
 
 type NotifKey = (typeof NOTIF_ITEMS)[number]["key"];
 
 const DEFAULTS: Record<NotifKey, boolean> = {
-  providerReplies: true,
-  statusChanges: true,
+  inboundRequests: true,
+  customerReplies: true,
+  jobStatusChanges: true,
+  reviewsReceived: true,
 };
 
 export function NotificationsCard() {
   const { accessToken } = useAuth();
-  const { data: user } = useCurrentUser();
+  const { data: provider } = useCurrentProvider();
   const queryClient = useQueryClient();
 
   const [prefs, setPrefs] = useState<Record<NotifKey, boolean>>(DEFAULTS);
 
   useEffect(() => {
-    if (user?.notificationPreferences) {
+    if (provider?.notificationPreferences) {
       setPrefs({
-        providerReplies: user.notificationPreferences.providerReplies ?? true,
-        statusChanges: user.notificationPreferences.statusChanges ?? true,
+        inboundRequests: provider.notificationPreferences.inboundRequests ?? true,
+        customerReplies: provider.notificationPreferences.customerReplies ?? true,
+        jobStatusChanges: provider.notificationPreferences.jobStatusChanges ?? true,
+        reviewsReceived: provider.notificationPreferences.reviewsReceived ?? true,
       });
     }
-  }, [user]);
+  }, [provider]);
 
   const mutation = useMutation({
     mutationFn: (next: Record<NotifKey, boolean>) =>
       updateNotificationPreferences(accessToken, next),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+      queryClient.invalidateQueries({ queryKey: ["currentProvider"] });
     },
   });
 

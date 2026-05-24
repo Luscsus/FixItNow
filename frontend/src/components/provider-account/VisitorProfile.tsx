@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import type { ProviderDto } from "@/services/providerService";
 import { CATEGORY_LABEL, avatarColor, initials } from "@/components/browse/browseConstants";
+import { SaveProviderButton } from "@/components/browse/SaveProviderButton";
 
 interface VisitorProfileProps {
   provider: ProviderDto | undefined;
@@ -46,6 +47,9 @@ export function VisitorProfile({ provider }: VisitorProfileProps) {
               <h1>
                 {provider.firstName} {provider.lastName}
                 <span className="verified-md">✓ Verified</span>
+                <span style={{ marginLeft: 12, display: "inline-flex", verticalAlign: "middle" }}>
+                  <SaveProviderButton providerId={provider.id} variant="full" />
+                </span>
               </h1>
               <div className="sub" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
                 {provider.categories.map((cat) => (

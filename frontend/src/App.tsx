@@ -43,7 +43,9 @@ function App() {
       <Route element={<AppLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/browse" element={<BrowseProvidersPage />} />
+        <Route path="/providers" element={<BrowseProvidersPage />} />
         <Route path="/providers/:id" element={<ProviderAccountPage />} />
+        <Route path="/tickets/new" element={<NewTicketPage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/profile/edit" element={<EditProfilePage />} />
@@ -55,8 +57,6 @@ function App() {
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Route>
-      <Route path="/tickets/new" element={<NewTicketPage />} />
-      <Route path="/providers" element={<BrowseProvidersPage />} />
     </Routes>
   );
 }

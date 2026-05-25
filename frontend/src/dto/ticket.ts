@@ -39,6 +39,8 @@ export type TicketResponseDto = {
   createdAt: string;
   assignedServiceProviderName: string | null;
   submittedByName: string | null;
+  requestedStartAt: string | null;
+  requestedEndAt: string | null;
 };
 
 export type OpenTicketSummaryDto = {
@@ -53,4 +55,6 @@ export type CreateTicketRequestDto = {
   location: string;
   priority: TicketPriorityDto;
   assignedProviderId?: string | null;
+  requestedStartAt?: string | null;
+  requestedEndAt?: string | null;
 };

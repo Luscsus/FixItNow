@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import type { ProviderDto } from "@/services/providerService";
 import { CATEGORY_LABEL, avatarColor, initials } from "@/components/browse/browseConstants";
 import { SaveProviderButton } from "@/components/browse/SaveProviderButton";
+import { WeekSchedule } from "@/components/provider-account/WeekSchedule";
 
 interface VisitorProfileProps {
   provider: ProviderDto | undefined;
@@ -138,6 +139,8 @@ export function VisitorProfile({ provider }: VisitorProfileProps) {
               ))}
             </div>
           </div>
+
+          <WeekSchedule providerId={provider.id} editable={false} />
         </div>
 
         <aside>

@@ -39,6 +39,8 @@ public class TicketResponse {
     private LocalDateTime createdAt;
     private String assignedServiceProviderName;
     private String submittedByName;
+    private LocalDateTime requestedStartAt;
+    private LocalDateTime requestedEndAt;
 
     public TicketResponse() {
     }

@@ -14,6 +14,8 @@ export function mapTicket(dto: TicketResponseDto): Ticket {
     createdAt: new Date(dto.createdAt),
     assignedServiceProviderName: dto.assignedServiceProviderName ?? null,
     submittedByName: dto.submittedByName ?? null,
+    requestedStartAt: dto.requestedStartAt ? new Date(dto.requestedStartAt) : null,
+    requestedEndAt: dto.requestedEndAt ? new Date(dto.requestedEndAt) : null,
   };
 }
 

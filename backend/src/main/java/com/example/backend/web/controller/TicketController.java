@@ -88,7 +88,8 @@ public class TicketController {
     }
 
     @GetMapping("/open")
-    public ResponseEntity<List<OpenTicketSummary>> getOpenTickets() {
+    @PreAuthorize("hasRole('PROVIDER')")
+    public ResponseEntity<List<TicketResponse>> getOpenTickets() {
         return ResponseEntity.ok(ticketService.getOpenTickets());
     }
 
@@ -103,7 +104,7 @@ public class TicketController {
 
     @GetMapping("/public/open")
     public ResponseEntity<List<OpenTicketSummary>> getPublicOpenTickets() {
-        return ResponseEntity.ok(ticketService.getOpenTickets());
+        return ResponseEntity.ok(ticketService.getPublicOpenTicketSummaries());
     }
 
     @GetMapping("/nearby")

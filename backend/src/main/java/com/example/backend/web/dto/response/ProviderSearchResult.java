@@ -18,8 +18,13 @@ public class ProviderSearchResult {
     private UUID id;
     private String firstName;
     private String lastName;
-    private BigDecimal locationLat;
-    private BigDecimal locationLon;
+    private String locationStreetName;
+    private String locationStreetNumber;
+    private String locationCity;
+    private String locationPostalCode;
+    private String locationCountry;
+    private Double locationLat;
+    private Double locationLon;
     private BigDecimal pricePerHour;
     private Integer yearsOfExperience;
     private Integer serviceRadiusKm;
@@ -36,8 +41,13 @@ public class ProviderSearchResult {
             .id(p.getId())
             .firstName(p.getFirstName())
             .lastName(p.getLastName())
-            .locationLat(p.getLocationLat())
-            .locationLon(p.getLocationLon())
+            .locationStreetName(p.getLocation() != null ? p.getLocation().getStreetName() : null)
+            .locationStreetNumber(p.getLocation() != null ? p.getLocation().getStreetNumber() : null)
+            .locationCity(p.getLocation() != null ? p.getLocation().getCity() : null)
+            .locationPostalCode(p.getLocation() != null ? p.getLocation().getPostalCode() : null)
+            .locationCountry(p.getLocation() != null ? p.getLocation().getCountry() : null)
+            .locationLat(p.getLocation() != null ? p.getLocation().getLatitude() : null)
+            .locationLon(p.getLocation() != null ? p.getLocation().getLongitude() : null)
             .pricePerHour(p.getPricePerHour())
             .yearsOfExperience(p.getYearsOfExperience())
             .serviceRadiusKm(p.getServiceRadiusKm())

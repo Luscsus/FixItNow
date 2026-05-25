@@ -34,7 +34,7 @@ export type TicketResponseDto = {
   description: string;
   location: string;
   status: TicketStatusDto;
-  priority: TicketPriorityDto;
+  priority: TicketPriorityDto | null;
   estimatedCost: number | null;
   createdAt: string;
   assignedServiceProviderName: string | null;

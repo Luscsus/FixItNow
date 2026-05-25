@@ -5,7 +5,7 @@ import { useCurrentProvider } from "@/hooks/useCurrentProvider";
 import { useOpenTicketsQuery } from "@/hooks/useOpenTicketsQuery";
 import { useProviderTicketsQuery } from "@/hooks/useProviderTicketsQuery";
 import { useUpdateTicketStatusMutation } from "@/hooks/useUpdateTicketStatusMutation";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const ACTIVE_STATUSES: TicketStatus[] = ["APPROVED", "IN_TRANSIT", "PENDING_PROVIDER_INVOICE", "PENDING_PAYMENT"];
 
@@ -56,9 +56,14 @@ interface RequestCardProps {
 }
 
 function RequestCard({ ticket, onAccept, onDecline, acceptLabel = "Accept →", isPending }: RequestCardProps) {
+  const navigate = useNavigate();
   const pc = priorityClass(ticket.priority);
   return (
-    <div className={`req-card u-${pc}`}>
+    <div
+      className={`req-card u-${pc}`}
+      style={{ cursor: "pointer" }}
+      onClick={() => navigate(`/tickets/${ticket.id}`)}
+    >
       <div className="req-rail" />
       <div className="req-card-inner">
         <div className="req-head">
@@ -115,7 +120,7 @@ function RequestCard({ ticket, onAccept, onDecline, acceptLabel = "Accept →", 
             <button
               className="btn btn-secondary btn-sm"
               type="button"
-              onClick={onDecline}
+              onClick={(e) => { e.stopPropagation(); onDecline(); }}
               disabled={isPending}
             >
               Decline
@@ -124,7 +129,7 @@ function RequestCard({ ticket, onAccept, onDecline, acceptLabel = "Accept →", 
           <button
             className="btn btn-primary btn-sm"
             type="button"
-            onClick={onAccept}
+            onClick={(e) => { e.stopPropagation(); onAccept(); }}
             disabled={isPending}
           >
             {isPending ? "…" : acceptLabel}
@@ -136,6 +141,7 @@ function RequestCard({ ticket, onAccept, onDecline, acceptLabel = "Accept →", 
 }
 
 function ActiveJobCard({ ticket }: { ticket: Ticket }) {
+  const navigate = useNavigate();
   const pc = priorityClass(ticket.priority);
 
   const statusLabel: Record<TicketStatus, string> = {
@@ -150,7 +156,10 @@ function ActiveJobCard({ ticket }: { ticket: Ticket }) {
   };
 
   return (
-    <div className={`job-card in-progress`}>
+    <div
+      className={`job-card in-progress`}
+      onClick={() => navigate(`/tickets/${ticket.id}`)}
+    >
       <div className="job-rail" />
       <div className="job-body">
         <div className="job-head">

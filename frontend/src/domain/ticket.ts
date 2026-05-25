@@ -27,6 +27,11 @@ export type ServiceCategory =
   | "IT_SUPPORT"
   | "OTHER";
 
+export type StatusHistoryEntry = {
+  status: TicketStatus;
+  changedAt: Date;
+};
+
 export type Ticket = {
   id: number;
   serviceType: string;
@@ -41,5 +46,6 @@ export type Ticket = {
   submittedByName?: string | null;
   requestedStartAt?: Date | null;
   requestedEndAt?: Date | null;
+  statusHistory?: StatusHistoryEntry[] | null;
 };
 

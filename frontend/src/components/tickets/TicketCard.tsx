@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import type { Ticket, TicketPriority, TicketStatus } from "@/domain/ticket";
 
 function priorityClass(priority: TicketPriority | null) {
@@ -54,12 +55,17 @@ function statusToSteps(status: TicketStatus): StepState[] {
 const PHASE_LABELS = ["Filed", "Approved", "Working", "Invoice", "Done"] as const;
 
 export function TicketCard({ ticket }: { ticket: Ticket }) {
+  const navigate = useNavigate();
   const isTerminal = ticket.status === "DECLINED" || ticket.status === "CANCELLED";
   const steps = statusToSteps(ticket.status);
   const ticketIdStr = `FIX-${String(ticket.id).padStart(4, "0")}`;
 
   return (
-    <div className={`ticket ${priorityClass(ticket.priority)}`} style={{ cursor: "pointer" }}>
+    <div
+      className={`ticket ${priorityClass(ticket.priority)}`}
+      style={{ cursor: "pointer" }}
+      onClick={() => navigate(`/tickets/${ticket.id}`)}
+    >
       <div className="ticket-rail" />
       <div className="ticket-body">
         <div className="ticket-row1">

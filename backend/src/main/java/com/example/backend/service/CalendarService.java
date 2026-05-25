@@ -171,6 +171,13 @@ public class CalendarService {
         }
 
         Provider provider = providerOpt.get();
+
+        boolean isNew = existing.isEmpty();
+        if (isNew && blockRepository.existsBookedOverlap(provider.getId(),
+                ticket.getScheduledStartAt(), ticket.getScheduledEndAt(), ticket.getId())) {
+            throw new ApiException("This time slot is already booked for another job.");
+        }
+
         ProviderTimeBlock block = existing.orElseGet(() -> ProviderTimeBlock.builder()
             .type(TimeBlockType.BOOKED)
             .ticket(ticket)

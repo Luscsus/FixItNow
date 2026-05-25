@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import type { Ticket, TicketPriority, TicketStatus } from "@/domain/ticket";
 import { useTicketsQuery } from "@/hooks/useTicketsQuery";
@@ -61,14 +61,14 @@ function statusToSteps(status: TicketStatus): StepState[] {
 
 const PHASE_LABELS = ["Filed", "Approved", "Working", "Invoice", "Done"] as const;
 
-function TicketCard({ ticket }: { ticket: Ticket }) {
+function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick?: () => void }) {
   const isTerminal =
     ticket.status === "DECLINED" || ticket.status === "CANCELLED";
   const steps = statusToSteps(ticket.status);
   const ticketIdStr = `FIX-${String(ticket.id).padStart(4, "0")}`;
 
   return (
-    <div className={`ticket ${priorityClass(ticket.priority)}`} style={{ cursor: "pointer" }}>
+    <div className={`ticket ${priorityClass(ticket.priority)}`} style={{ cursor: "pointer" }} onClick={onClick}>
       <div className="ticket-rail" />
       <div className="ticket-body">
         <div className="ticket-row1">
@@ -191,6 +191,7 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
 export function UserDashboardPage() {
   const { data: tickets = [], isLoading } = useTicketsQuery();
   const [filter, setFilter] = useState<TicketFilter>("active");
+  const navigate = useNavigate();
 
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -316,7 +317,11 @@ export function UserDashboardPage() {
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 48 }}>
             {filteredTickets.map((ticket) => (
-              <TicketCard key={ticket.id} ticket={ticket} />
+              <TicketCard
+                key={ticket.id}
+                ticket={ticket}
+                onClick={() => navigate(`/tickets/${ticket.id}`)}
+              />
             ))}
           </div>
         )}

@@ -3,6 +3,7 @@ package com.example.backend.service;
 import com.example.backend.domain.ticket.Ticket;
 import com.example.backend.domain.ticket.TicketPriority;
 import com.example.backend.domain.ticket.TicketStatus;
+import com.example.backend.domain.ticket.TicketStatusHistory;
 import com.example.backend.dto.CreateTicketRequest;
 import com.example.backend.dto.OpenTicketSummary;
 import com.example.backend.dto.TicketResponse;
@@ -11,6 +12,7 @@ import com.example.backend.exception.TicketNotFoundException;
 import com.example.backend.exception.UserNotFoundException;
 import com.example.backend.repository.ProviderRepository;
 import com.example.backend.repository.TicketRepository;
+import com.example.backend.repository.TicketStatusHistoryRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.LocationRepository;
 import com.example.backend.domain.user.Provider;
@@ -35,15 +37,17 @@ public class TicketService {
     private final LocationRepository locationRepository;
     private final ProviderRepository providerRepository;
     private final CalendarService calendarService;
+    private final TicketStatusHistoryRepository statusHistoryRepository;
 
     public TicketService(TicketRepository ticketRepository, UserRepository userRepository,
                          LocationRepository locationRepository, ProviderRepository providerRepository,
-                         CalendarService calendarService) {
+                         CalendarService calendarService, TicketStatusHistoryRepository statusHistoryRepository) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
         this.locationRepository = locationRepository;
         this.providerRepository = providerRepository;
         this.calendarService = calendarService;
+        this.statusHistoryRepository = statusHistoryRepository;
     }
 
     @Transactional
@@ -72,7 +76,9 @@ public class TicketService {
             ticket.setRequestedEndAt(request.getRequestedEndAt());
         }
 
-        return toResponse(ticketRepository.save(ticket));
+        Ticket saved = ticketRepository.save(ticket);
+        recordHistory(saved, TicketStatus.PENDING_APPROVAL);
+        return toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -99,6 +105,7 @@ public class TicketService {
 
         ticket.setStatus(newStatus);
         Ticket saved = ticketRepository.save(ticket);
+        recordHistory(saved, newStatus);
         calendarService.syncBookedBlockForTicket(saved);
         return toResponse(saved);
     }
@@ -119,7 +126,14 @@ public class TicketService {
 
     @Transactional(readOnly = true)
     public TicketResponse getTicketDetails(Long ticketId) throws TicketNotFoundException {
-        return toResponse(getTicketOrThrow(ticketId));
+        Ticket ticket = getTicketOrThrow(ticketId);
+        TicketResponse resp = toResponse(ticket);
+        resp.setStatusHistory(
+            statusHistoryRepository.findByTicket_IdOrderByChangedAtAsc(ticketId).stream()
+                .map(h -> new TicketResponse.StatusHistoryEntry(h.getStatus(), h.getChangedAt()))
+                .toList()
+        );
+        return resp;
     }
 
     @Transactional(readOnly = true)
@@ -170,6 +184,7 @@ public class TicketService {
             ticket.setScheduledEndAt(ticket.getRequestedEndAt());
         }
         Ticket saved = ticketRepository.save(ticket);
+        recordHistory(saved, TicketStatus.APPROVED);
         calendarService.syncBookedBlockForTicket(saved);
         return toResponse(saved);
     }
@@ -191,7 +206,9 @@ public class TicketService {
             .orElseThrow(() -> new UserNotFoundException("Provider not found: " + providerId));
         ticket.setAssignedServiceProvider(provider);
         ticket.setStatus(TicketStatus.APPROVED);
-        return toResponse(ticketRepository.save(ticket));
+        Ticket saved = ticketRepository.save(ticket);
+        recordHistory(saved, TicketStatus.APPROVED);
+        return toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -210,6 +227,15 @@ public class TicketService {
             .sorted(Comparator.comparingDouble(candidate -> candidate.distanceKm))
             .map(candidate -> toResponse(candidate.ticket))
             .toList();
+    }
+
+    private void recordHistory(Ticket ticket, TicketStatus status) {
+        statusHistoryRepository.save(
+            TicketStatusHistory.builder()
+                .ticket(ticket)
+                .status(status)
+                .build()
+        );
     }
 
     private Ticket getTicketOrThrow(Long ticketId) {

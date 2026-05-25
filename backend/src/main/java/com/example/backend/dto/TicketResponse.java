@@ -9,6 +9,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -41,6 +42,19 @@ public class TicketResponse {
     private String submittedByName;
     private LocalDateTime requestedStartAt;
     private LocalDateTime requestedEndAt;
+    private List<StatusHistoryEntry> statusHistory;
+
+    @Getter
+    @Setter
+    public static class StatusHistoryEntry {
+        private TicketStatus status;
+        private LocalDateTime changedAt;
+
+        public StatusHistoryEntry(TicketStatus status, LocalDateTime changedAt) {
+            this.status = status;
+            this.changedAt = changedAt;
+        }
+    }
 
     public TicketResponse() {
     }

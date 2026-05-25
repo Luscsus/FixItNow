@@ -1,5 +1,5 @@
 import type { TicketResponseDto } from "@/dto/ticket";
-import type { Ticket } from "@/domain/ticket";
+import type { Ticket, StatusHistoryEntry } from "@/domain/ticket";
 
 export function mapTicket(dto: TicketResponseDto): Ticket {
   return {
@@ -16,6 +16,12 @@ export function mapTicket(dto: TicketResponseDto): Ticket {
     submittedByName: dto.submittedByName ?? null,
     requestedStartAt: dto.requestedStartAt ? new Date(dto.requestedStartAt) : null,
     requestedEndAt: dto.requestedEndAt ? new Date(dto.requestedEndAt) : null,
+    statusHistory: dto.statusHistory
+      ? dto.statusHistory.map((h): StatusHistoryEntry => ({
+          status: h.status,
+          changedAt: new Date(h.changedAt),
+        }))
+      : null,
   };
 }
 

@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useProviderTicketsQuery } from "@/hooks/useProviderTicketsQuery";
 import type { Ticket } from "@/domain/ticket";
 
@@ -21,12 +22,17 @@ function fmtDate(d: Date): string {
 }
 
 function CompletedJobRow({ ticket, index }: { ticket: Ticket; index: number }) {
+  const navigate = useNavigate();
   const dateLabel = ticket.requestedStartAt
     ? fmtDate(ticket.requestedStartAt)
     : fmtDate(ticket.createdAt);
 
   return (
-    <div className="inbound-req" style={{ alignItems: "flex-start" }}>
+    <div
+      className="inbound-req"
+      style={{ alignItems: "flex-start", cursor: "pointer" }}
+      onClick={() => navigate(`/tickets/${ticket.id}`)}
+    >
       <span className="ireq-id">FIX-{ticket.id}</span>
       <div style={{ flex: 1 }}>
         <div className="ireq-title">{ticket.serviceType}</div>

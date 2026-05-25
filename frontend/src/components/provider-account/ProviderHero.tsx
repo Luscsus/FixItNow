@@ -1,14 +1,22 @@
 import { Link } from "react-router-dom";
 
+interface ProviderStats {
+  completedJobs: number;
+  activeJobs: number;
+  inboundRequests: number;
+  totalEarned: number | null;
+}
+
 interface ProviderHeroProps {
   fullName: string;
   initials: string;
   email: string | undefined;
   online: boolean;
   setOnline: (updater: (v: boolean) => boolean) => void;
+  stats?: ProviderStats;
 }
 
-export function ProviderHero({ fullName, initials, email, online, setOnline }: ProviderHeroProps) {
+export function ProviderHero({ fullName, initials, email, online, setOnline, stats }: ProviderHeroProps) {
   return (
     <section className="pro-hero">
       <div className="pro-hero-grid" />
@@ -54,33 +62,28 @@ export function ProviderHero({ fullName, initials, email, online, setOnline }: P
 
         <div className="rev-strip">
           <div className="rev-cell amber">
-            <div className="lbl">Earnings · this month</div>
-            <div className="val">$6,840<span className="rev-delta">▲ 18%</span></div>
-            <div className="hint">vs $5,790 last month · 23 jobs</div>
-            <div className="sparkrow">
-              {[40, 55, 30, 65, 50, 75, 45, 85, 60, 90, 70, 100].map((h, i) => (
-                <span
-                  key={i}
-                  style={{ height: `${h}%` }}
-                  className={h === 100 || h === 90 || h === 85 ? "peak" : h === 30 ? "dim" : undefined}
-                />
-              ))}
+            <div className="lbl">Total earned</div>
+            <div className="val">
+              {stats?.totalEarned != null
+                ? `$${stats.totalEarned.toFixed(2)}`
+                : "—"}
             </div>
+            <div className="hint">{stats?.completedJobs ?? 0} completed job{stats?.completedJobs !== 1 ? "s" : ""}</div>
           </div>
           <div className="rev-cell">
-            <div className="lbl">Rating</div>
-            <div className="val">4.9<span className="unit">★</span></div>
-            <div className="hint">187 jobs · 142 reviews</div>
+            <div className="lbl">Completed jobs</div>
+            <div className="val">{stats?.completedJobs ?? "—"}</div>
+            <div className="hint">all time</div>
           </div>
           <div className="rev-cell">
-            <div className="lbl">Response time</div>
-            <div className="val">11<span className="unit">min</span></div>
-            <div className="hint">median · top 8% of trades</div>
+            <div className="lbl">Active jobs</div>
+            <div className="val">{stats?.activeJobs ?? "—"}</div>
+            <div className="hint">currently in progress</div>
           </div>
           <div className="rev-cell">
-            <div className="lbl">Completion</div>
-            <div className="val">98<span className="unit">%</span></div>
-            <div className="hint">same-day finish rate</div>
+            <div className="lbl">Inbound requests</div>
+            <div className="val">{stats?.inboundRequests ?? "—"}</div>
+            <div className="hint">awaiting your response</div>
           </div>
         </div>
       </div>

@@ -4,10 +4,10 @@ import com.example.backend.domain.user.Provider;
 import com.example.backend.domain.user.ServiceCategory;
 import com.example.backend.domain.user.UserStatus;
 import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Subquery;
 import org.springframework.data.jpa.domain.Specification;
 
-import java.math.BigDecimal;
 import java.util.Set;
 import java.util.UUID;
 
@@ -32,12 +32,12 @@ public final class ProviderSpecification {
         };
     }
 
-    public static Specification<Provider> minPrice(BigDecimal min) {
+    public static Specification<Provider> minPrice(java.math.BigDecimal min) {
         if (min == null) return null;
         return (root, query, cb) -> cb.greaterThanOrEqualTo(root.get("pricePerHour"), min);
     }
 
-    public static Specification<Provider> maxPrice(BigDecimal max) {
+    public static Specification<Provider> maxPrice(java.math.BigDecimal max) {
         if (max == null) return null;
         return (root, query, cb) -> cb.lessThanOrEqualTo(root.get("pricePerHour"), max);
     }
@@ -54,8 +54,9 @@ public final class ProviderSpecification {
     public static Specification<Provider> withinRadius(Double lat, Double lon, Double radiusKm) {
         if (lat == null || lon == null || radiusKm == null) return null;
         return (root, query, cb) -> {
-            Expression<Double> providerLat = root.<BigDecimal>get("locationLat").as(Double.class);
-            Expression<Double> providerLon = root.<BigDecimal>get("locationLon").as(Double.class);
+            var locationJoin = root.join("location", JoinType.LEFT);
+            Expression<Double> providerLat = locationJoin.get("latitude");
+            Expression<Double> providerLon = locationJoin.get("longitude");
 
             Expression<Double> providerLatRad = cb.function("radians", Double.class, providerLat);
             Expression<Double> providerLonRad = cb.function("radians", Double.class, providerLon);
@@ -85,8 +86,9 @@ public final class ProviderSpecification {
             );
 
             return cb.and(
-                cb.isNotNull(root.get("locationLat")),
-                cb.isNotNull(root.get("locationLon")),
+                cb.isNotNull(root.get("location")),
+                cb.isNotNull(locationJoin.get("latitude")),
+                cb.isNotNull(locationJoin.get("longitude")),
                 cb.lessThanOrEqualTo(distance, cb.literal(radiusKm))
             );
         };

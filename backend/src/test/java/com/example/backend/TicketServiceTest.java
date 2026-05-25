@@ -67,7 +67,7 @@ class TicketServiceTest {
 		user.setFirstName("Test");
 		user.setLastName("User");
 		userLocation = new Location();
-		userLocation.setAddress("Ljubljana");
+		userLocation.setStreetName("Ljubljana");
 		userLocation.setLatitude(46.0569);
 		userLocation.setLongitude(14.5058);
 		user.setLocation(userLocation);
@@ -117,7 +117,7 @@ class TicketServiceTest {
 		first.setId(1L);
 		first.setUser(user);
 		Location firstLocation = new Location();
-		firstLocation.setAddress("A loc");
+		firstLocation.setStreetName("A loc");
 		firstLocation.setLatitude(46.0);
 		firstLocation.setLongitude(14.0);
 		first.setLocation(firstLocation);
@@ -131,7 +131,7 @@ class TicketServiceTest {
 		second.setId(2L);
 		second.setUser(user);
 		Location secondLocation = new Location();
-		secondLocation.setAddress("B loc");
+		secondLocation.setStreetName("B loc");
 		secondLocation.setLatitude(46.1);
 		secondLocation.setLongitude(14.1);
 		second.setLocation(secondLocation);
@@ -157,7 +157,7 @@ class TicketServiceTest {
 		ticket.setId(10L);
 		ticket.setUser(user);
 		Location location = new Location();
-		location.setAddress("loc");
+		location.setStreetName("loc");
 		location.setLatitude(46.0);
 		location.setLongitude(14.0);
 		ticket.setLocation(location);
@@ -187,7 +187,7 @@ class TicketServiceTest {
 		nearUser.setFirstName("Near");
 		nearUser.setLastName("User");
 		Location nearLocation = new Location();
-		nearLocation.setAddress("Ljubljana");
+		nearLocation.setStreetName("Ljubljana");
 		nearLocation.setLatitude(46.0569);
 		nearLocation.setLongitude(14.5058);
 		nearUser.setLocation(nearLocation);
@@ -207,7 +207,7 @@ class TicketServiceTest {
 		farUser.setFirstName("Far");
 		farUser.setLastName("User");
 		Location farLocation = new Location();
-		farLocation.setAddress("Koper");
+		farLocation.setStreetName("Koper");
 		farLocation.setLatitude(45.5481);
 		farLocation.setLongitude(13.7302);
 		farUser.setLocation(farLocation);

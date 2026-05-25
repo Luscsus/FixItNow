@@ -374,6 +374,18 @@ export function AdminDashboardPage() {
                   value: selected.serviceRadiusKm != null ? `${selected.serviceRadiusKm} km` : "—",
                 },
                 {
+                  label: "Street",
+                  value: [selected.locationStreetName, selected.locationStreetNumber].filter(Boolean).join(" ") || "—",
+                },
+                {
+                  label: "City",
+                  value: [selected.locationCity, selected.locationPostalCode].filter(Boolean).join(" ") || "—",
+                },
+                {
+                  label: "Country",
+                  value: selected.locationCountry ?? "—",
+                },
+                {
                   label: "Location (lat)",
                   value: selected.locationLat != null ? String(selected.locationLat) : "—",
                   mono: true,

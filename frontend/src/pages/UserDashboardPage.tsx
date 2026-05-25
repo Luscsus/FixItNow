@@ -8,7 +8,7 @@ type TicketFilter = "active" | "resolved" | "all";
 
 const TERMINAL_STATUSES: TicketStatus[] = ["COMPLETED", "DECLINED", "CANCELLED"];
 
-function priorityClass(priority: TicketPriority) {
+function priorityClass(priority: TicketPriority | null) {
   return priority === "CRITICAL"
     ? "u-critical"
     : priority === "HIGH"
@@ -18,7 +18,7 @@ function priorityClass(priority: TicketPriority) {
         : "u-low";
 }
 
-function priorityBadgeClass(priority: TicketPriority) {
+function priorityBadgeClass(priority: TicketPriority | null) {
   return priority === "CRITICAL"
     ? "urgency urgency-critical"
     : priority === "HIGH"
@@ -28,7 +28,7 @@ function priorityBadgeClass(priority: TicketPriority) {
         : "urgency urgency-low";
 }
 
-function priorityLabel(priority: TicketPriority) {
+function priorityLabel(priority: TicketPriority | null) {
   return priority === "CRITICAL"
     ? "Critical"
     : priority === "HIGH"

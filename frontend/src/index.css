@@ -2151,8 +2151,12 @@ input, textarea, select { font: inherit; color: inherit; }
 .steprail-bar.current { background: var(--accent); }
 .steprail-labels {
   display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px;
-  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em;
+  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.04em;
   text-transform: uppercase; color: var(--text-muted);
+}
+.steprail-labels span {
+  text-align: center; word-break: break-word; overflow-wrap: break-word;
+  white-space: normal; line-height: 1.35;
 }
 .steprail-labels b {
   font-weight: 700; color: var(--text); display: block;

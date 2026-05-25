@@ -9,14 +9,11 @@ import { ProviderHero } from "@/components/provider-account/ProviderHero";
 import { ActiveJobCard } from "@/components/provider-account/ActiveJobCard";
 import { InboundRequests } from "@/components/provider-account/InboundRequests";
 import { WeekSchedule } from "@/components/provider-account/WeekSchedule";
-import { CredentialsDocuments } from "@/components/provider-account/CredentialsDocuments";
-import { SpecialtiesRatesCard } from "@/components/provider-account/SpecialtiesRatesCard";
+import { CompletedJobsCard } from "@/components/provider-account/CompletedJobsCard";
 import { PayoutsCard } from "@/components/provider-account/PayoutsCard";
-import { ProfileCompletionCard } from "@/components/provider-account/ProfileCompletionCard";
-import { SupportCard } from "@/components/provider-account/SupportCard";
 import { NotificationsCard } from "@/components/provider-account/NotificationsCard";
 
-const TABS = ["Today", "Schedule", "Jobs", "Reviews", "Earnings", "Documents", "Profile"] as const;
+const TABS = ["Overview", "Schedule", "Jobs", "Reviews"] as const;
 type Tab = (typeof TABS)[number];
 
 export function ProviderAccountPage() {
@@ -24,7 +21,7 @@ export function ProviderAccountPage() {
   const location = useLocation();
   const { userInfo, clearSession } = useAuth();
   const { data: ownProfile } = useCurrentProvider();
-  const [activeTab, setActiveTab] = useState<Tab>("Today");
+  const [activeTab, setActiveTab] = useState<Tab>("Overview");
   const [online, setOnline] = useState(true);
 
   const stateProvider = (location.state as { provider?: ProviderDto } | null)?.provider;
@@ -65,24 +62,33 @@ export function ProviderAccountPage() {
                 onClick={() => setActiveTab(tab)}
               >
                 {tab}
-                {tab === "Jobs" && <span className="count">187</span>}
-                {tab === "Reviews" && <span className="count">142</span>}
               </button>
             ))}
           </div>
 
-          <ActiveJobCard />
-          <InboundRequests />
-          {ownProfile?.id && <WeekSchedule providerId={ownProfile.id} editable />}
-          <CredentialsDocuments />
+          {activeTab === "Overview" && (
+            <>
+              <ActiveJobCard />
+              <InboundRequests />
+            </>
+          )}
+
+          {activeTab === "Schedule" && ownProfile?.id && (
+            <WeekSchedule providerId={ownProfile.id} editable />
+          )}
+
+          {activeTab === "Jobs" && <CompletedJobsCard />}
+
+          {activeTab === "Reviews" && (
+            <div className="card" style={{ padding: "24px", color: "var(--text-muted)", fontSize: 14 }}>
+              Reviews coming soon.
+            </div>
+          )}
         </div>
 
         <aside>
-          <SpecialtiesRatesCard />
           <NotificationsCard />
           <PayoutsCard />
-          <ProfileCompletionCard />
-          <SupportCard />
 
           <button
             className="btn btn-danger btn-full"

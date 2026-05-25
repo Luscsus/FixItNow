@@ -70,6 +70,22 @@ export async function acceptTicket(ticketId: number, accessToken?: string): Prom
   return mapTicket(data);
 }
 
+export async function confirmTicket(ticketId: number, accessToken?: string): Promise<Ticket> {
+  const data = await requestJson<TicketResponseDto>(`/api/tickets/${ticketId}/confirm`, {
+    method: "POST",
+    headers: authHeader(accessToken),
+  });
+  return mapTicket(data);
+}
+
+export async function declineTicket(ticketId: number, accessToken?: string): Promise<Ticket> {
+  const data = await requestJson<TicketResponseDto>(
+    `/api/tickets/${ticketId}/status?newStatus=DECLINED`,
+    { method: "PUT", headers: authHeader(accessToken) },
+  );
+  return mapTicket(data);
+}
+
 export async function getPublicOpenTickets(): Promise<OpenTicketSummaryDto[]> {
   return requestJson<OpenTicketSummaryDto[]>("/api/tickets/public/open");
 }

@@ -6,6 +6,7 @@ import com.example.backend.dto.OpenTicketSummary;
 import com.example.backend.dto.TicketResponse;
 import com.example.backend.security.UserPrincipal;
 import com.example.backend.service.TicketService;
+import com.example.backend.web.dto.request.ScheduleTicketRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -90,7 +91,7 @@ public class TicketController {
     @GetMapping("/open")
     @PreAuthorize("hasRole('PROVIDER')")
     public ResponseEntity<List<TicketResponse>> getOpenTickets() {
-        return ResponseEntity.ok(ticketService.getOpenTickets());
+        return ResponseEntity.ok(ticketService.getOpenTicketsFull());
     }
 
     @PostMapping("/{ticketId}/accept")
@@ -105,6 +106,30 @@ public class TicketController {
     @GetMapping("/public/open")
     public ResponseEntity<List<OpenTicketSummary>> getPublicOpenTickets() {
         return ResponseEntity.ok(ticketService.getPublicOpenTicketSummaries());
+    }
+
+    @PostMapping("/{ticketId}/confirm")
+    @PreAuthorize("hasRole('PROVIDER')")
+    public ResponseEntity<TicketResponse> confirmTicket(
+        @PathVariable Long ticketId,
+        @AuthenticationPrincipal UserPrincipal userDetails
+    ) {
+        return ResponseEntity.ok(ticketService.confirmTicket(ticketId, userDetails.getUser().getId()));
+    }
+
+    @PutMapping("/{ticketId}/schedule")
+    @PreAuthorize("hasRole('PROVIDER')")
+    public ResponseEntity<TicketResponse> scheduleTicket(
+        @PathVariable Long ticketId,
+        @Valid @RequestBody ScheduleTicketRequest request,
+        @AuthenticationPrincipal UserPrincipal userDetails
+    ) {
+        return ResponseEntity.ok(ticketService.scheduleTicket(
+            ticketId,
+            userDetails.getUser().getId(),
+            request.getStartAt(),
+            request.getEndAt()
+        ));
     }
 
     @GetMapping("/nearby")

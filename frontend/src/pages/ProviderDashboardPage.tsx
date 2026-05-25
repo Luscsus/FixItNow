@@ -1,5 +1,6 @@
 import type { Ticket, TicketPriority, TicketStatus } from "@/domain/ticket";
 import { useAcceptTicketMutation } from "@/hooks/useAcceptTicketMutation";
+import { useConfirmTicketMutation, useDeclineTicketMutation } from "@/hooks/useConfirmTicketMutation";
 import { useCurrentProvider } from "@/hooks/useCurrentProvider";
 import { useOpenTicketsQuery } from "@/hooks/useOpenTicketsQuery";
 import { useProviderTicketsQuery } from "@/hooks/useProviderTicketsQuery";
@@ -30,6 +31,20 @@ function timeAgo(date: Date): string {
 
 function formatId(id: number): string {
   return "FIX-" + String(id).padStart(4, "0");
+}
+
+function pad(n: number) { return String(n).padStart(2, "0"); }
+function fmtTime(d: Date) { return d.getMinutes() === 0 ? `${d.getHours()}:00` : `${d.getHours()}:${pad(d.getMinutes())}`; }
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const WDAYS  = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+function RequestedTimeChip({ startAt, endAt }: { startAt: Date; endAt: Date | null | undefined }) {
+  const timeRange = endAt ? `${fmtTime(startAt)}–${fmtTime(endAt)}` : fmtTime(startAt);
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontFamily: "var(--font-mono)", background: "var(--amber-50)", color: "var(--amber-700)", border: "1px solid var(--amber-100)", borderRadius: 5, padding: "2px 8px" }}>
+      🕐 {WDAYS[startAt.getDay()]} {MONTHS[startAt.getMonth()]} {startAt.getDate()} · {timeRange}
+    </span>
+  );
 }
 
 interface RequestCardProps {
@@ -65,6 +80,12 @@ function RequestCard({ ticket, onAccept, onDecline, acceptLabel = "Accept →", 
           <span className="mono" style={{ fontSize: 12 }}>
             {timeAgo(ticket.createdAt)}
           </span>
+          {ticket.requestedStartAt && (
+            <>
+              <span>·</span>
+              <RequestedTimeChip startAt={ticket.requestedStartAt} endAt={ticket.requestedEndAt} />
+            </>
+          )}
         </div>
         <div className="req-customer">
           <div
@@ -165,6 +186,8 @@ export function ProviderDashboardPage() {
   const { data: openTickets = [], isLoading: loadingOpen } = useOpenTicketsQuery();
 
   const updateStatus = useUpdateTicketStatusMutation();
+  const confirmMut = useConfirmTicketMutation();
+  const declineMut = useDeclineTicketMutation();
   const acceptOpen = useAcceptTicketMutation();
 
   const inboundTickets = providerTickets.filter((t) => t.status === "PENDING_APPROVAL");
@@ -270,10 +293,12 @@ export function ProviderDashboardPage() {
               <RequestCard
                 key={ticket.id}
                 ticket={ticket}
-                acceptLabel="Accept →"
-                isPending={updateStatus.isPending}
-                onAccept={() => updateStatus.mutate({ ticketId: ticket.id, status: "APPROVED" })}
-                onDecline={() => updateStatus.mutate({ ticketId: ticket.id, status: "DECLINED" })}
+                acceptLabel={ticket.requestedStartAt ? "Confirm & schedule →" : "Accept →"}
+                isPending={confirmMut.isPending || declineMut.isPending || updateStatus.isPending}
+                onAccept={() => ticket.requestedStartAt
+                  ? confirmMut.mutate(ticket.id)
+                  : updateStatus.mutate({ ticketId: ticket.id, status: "APPROVED" })}
+                onDecline={() => declineMut.mutate(ticket.id)}
               />
             ))}
           </div>

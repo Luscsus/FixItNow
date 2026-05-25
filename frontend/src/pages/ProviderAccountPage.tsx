@@ -73,7 +73,7 @@ export function ProviderAccountPage() {
 
           <ActiveJobCard />
           <InboundRequests />
-          <WeekSchedule />
+          {ownProfile?.id && <WeekSchedule providerId={ownProfile.id} editable />}
           <CredentialsDocuments />
         </div>
 

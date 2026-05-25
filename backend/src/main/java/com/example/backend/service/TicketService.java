@@ -16,9 +16,11 @@ import com.example.backend.repository.LocationRepository;
 import com.example.backend.domain.user.Provider;
 import com.example.backend.domain.user.User;
 import com.example.backend.domain.location.Location;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -32,13 +34,16 @@ public class TicketService {
     private final UserRepository userRepository;
     private final LocationRepository locationRepository;
     private final ProviderRepository providerRepository;
+    private final CalendarService calendarService;
 
     public TicketService(TicketRepository ticketRepository, UserRepository userRepository,
-                         LocationRepository locationRepository, ProviderRepository providerRepository) {
+                         LocationRepository locationRepository, ProviderRepository providerRepository,
+                         CalendarService calendarService) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
         this.locationRepository = locationRepository;
         this.providerRepository = providerRepository;
+        this.calendarService = calendarService;
     }
 
     @Transactional
@@ -60,6 +65,11 @@ public class TicketService {
             Provider provider = providerRepository.findById(request.getAssignedProviderId())
                 .orElseThrow(() -> new UserNotFoundException("Provider not found: " + request.getAssignedProviderId()));
             ticket.setAssignedServiceProvider(provider);
+        }
+
+        if (request.getRequestedStartAt() != null && request.getRequestedEndAt() != null) {
+            ticket.setRequestedStartAt(request.getRequestedStartAt());
+            ticket.setRequestedEndAt(request.getRequestedEndAt());
         }
 
         return toResponse(ticketRepository.save(ticket));
@@ -88,7 +98,23 @@ public class TicketService {
         }
 
         ticket.setStatus(newStatus);
-        return toResponse(ticketRepository.save(ticket));
+        Ticket saved = ticketRepository.save(ticket);
+        calendarService.syncBookedBlockForTicket(saved);
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public TicketResponse scheduleTicket(Long ticketId, UUID providerId, LocalDateTime startAt, LocalDateTime endAt) {
+        Ticket ticket = getTicketOrThrow(ticketId);
+        if (ticket.getAssignedServiceProvider() == null
+            || !ticket.getAssignedServiceProvider().getId().equals(providerId)) {
+            throw new AccessDeniedException("Only the assigned provider can schedule this ticket.");
+        }
+        ticket.setScheduledStartAt(startAt);
+        ticket.setScheduledEndAt(endAt);
+        Ticket saved = ticketRepository.save(ticket);
+        calendarService.syncBookedBlockForTicket(saved);
+        return toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -116,6 +142,36 @@ public class TicketService {
     @Transactional(readOnly = true)
     public List<OpenTicketSummary> getPublicOpenTicketSummaries() {
         return ticketRepository.findTop20OpenTicketSummaries();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TicketResponse> getOpenTicketsFull() {
+        return ticketRepository
+                .findByAssignedServiceProviderIsNullAndStatusOrderByCreatedAtDesc(TicketStatus.PENDING_APPROVAL)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional
+    public TicketResponse confirmTicket(Long ticketId, UUID providerId) {
+        Ticket ticket = getTicketOrThrow(ticketId);
+        if (ticket.getAssignedServiceProvider() == null
+                || !ticket.getAssignedServiceProvider().getId().equals(providerId)) {
+            throw new AccessDeniedException("Only the assigned provider can confirm this ticket.");
+        }
+        if (ticket.getStatus() != TicketStatus.PENDING_APPROVAL) {
+            throw new InvalidTicketStatusTransitionException(
+                "Ticket " + ticketId + " is not awaiting confirmation (status: " + ticket.getStatus() + ")");
+        }
+        ticket.setStatus(TicketStatus.APPROVED);
+        if (ticket.getRequestedStartAt() != null && ticket.getRequestedEndAt() != null) {
+            ticket.setScheduledStartAt(ticket.getRequestedStartAt());
+            ticket.setScheduledEndAt(ticket.getRequestedEndAt());
+        }
+        Ticket saved = ticketRepository.save(ticket);
+        calendarService.syncBookedBlockForTicket(saved);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -188,7 +244,7 @@ public class TicketService {
         String submittedByName = ticket.getUser() != null
             ? formatProviderName(ticket.getUser())
             : null;
-        return new TicketResponse(
+        TicketResponse resp = new TicketResponse(
             ticket.getId(),
             ticket.getServiceType(),
             ticket.getCategory(),
@@ -201,6 +257,9 @@ public class TicketService {
             providerName,
             submittedByName
         );
+        resp.setRequestedStartAt(ticket.getRequestedStartAt());
+        resp.setRequestedEndAt(ticket.getRequestedEndAt());
+        return resp;
     }
 
     private Location upsertLocation(User user, CreateTicketRequest request) {

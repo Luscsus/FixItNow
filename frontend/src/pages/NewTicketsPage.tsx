@@ -6,6 +6,7 @@ import type { Provider } from "@/domain/admin";
 import { useCreateTicketMutation } from "@/hooks/useCreateTicketMutation";
 import { useActiveCategoriesQuery } from "@/hooks/useActiveCategoriesQuery";
 import { useToast } from "@/components/ui/toast";
+import { ProviderAvailabilityPicker } from "@/components/ticket/ProviderAvailabilityPicker";
 
 type Urgency = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 type ProviderMode = "SPECIFIC" | "OPEN";
@@ -48,6 +49,8 @@ export function NewTicketPage() {
     incomingProvider ? "SPECIFIC" : (savedForm?.providerMode ?? "OPEN")
   );
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(incomingProvider);
+  const [requestedStartAt, setRequestedStartAt] = useState<string | null>(null);
+  const [requestedEndAt, setRequestedEndAt] = useState<string | null>(null);
   const [note, setNote] = useState(savedForm?.note ?? "");
 
   const ticketId = useMemo(() => "", []);
@@ -86,6 +89,8 @@ export function NewTicketPage() {
       location: location.trim(),
       priority: urgency as TicketPriority,
       assignedProviderId: providerMode === "SPECIFIC" && selectedProvider ? selectedProvider.id : null,
+      requestedStartAt: providerMode === "SPECIFIC" && requestedStartAt ? requestedStartAt : null,
+      requestedEndAt: providerMode === "SPECIFIC" && requestedEndAt ? requestedEndAt : null,
     };
 
     try {
@@ -283,6 +288,7 @@ export function NewTicketPage() {
 
               {providerMode === "SPECIFIC" ? (
                 selectedProvider ? (
+                  <>
                   <div className="card provider-card">
                     <div
                       className="avatar"
@@ -312,11 +318,46 @@ export function NewTicketPage() {
                     <button
                       className="btn btn-ghost btn-sm"
                       type="button"
-                      onClick={() => navigate("/providers", { state: { formState: { title, category, description, location, urgency, note, providerMode } } })}
+                      onClick={() => {
+                        setRequestedStartAt(null);
+                        setRequestedEndAt(null);
+                        navigate("/providers", { state: { formState: { title, category, description, location, urgency, note, providerMode } } });
+                      }}
                     >
                       Change
                     </button>
                   </div>
+
+                  {/* Schedule a time with this provider */}
+                  <div className="field" style={{ marginTop: 12 }}>
+                    <label className="field-label">
+                      Request a time{" "}
+                      <span className="muted new-ticket-optional">— optional</span>
+                    </label>
+                    <span className="field-hint" style={{ display: "block", marginBottom: 10 }}>
+                      Choose one of the provider's available slots. They'll confirm when they accept your ticket.
+                    </span>
+                    <ProviderAvailabilityPicker
+                      providerId={selectedProvider.id}
+                      selectedStart={requestedStartAt}
+                      selectedEnd={requestedEndAt}
+                      onSelect={(s, e) => {
+                        setRequestedStartAt(s);
+                        setRequestedEndAt(e);
+                      }}
+                    />
+                    {requestedStartAt && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        style={{ marginTop: 8, fontSize: 12 }}
+                        onClick={() => { setRequestedStartAt(null); setRequestedEndAt(null); }}
+                      >
+                        ✕ Clear selection
+                      </button>
+                    )}
+                  </div>
+                  </>
                 ) : (
                   <div className="card provider-card" style={{ gridTemplateColumns: "1fr auto", alignItems: "center" }}>
                     <div className="muted" style={{ fontSize: 13.5 }}>
@@ -406,6 +447,23 @@ export function NewTicketPage() {
                     : "Open to anyone"}
               </span>
             </div>
+            {providerMode === "SPECIFIC" && (
+              <div className="summary-row">
+                <span className="key">Requested time</span>
+                <span className="val mono" style={{ fontSize: 12 }}>
+                  {requestedStartAt
+                    ? (() => {
+                        const s = new Date(requestedStartAt);
+                        const e = requestedEndAt ? new Date(requestedEndAt) : null;
+                        const pad = (n: number) => String(n).padStart(2,"0");
+                        const fmtT = (d: Date) => `${d.getHours()}:${pad(d.getMinutes())}`;
+                        const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                        return `${months[s.getMonth()]} ${s.getDate()} · ${fmtT(s)}${e ? `–${fmtT(e)}` : ""}`;
+                      })()
+                    : "—"}
+                </span>
+              </div>
+            )}
             <div className="summary-row new-ticket-summary-last-row">
               <span className="key">Photos</span>
               <span className="val mono">—</span>

@@ -9,6 +9,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import java.util.List;
 
 @Getter
@@ -40,6 +41,7 @@ public class TicketResponse {
     private LocalDateTime createdAt;
     private String assignedServiceProviderName;
     private String submittedByName;
+    private UUID chatRoomId;
     private LocalDateTime requestedStartAt;
     private LocalDateTime requestedEndAt;
     private List<StatusHistoryEntry> statusHistory;
@@ -59,9 +61,19 @@ public class TicketResponse {
     public TicketResponse() {
     }
 
+    /** Pre-chat constructor — kept for backward compatibility with any older callers. */
     public TicketResponse(Long id, String serviceType, ServiceCategory category, String description, String location,
                           TicketStatus status, TicketPriority priority, BigDecimal estimatedCost,
                           LocalDateTime createdAt, String assignedServiceProviderName, String submittedByName) {
+        this(id, serviceType, category, description, location, status, priority, estimatedCost, createdAt,
+            assignedServiceProviderName, submittedByName, null);
+    }
+
+    /** Full constructor — used by TicketService.toResponse(). */
+    public TicketResponse(Long id, String serviceType, ServiceCategory category, String description, String location,
+                          TicketStatus status, TicketPriority priority, BigDecimal estimatedCost,
+                          LocalDateTime createdAt, String assignedServiceProviderName, String submittedByName,
+                          UUID chatRoomId) {
         this.id = id;
         this.serviceType = serviceType;
         this.category = category;
@@ -73,5 +85,6 @@ public class TicketResponse {
         this.createdAt = createdAt;
         this.assignedServiceProviderName = assignedServiceProviderName;
         this.submittedByName = submittedByName;
+        this.chatRoomId = chatRoomId;
     }
 }

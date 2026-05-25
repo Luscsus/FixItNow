@@ -15,6 +15,8 @@ import com.example.backend.repository.TicketRepository;
 import com.example.backend.repository.TicketStatusHistoryRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.LocationRepository;
+import com.example.backend.repository.ChatRoomRepository;
+import com.example.backend.domain.chat.ChatRoom;
 import com.example.backend.domain.user.Provider;
 import com.example.backend.domain.user.User;
 import com.example.backend.domain.location.Location;
@@ -36,16 +38,21 @@ public class TicketService {
     private final UserRepository userRepository;
     private final LocationRepository locationRepository;
     private final ProviderRepository providerRepository;
+    private final ChatRoomRepository chatRoomRepository;
+    private final ChatService chatService;
     private final CalendarService calendarService;
     private final TicketStatusHistoryRepository statusHistoryRepository;
 
     public TicketService(TicketRepository ticketRepository, UserRepository userRepository,
                          LocationRepository locationRepository, ProviderRepository providerRepository,
-                         CalendarService calendarService, TicketStatusHistoryRepository statusHistoryRepository) {
+                         ChatRoomRepository chatRoomRepository, ChatService chatService, CalendarService calendarService,
+                         TicketStatusHistoryRepository statusHistoryRepository) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
         this.locationRepository = locationRepository;
         this.providerRepository = providerRepository;
+        this.chatRoomRepository = chatRoomRepository;
+        this.chatService = chatService;
         this.calendarService = calendarService;
         this.statusHistoryRepository = statusHistoryRepository;
     }
@@ -65,12 +72,14 @@ public class TicketService {
         ticket.setPriority(request.getPriority() != null ? request.getPriority() : TicketPriority.MEDIUM);
         ticket.setStatus(TicketStatus.PENDING_APPROVAL);
 
-        if (request.getAssignedProviderId() != null) {
-            Provider provider = providerRepository.findById(request.getAssignedProviderId())
-                .orElseThrow(() -> new UserNotFoundException("Provider not found: " + request.getAssignedProviderId()));
+        UUID assignedProviderId = request.getAssignedProviderId();
+        if (assignedProviderId != null) {
+            Provider provider = providerRepository.findById(assignedProviderId)
+                .orElseThrow(() -> new UserNotFoundException("Provider not found: " + assignedProviderId));
             ticket.setAssignedServiceProvider(provider);
         }
 
+        // Carry over requested schedule window if the customer suggested one
         if (request.getRequestedStartAt() != null && request.getRequestedEndAt() != null) {
             ticket.setRequestedStartAt(request.getRequestedStartAt());
             ticket.setRequestedEndAt(request.getRequestedEndAt());
@@ -78,6 +87,14 @@ public class TicketService {
 
         Ticket saved = ticketRepository.save(ticket);
         recordHistory(saved, TicketStatus.PENDING_APPROVAL);
+
+        if (assignedProviderId != null) {
+            ensureChatRoom(saved, assignedProviderId);
+            saved = ticketRepository.save(saved);
+            // Opening greeting so the chat isn't empty when the provider opens it
+            postSystemMessage(saved, "Ticket " + formatTicketCode(saved.getId())
+                + " · " + saved.getServiceType() + " · awaiting provider response.");
+        }
         return toResponse(saved);
     }
 
@@ -107,6 +124,12 @@ public class TicketService {
         Ticket saved = ticketRepository.save(ticket);
         recordHistory(saved, newStatus);
         calendarService.syncBookedBlockForTicket(saved);
+        if (currentStatus != newStatus) {
+            String body = statusChangeMessage(saved, currentStatus, newStatus);
+            if (body != null) {
+                postSystemMessage(saved, body);
+            }
+        }
         return toResponse(saved);
     }
 
@@ -206,8 +229,11 @@ public class TicketService {
             .orElseThrow(() -> new UserNotFoundException("Provider not found: " + providerId));
         ticket.setAssignedServiceProvider(provider);
         ticket.setStatus(TicketStatus.APPROVED);
+        ensureChatRoom(ticket, provider.getId());
         Ticket saved = ticketRepository.save(ticket);
         recordHistory(saved, TicketStatus.APPROVED);
+        postSystemMessage(saved, formatProviderName(provider)
+            + " accepted ticket " + formatTicketCode(saved.getId()));
         return toResponse(saved);
     }
 
@@ -236,6 +262,39 @@ public class TicketService {
                 .status(status)
                 .build()
         );
+    }
+
+    private static String formatTicketCode(Long id) {
+        return String.format("FIX-%04d", id);
+    }
+
+    /**
+     * Posts a SYSTEM message into the ticket's chat room (if one exists). Failures
+     * are swallowed so chat issues never break the primary ticket operation.
+     */
+    private void postSystemMessage(Ticket ticket, String content) {
+        if (ticket.getChatRoomId() == null) return;
+        try {
+            chatService.saveSystemMessage(ticket.getChatRoomId(), content);
+        } catch (RuntimeException ex) {
+            // Don't fail the ticket op if the chat write fails — log and move on.
+            System.err.println("[ticket] system message failed for ticket " + ticket.getId() + ": " + ex.getMessage());
+        }
+    }
+
+    /** Human-readable message for ticket lifecycle transitions, or null for transitions we don't surface. */
+    private String statusChangeMessage(Ticket ticket, TicketStatus from, TicketStatus to) {
+        String code = formatTicketCode(ticket.getId());
+        return switch (to) {
+            case APPROVED                 -> "Ticket " + code + " approved · awaiting provider en-route.";
+            case IN_TRANSIT               -> "Provider is en route · ticket " + code + ".";
+            case PENDING_PROVIDER_INVOICE -> "Work complete · awaiting provider invoice.";
+            case PENDING_PAYMENT          -> "Invoice issued · awaiting payment.";
+            case COMPLETED                -> "Ticket " + code + " marked complete. Thanks!";
+            case CANCELLED                -> "Ticket " + code + " was cancelled.";
+            case DECLINED                 -> "Ticket " + code + " was declined.";
+            case PENDING_APPROVAL         -> null; // no message — initial state
+        };
     }
 
     private Ticket getTicketOrThrow(Long ticketId) {
@@ -281,11 +340,25 @@ public class TicketService {
             ticket.getEstimatedCost(),
             ticket.getCreatedAt(),
             providerName,
-            submittedByName
+            submittedByName,
+            ticket.getChatRoomId()
         );
         resp.setRequestedStartAt(ticket.getRequestedStartAt());
         resp.setRequestedEndAt(ticket.getRequestedEndAt());
         return resp;
+    }
+
+    private void ensureChatRoom(Ticket ticket, UUID providerId) {
+        if (ticket.getChatRoomId() != null) {
+            return;
+        }
+        ChatRoom room = chatRoomRepository.findByTicketId(ticket.getId())
+            .orElseGet(ChatRoom::new);
+        room.setTicketId(ticket.getId());
+        room.setCustomerId(ticket.getUser().getId());
+        room.setProviderId(providerId);
+        ChatRoom saved = chatRoomRepository.save(room);
+        ticket.setChatRoomId(saved.getId());
     }
 
     private Location upsertLocation(User user, CreateTicketRequest request) {

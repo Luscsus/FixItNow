@@ -44,6 +44,7 @@ export type Ticket = {
   createdAt: Date;
   assignedServiceProviderName?: string | null;
   submittedByName?: string | null;
+  chatRoomId?: string | null;
   requestedStartAt?: Date | null;
   requestedEndAt?: Date | null;
   statusHistory?: StatusHistoryEntry[] | null;

@@ -23,6 +23,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "tickets")
@@ -75,6 +76,9 @@ public class Ticket {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_service_provider_id")
     private User assignedServiceProvider;
+
+    @Column(name = "chat_room_id")
+    private UUID chatRoomId;
 
     @Column(name = "scheduled_start_at")
     private LocalDateTime scheduledStartAt;

@@ -45,13 +45,15 @@ public class ProviderSearchServiceImpl implements ProviderSearchService {
 
     private Double computeDistance(Provider provider, ProviderSearchParams params) {
         if (params.getLatitude() == null || params.getLongitude() == null
-                || provider.getLocationLat() == null || provider.getLocationLon() == null) {
+                || provider.getLocation() == null
+                || provider.getLocation().getLatitude() == null
+                || provider.getLocation().getLongitude() == null) {
             return null;
         }
         double lat1 = Math.toRadians(params.getLatitude());
         double lon1 = Math.toRadians(params.getLongitude());
-        double lat2 = Math.toRadians(provider.getLocationLat().doubleValue());
-        double lon2 = Math.toRadians(provider.getLocationLon().doubleValue());
+        double lat2 = Math.toRadians(provider.getLocation().getLatitude());
+        double lon2 = Math.toRadians(provider.getLocation().getLongitude());
         double cosAngle = Math.sin(lat1) * Math.sin(lat2)
             + Math.cos(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1);
         // clamp to [-1, 1] to guard against floating-point rounding past domain of acos

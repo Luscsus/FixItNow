@@ -1,6 +1,7 @@
 package com.example.backend.service;
 
 import com.example.backend.common.exception.*;
+import com.example.backend.domain.location.Location;
 import com.example.backend.domain.token.RefreshToken;
 import com.example.backend.domain.token.TokenType;
 import com.example.backend.domain.token.VerificationToken;
@@ -8,6 +9,7 @@ import com.example.backend.domain.user.Provider;
 import com.example.backend.domain.user.User;
 import com.example.backend.domain.user.UserRole;
 import com.example.backend.domain.user.UserStatus;
+import com.example.backend.repository.LocationRepository;
 import com.example.backend.repository.RefreshTokenRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.VerificationTokenRepository;
@@ -36,6 +38,8 @@ import java.util.UUID;
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
+    private final LocationRepository locationRepository;
+    private final GeocodingService geocodingService;
     private final VerificationTokenRepository verificationTokenRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
@@ -90,6 +94,19 @@ public class AuthServiceImpl implements AuthService {
             throw new EmailAlreadyExistsException("Email is already registered.");
         }
 
+        double[] coords = geocodingService.geocode(
+                request.getLocationStreetName(), request.getLocationStreetNumber(),
+                request.getLocationCity(), request.getLocationPostalCode(), request.getLocationCountry())
+                .orElseThrow(() -> new ApiException(
+                        "Could not resolve coordinates for the provided address. " +
+                        "Please check the address details and try again."));
+
+        Location location = new Location(null,
+            request.getLocationStreetName(), request.getLocationStreetNumber(),
+            request.getLocationCity(), request.getLocationPostalCode(), request.getLocationCountry(),
+            coords[0], coords[1]);
+        locationRepository.save(location);
+
         Provider provider = Provider.builder()
             .email(request.getEmail().toLowerCase())
             .password(passwordEncoder.encode(request.getPassword()))
@@ -99,8 +116,7 @@ public class AuthServiceImpl implements AuthService {
             .status(UserStatus.PENDING_APPROVAL)
             .emailVerified(true)
             .phoneNumber(request.getPhoneNumber())
-            .locationLat(request.getLocationLat())
-            .locationLon(request.getLocationLon())
+            .location(location)
             .pricePerHour(request.getPricePerHour())
             .yearsOfExperience(request.getYearsOfExperience())
             .serviceRadiusKm(request.getServiceRadiusKm())

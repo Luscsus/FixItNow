@@ -4,8 +4,13 @@ export interface ProviderDto {
   id: string
   firstName: string
   lastName: string
-  locationLat: number
-  locationLon: number
+  locationStreetName: string | null
+  locationStreetNumber: string | null
+  locationCity: string | null
+  locationPostalCode: string | null
+  locationCountry: string | null
+  locationLat: number | null
+  locationLon: number | null
   pricePerHour: number
   yearsOfExperience: number
   serviceRadiusKm: number

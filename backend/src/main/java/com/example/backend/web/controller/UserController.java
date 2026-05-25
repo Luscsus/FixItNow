@@ -1,10 +1,13 @@
 package com.example.backend.web.controller;
 
 import com.example.backend.common.exception.ApiException;
+import com.example.backend.domain.location.Location;
 import com.example.backend.domain.user.Provider;
 import com.example.backend.domain.user.User;
+import com.example.backend.repository.LocationRepository;
 import com.example.backend.repository.ProviderRepository;
 import com.example.backend.repository.UserRepository;
+import com.example.backend.service.GeocodingService;
 import com.example.backend.security.UserPrincipal;
 import com.example.backend.web.dto.request.ChangePasswordRequest;
 import com.example.backend.web.dto.request.UpdateNotificationPreferencesRequest;
@@ -37,6 +40,8 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final ProviderRepository providerRepository;
+    private final LocationRepository locationRepository;
+    private final GeocodingService geocodingService;
     private final PasswordEncoder passwordEncoder;
 
     @Operation(summary = "Get the currently authenticated user's profile (any role).")
@@ -48,11 +53,14 @@ public class UserController {
 
     @Operation(summary = "Get the currently authenticated provider's full profile.")
     @GetMapping("/providers/me")
+    @Transactional(readOnly = true)
     public ResponseEntity<ProviderResponse> getCurrentProvider(@AuthenticationPrincipal UserPrincipal principal) {
         User user = principal.getUser();
-        if (!(user instanceof Provider provider)) {
+        if (!(user instanceof Provider)) {
             return ResponseEntity.status(403).build();
         }
+        Provider provider = providerRepository.findById(user.getId())
+            .orElseThrow(() -> new ApiException("Provider not found"));
         return ResponseEntity.ok(ProviderResponse.from(provider));
     }
 
@@ -87,8 +95,30 @@ public class UserController {
         provider.setFirstName(request.getFirstName().trim());
         provider.setLastName(request.getLastName().trim());
         provider.setPhoneNumber(request.getPhoneNumber());
-        provider.setLocationLat(request.getLocationLat());
-        provider.setLocationLon(request.getLocationLon());
+        double[] coords = geocodingService.geocode(
+                request.getLocationStreetName(), request.getLocationStreetNumber(),
+                request.getLocationCity(), request.getLocationPostalCode(), request.getLocationCountry())
+                .orElseThrow(() -> new ApiException(
+                        "Could not resolve coordinates for the provided address. " +
+                        "Please check the address details and try again."));
+
+        Location location = provider.getLocation();
+        if (location == null) {
+            location = new Location(null,
+                request.getLocationStreetName(), request.getLocationStreetNumber(),
+                request.getLocationCity(), request.getLocationPostalCode(), request.getLocationCountry(),
+                coords[0], coords[1]);
+        } else {
+            location.setStreetName(request.getLocationStreetName());
+            location.setStreetNumber(request.getLocationStreetNumber());
+            location.setCity(request.getLocationCity());
+            location.setPostalCode(request.getLocationPostalCode());
+            location.setCountry(request.getLocationCountry());
+            location.setLatitude(coords[0]);
+            location.setLongitude(coords[1]);
+        }
+        locationRepository.save(location);
+        provider.setLocation(location);
         provider.setPricePerHour(request.getPricePerHour());
         provider.setYearsOfExperience(request.getYearsOfExperience());
         provider.setServiceRadiusKm(request.getServiceRadiusKm());

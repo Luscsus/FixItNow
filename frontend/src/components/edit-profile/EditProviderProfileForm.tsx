@@ -33,8 +33,11 @@ const schema = z.object({
   firstName: z.string().min(1, "First name is required."),
   lastName: z.string().min(1, "Last name is required."),
   phoneNumber: z.string().max(50).optional(),
-  locationLat: z.number().min(-90).max(90),
-  locationLon: z.number().min(-180).max(180),
+  locationStreetName: z.string().min(1, "Street name is required.").max(255),
+  locationStreetNumber: z.string().max(20).optional(),
+  locationCity: z.string().min(1, "City is required.").max(100),
+  locationPostalCode: z.string().max(20).optional(),
+  locationCountry: z.string().max(100).optional(),
   pricePerHour: z.number().positive("Price must be positive."),
   yearsOfExperience: z.number().int().min(0).max(80),
   serviceRadiusKm: z.number().int().min(1).max(500),
@@ -46,8 +49,11 @@ type Fields =
   | "firstName"
   | "lastName"
   | "phoneNumber"
-  | "locationLat"
-  | "locationLon"
+  | "locationStreetName"
+  | "locationStreetNumber"
+  | "locationCity"
+  | "locationPostalCode"
+  | "locationCountry"
   | "pricePerHour"
   | "yearsOfExperience"
   | "serviceRadiusKm"
@@ -63,8 +69,11 @@ export function EditProviderProfileForm() {
     firstName: "",
     lastName: "",
     phoneNumber: "",
-    locationLat: "",
-    locationLon: "",
+    locationStreetName: "",
+    locationStreetNumber: "",
+    locationCity: "",
+    locationPostalCode: "",
+    locationCountry: "",
     pricePerHour: "",
     yearsOfExperience: "",
     serviceRadiusKm: "",
@@ -80,8 +89,11 @@ export function EditProviderProfileForm() {
         firstName: provider.firstName ?? "",
         lastName: provider.lastName ?? "",
         phoneNumber: provider.phoneNumber ?? "",
-        locationLat: provider.locationLat?.toString() ?? "",
-        locationLon: provider.locationLon?.toString() ?? "",
+        locationStreetName: provider.locationStreetName ?? "",
+        locationStreetNumber: provider.locationStreetNumber ?? "",
+        locationCity: provider.locationCity ?? "",
+        locationPostalCode: provider.locationPostalCode ?? "",
+        locationCountry: provider.locationCountry ?? "",
         pricePerHour: provider.pricePerHour?.toString() ?? "",
         yearsOfExperience: provider.yearsOfExperience?.toString() ?? "",
         serviceRadiusKm: provider.serviceRadiusKm?.toString() ?? "",
@@ -119,8 +131,11 @@ export function EditProviderProfileForm() {
       firstName: form.firstName.trim(),
       lastName: form.lastName.trim(),
       phoneNumber: form.phoneNumber.trim() || null,
-      locationLat: Number(form.locationLat),
-      locationLon: Number(form.locationLon),
+      locationStreetName: form.locationStreetName.trim(),
+      locationStreetNumber: form.locationStreetNumber.trim() || undefined,
+      locationCity: form.locationCity.trim(),
+      locationPostalCode: form.locationPostalCode.trim() || undefined,
+      locationCountry: form.locationCountry.trim() || undefined,
       pricePerHour: Number(form.pricePerHour),
       yearsOfExperience: Number(form.yearsOfExperience),
       serviceRadiusKm: Number(form.serviceRadiusKm),
@@ -221,27 +236,49 @@ export function EditProviderProfileForm() {
       </div>
 
       <div className="row" style={{ gap: 12, alignItems: "flex-start" }}>
-        <div className="field grow">
-          <label className="field-label" htmlFor="p-lat">Latitude</label>
-          <div className={`input-wrap${errors.locationLat ? " error" : ""}`}>
-            <input id="p-lat" className="input" type="number" step="0.0000001" value={form.locationLat} onChange={setField("locationLat")} />
+        <div className="field grow" style={{ flexBasis: "65%" }}>
+          <label className="field-label" htmlFor="p-street">Street name</label>
+          <div className={`input-wrap${errors.locationStreetName ? " error" : ""}`}>
+            <input id="p-street" className="input" value={form.locationStreetName} onChange={setField("locationStreetName")} autoComplete="address-line1" />
           </div>
-          {errors.locationLat && <span className="field-error">{errors.locationLat}</span>}
+          {errors.locationStreetName && <span className="field-error">{errors.locationStreetName}</span>}
+        </div>
+        <div className="field" style={{ flexBasis: "30%" }}>
+          <label className="field-label" htmlFor="p-streetno">No.</label>
+          <div className={`input-wrap${errors.locationStreetNumber ? " error" : ""}`}>
+            <input id="p-streetno" className="input" value={form.locationStreetNumber} onChange={setField("locationStreetNumber")} autoComplete="address-line2" />
+          </div>
+        </div>
+      </div>
+
+      <div className="row" style={{ gap: 12, alignItems: "flex-start" }}>
+        <div className="field grow">
+          <label className="field-label" htmlFor="p-city">City</label>
+          <div className={`input-wrap${errors.locationCity ? " error" : ""}`}>
+            <input id="p-city" className="input" value={form.locationCity} onChange={setField("locationCity")} autoComplete="address-level2" />
+          </div>
+          {errors.locationCity && <span className="field-error">{errors.locationCity}</span>}
+        </div>
+        <div className="field">
+          <label className="field-label" htmlFor="p-postal">Postal code</label>
+          <div className="input-wrap">
+            <input id="p-postal" className="input" value={form.locationPostalCode} onChange={setField("locationPostalCode")} autoComplete="postal-code" />
+          </div>
         </div>
         <div className="field grow">
-          <label className="field-label" htmlFor="p-lon">Longitude</label>
-          <div className={`input-wrap${errors.locationLon ? " error" : ""}`}>
-            <input id="p-lon" className="input" type="number" step="0.0000001" value={form.locationLon} onChange={setField("locationLon")} />
+          <label className="field-label" htmlFor="p-country">Country</label>
+          <div className="input-wrap">
+            <input id="p-country" className="input" value={form.locationCountry} onChange={setField("locationCountry")} autoComplete="country-name" />
           </div>
-          {errors.locationLon && <span className="field-error">{errors.locationLon}</span>}
         </div>
-        <div className="field grow">
-          <label className="field-label" htmlFor="p-radius">Service radius (km)</label>
-          <div className={`input-wrap${errors.serviceRadiusKm ? " error" : ""}`}>
-            <input id="p-radius" className="input" type="number" value={form.serviceRadiusKm} onChange={setField("serviceRadiusKm")} />
-          </div>
-          {errors.serviceRadiusKm && <span className="field-error">{errors.serviceRadiusKm}</span>}
+      </div>
+
+      <div className="field grow">
+        <label className="field-label" htmlFor="p-radius">Service radius (km)</label>
+        <div className={`input-wrap${errors.serviceRadiusKm ? " error" : ""}`}>
+          <input id="p-radius" className="input" type="number" value={form.serviceRadiusKm} onChange={setField("serviceRadiusKm")} />
         </div>
+        {errors.serviceRadiusKm && <span className="field-error">{errors.serviceRadiusKm}</span>}
       </div>
 
       <div className="field">

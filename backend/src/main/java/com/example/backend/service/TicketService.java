@@ -193,7 +193,7 @@ public class TicketService {
             ticket.getServiceType(),
             ticket.getCategory(),
             ticket.getDescription(),
-            ticket.getLocation() != null ? ticket.getLocation().getAddress() : null,
+            ticket.getLocation() != null ? ticket.getLocation().getFormattedAddress() : null,
             ticket.getStatus(),
             ticket.getPriority(),
             ticket.getEstimatedCost(),
@@ -212,7 +212,7 @@ public class TicketService {
         if (location == null) {
             location = new Location();
         }
-        location.setAddress(request.getLocation());
+        location.setStreetName(request.getLocation());
         location.setLatitude(request.getLatitude());
         location.setLongitude(request.getLongitude());
         location = locationRepository.save(location);

@@ -1,14 +1,15 @@
 import type { Ticket, TicketPriority, TicketStatus } from "@/domain/ticket";
 import { useAcceptTicketMutation } from "@/hooks/useAcceptTicketMutation";
+import { useConfirmTicketMutation, useDeclineTicketMutation } from "@/hooks/useConfirmTicketMutation";
 import { useCurrentProvider } from "@/hooks/useCurrentProvider";
 import { useOpenTicketsQuery } from "@/hooks/useOpenTicketsQuery";
 import { useProviderTicketsQuery } from "@/hooks/useProviderTicketsQuery";
 import { useUpdateTicketStatusMutation } from "@/hooks/useUpdateTicketStatusMutation";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const ACTIVE_STATUSES: TicketStatus[] = ["APPROVED", "IN_TRANSIT", "PENDING_PROVIDER_INVOICE", "PENDING_PAYMENT"];
 
-function priorityClass(p: TicketPriority): string {
+function priorityClass(p: TicketPriority | null): string {
   return p === "CRITICAL" ? "critical" : p === "HIGH" ? "high" : p === "MEDIUM" ? "medium" : "low";
 }
 
@@ -32,6 +33,20 @@ function formatId(id: number): string {
   return "FIX-" + String(id).padStart(4, "0");
 }
 
+function pad(n: number) { return String(n).padStart(2, "0"); }
+function fmtTime(d: Date) { return d.getMinutes() === 0 ? `${d.getHours()}:00` : `${d.getHours()}:${pad(d.getMinutes())}`; }
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const WDAYS  = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+function RequestedTimeChip({ startAt, endAt }: { startAt: Date; endAt: Date | null | undefined }) {
+  const timeRange = endAt ? `${fmtTime(startAt)}–${fmtTime(endAt)}` : fmtTime(startAt);
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontFamily: "var(--font-mono)", background: "var(--amber-50)", color: "var(--amber-700)", border: "1px solid var(--amber-100)", borderRadius: 5, padding: "2px 8px" }}>
+      🕐 {WDAYS[startAt.getDay()]} {MONTHS[startAt.getMonth()]} {startAt.getDate()} · {timeRange}
+    </span>
+  );
+}
+
 interface RequestCardProps {
   ticket: Ticket;
   onAccept: () => void;
@@ -41,9 +56,14 @@ interface RequestCardProps {
 }
 
 function RequestCard({ ticket, onAccept, onDecline, acceptLabel = "Accept →", isPending }: RequestCardProps) {
+  const navigate = useNavigate();
   const pc = priorityClass(ticket.priority);
   return (
-    <div className={`req-card u-${pc}`}>
+    <div
+      className={`req-card u-${pc}`}
+      style={{ cursor: "pointer" }}
+      onClick={() => navigate(`/tickets/${ticket.id}`)}
+    >
       <div className="req-rail" />
       <div className="req-card-inner">
         <div className="req-head">
@@ -51,7 +71,7 @@ function RequestCard({ ticket, onAccept, onDecline, acceptLabel = "Accept →", 
           <span className="rcat">· {ticket.serviceType}</span>
           <span className="grow" />
           <span className={`urgency urgency-${pc}`}>
-            {ticket.priority.charAt(0) + ticket.priority.slice(1).toLowerCase()}
+            {ticket.priority ? ticket.priority.charAt(0) + ticket.priority.slice(1).toLowerCase() : "—"}
           </span>
         </div>
         <h3 className="req-title">{ticket.serviceType}</h3>
@@ -65,6 +85,12 @@ function RequestCard({ ticket, onAccept, onDecline, acceptLabel = "Accept →", 
           <span className="mono" style={{ fontSize: 12 }}>
             {timeAgo(ticket.createdAt)}
           </span>
+          {ticket.requestedStartAt && (
+            <>
+              <span>·</span>
+              <RequestedTimeChip startAt={ticket.requestedStartAt} endAt={ticket.requestedEndAt} />
+            </>
+          )}
         </div>
         <div className="req-customer">
           <div
@@ -94,7 +120,7 @@ function RequestCard({ ticket, onAccept, onDecline, acceptLabel = "Accept →", 
             <button
               className="btn btn-secondary btn-sm"
               type="button"
-              onClick={onDecline}
+              onClick={(e) => { e.stopPropagation(); onDecline(); }}
               disabled={isPending}
             >
               Decline
@@ -103,7 +129,7 @@ function RequestCard({ ticket, onAccept, onDecline, acceptLabel = "Accept →", 
           <button
             className="btn btn-primary btn-sm"
             type="button"
-            onClick={onAccept}
+            onClick={(e) => { e.stopPropagation(); onAccept(); }}
             disabled={isPending}
           >
             {isPending ? "…" : acceptLabel}
@@ -115,6 +141,7 @@ function RequestCard({ ticket, onAccept, onDecline, acceptLabel = "Accept →", 
 }
 
 function ActiveJobCard({ ticket }: { ticket: Ticket }) {
+  const navigate = useNavigate();
   const pc = priorityClass(ticket.priority);
 
   const statusLabel: Record<TicketStatus, string> = {
@@ -129,7 +156,10 @@ function ActiveJobCard({ ticket }: { ticket: Ticket }) {
   };
 
   return (
-    <div className={`job-card in-progress`}>
+    <div
+      className={`job-card in-progress`}
+      onClick={() => navigate(`/tickets/${ticket.id}`)}
+    >
       <div className="job-rail" />
       <div className="job-body">
         <div className="job-head">
@@ -165,6 +195,8 @@ export function ProviderDashboardPage() {
   const { data: openTickets = [], isLoading: loadingOpen } = useOpenTicketsQuery();
 
   const updateStatus = useUpdateTicketStatusMutation();
+  const confirmMut = useConfirmTicketMutation();
+  const declineMut = useDeclineTicketMutation();
   const acceptOpen = useAcceptTicketMutation();
 
   const inboundTickets = providerTickets.filter((t) => t.status === "PENDING_APPROVAL");
@@ -270,10 +302,12 @@ export function ProviderDashboardPage() {
               <RequestCard
                 key={ticket.id}
                 ticket={ticket}
-                acceptLabel="Accept →"
-                isPending={updateStatus.isPending}
-                onAccept={() => updateStatus.mutate({ ticketId: ticket.id, status: "APPROVED" })}
-                onDecline={() => updateStatus.mutate({ ticketId: ticket.id, status: "DECLINED" })}
+                acceptLabel={ticket.requestedStartAt ? "Confirm & schedule →" : "Accept →"}
+                isPending={confirmMut.isPending || declineMut.isPending || updateStatus.isPending}
+                onAccept={() => ticket.requestedStartAt
+                  ? confirmMut.mutate(ticket.id)
+                  : updateStatus.mutate({ ticketId: ticket.id, status: "APPROVED" })}
+                onDecline={() => declineMut.mutate(ticket.id)}
               />
             ))}
           </div>

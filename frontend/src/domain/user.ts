@@ -5,4 +5,5 @@ export type User = {
   lastName: string;
   emailVerified: boolean;
   createdAt: Date;
+  notificationPreferences: Record<string, boolean>;
 };

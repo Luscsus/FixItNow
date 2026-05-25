@@ -29,7 +29,10 @@ type Fields =
   | "trades"
   | "yearsOfExperience"
   | "serviceRadiusKm"
-  | "location"
+  | "locationStreetName"
+  | "locationCity"
+  | "locationPostalCode"
+  | "locationCountry"
   | "bio";
 
 // All 15 backend ServiceCategory values, in display order.
@@ -98,14 +101,6 @@ function IconPhone() {
   );
 }
 
-function IconPin() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="M8 14s5-4.5 5-9a5 5 0 0 0-10 0c0 4.5 5 9 5 9z" />
-      <circle cx="8" cy="5" r="2" />
-    </svg>
-  );
-}
 
 export function RegisterProviderPage() {
   const registerMutation = useRegisterProviderMutation();
@@ -128,10 +123,11 @@ export function RegisterProviderPage() {
   const [bio, setBio] = useState("");
 
   // Location
-  const [lat, setLat] = useState<string>("");
-  const [lon, setLon] = useState<string>("");
-  const [geoStatus, setGeoStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
-  const [geoMessage, setGeoMessage] = useState<string>("");
+  const [streetName, setStreetName] = useState<string>("");
+  const [streetNumber, setStreetNumber] = useState<string>("");
+  const [city, setCity] = useState<string>("");
+  const [postalCode, setPostalCode] = useState<string>("");
+  const [country, setCountry] = useState<string>("");
 
   const pwStrength = passwordStrength(form.password);
 
@@ -142,30 +138,6 @@ export function RegisterProviderPage() {
     setSelectedTrades((prev) =>
       prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id],
     );
-
-  const useMyLocation = () => {
-    if (!("geolocation" in navigator)) {
-      setGeoStatus("error");
-      setGeoMessage("Geolocation is not supported in this browser.");
-      return;
-    }
-    setGeoStatus("loading");
-    setGeoMessage("");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLat(pos.coords.latitude.toFixed(6));
-        setLon(pos.coords.longitude.toFixed(6));
-        setGeoStatus("ok");
-        setGeoMessage("Location captured.");
-        setErrors((c) => ({ ...c, location: undefined }));
-      },
-      (err) => {
-        setGeoStatus("error");
-        setGeoMessage(err.message || "Could not get your location. Enter it manually below.");
-      },
-      { enableHighAccuracy: true, timeout: 10000 },
-    );
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,15 +168,10 @@ export function RegisterProviderPage() {
       nextErrors.serviceRadiusKm = "Select a service radius.";
     }
 
-    const latNum = lat === "" ? NaN : Number(lat);
-    const lonNum = lon === "" ? NaN : Number(lon);
-    if (
-      !Number.isFinite(latNum) || latNum < -90 || latNum > 90 ||
-      !Number.isFinite(lonNum) || lonNum < -180 || lonNum > 180
-    ) {
-      nextErrors.location =
-        "A valid location is required. Use the locate button or enter coordinates manually.";
-    }
+    if (!streetName.trim()) nextErrors.locationStreetName = "Street name is required.";
+    if (!city.trim()) nextErrors.locationCity = "City is required.";
+    if (!postalCode.trim()) nextErrors.locationPostalCode = "Postal code is required.";
+    if (!country.trim()) nextErrors.locationCountry = "Country is required.";
 
     if (bio.length > BIO_MAX) {
       nextErrors.bio = `Bio must be at most ${BIO_MAX} characters.`;
@@ -228,8 +195,11 @@ export function RegisterProviderPage() {
         email: form.email.trim(),
         password: form.password,
         phoneNumber: form.phoneNumber.trim(),
-        locationLat: latNum,
-        locationLon: lonNum,
+        locationStreetName: streetName.trim(),
+        locationStreetNumber: streetNumber.trim() || undefined,
+        locationCity: city.trim(),
+        locationPostalCode: postalCode.trim(),
+        locationCountry: country.trim(),
         pricePerHour: hourlyRate,
         yearsOfExperience: years,
         serviceRadiusKm: radiusKm,
@@ -441,60 +411,83 @@ export function RegisterProviderPage() {
                     We use your location to match you with nearby job requests.
                   </p>
 
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={useMyLocation}
-                    disabled={geoStatus === "loading"}
-                    style={{ gap: 8 }}
-                  >
-                    <IconPin />
-                    {geoStatus === "loading" ? "Locating…" : "Use my current location"}
-                  </button>
-
-                  {geoStatus === "ok" && geoMessage && (
-                    <p style={{ fontSize: 13, color: "var(--emerald-700)", margin: "8px 0 0" }}>
-                      ✓ {geoMessage}
-                    </p>
-                  )}
-                  {geoStatus === "error" && geoMessage && (
-                    <p style={{ fontSize: 13, color: "var(--red-600, #DC2626)", margin: "8px 0 0" }}>
-                      {geoMessage}
-                    </p>
-                  )}
-
                   <div className="row" style={{ gap: 12, alignItems: "flex-start", marginTop: 12 }}>
-                    <div className="field grow">
-                      <label className="field-label" htmlFor="prov-lat">Latitude</label>
-                      <div className={`input-wrap${errors.location ? " error" : ""}`}>
+                    <div className="field" style={{ flex: 3 }}>
+                      <label className="field-label" htmlFor="prov-street">Street name</label>
+                      <div className={`input-wrap${errors.locationStreetName ? " error" : ""}`}>
                         <input
-                          id="prov-lat"
+                          id="prov-street"
                           className="input"
-                          inputMode="decimal"
-                          placeholder="46.5547"
-                          value={lat}
-                          onChange={(e) => setLat(e.target.value)}
+                          placeholder="Main Street"
+                          value={streetName}
+                          onChange={(e) => setStreetName(e.target.value)}
+                          autoComplete="address-line1"
                         />
                       </div>
+                      {errors.locationStreetName && <span className="field-error">{errors.locationStreetName}</span>}
                     </div>
-                    <div className="field grow">
-                      <label className="field-label" htmlFor="prov-lon">Longitude</label>
-                      <div className={`input-wrap${errors.location ? " error" : ""}`}>
+                    <div className="field" style={{ flex: 1, minWidth: 0 }}>
+                      <label className="field-label" htmlFor="prov-streetno">No.</label>
+                      <div className="input-wrap">
                         <input
-                          id="prov-lon"
+                          id="prov-streetno"
                           className="input"
-                          inputMode="decimal"
-                          placeholder="15.6459"
-                          value={lon}
-                          onChange={(e) => setLon(e.target.value)}
+                          placeholder="123"
+                          value={streetNumber}
+                          onChange={(e) => setStreetNumber(e.target.value)}
+                          autoComplete="address-line2"
                         />
                       </div>
                     </div>
                   </div>
-                  {errors.location && <span className="field-error" style={{ marginTop: 8 }}>{errors.location}</span>}
-                  <span className="field-hint" style={{ marginTop: 6, display: "block" }}>
-                    Latitude must be between −90 and 90, longitude between −180 and 180.
-                  </span>
+
+                  <div className="row" style={{ gap: 12, alignItems: "flex-start", marginTop: 8 }}>
+                    <div className="field" style={{ flex: 1, minWidth: 0 }}>
+                      <label className="field-label" htmlFor="prov-postal">Postal code</label>
+                      <div className={`input-wrap${errors.locationPostalCode ? " error" : ""}`}>
+                        <input
+                          id="prov-postal"
+                          className="input"
+                          placeholder="1000"
+                          value={postalCode}
+                          onChange={(e) => setPostalCode(e.target.value)}
+                          autoComplete="postal-code"
+                        />
+                      </div>
+                      {errors.locationPostalCode && <span className="field-error">{errors.locationPostalCode}</span>}
+                    </div>
+                    <div className="field" style={{ flex: 3 }}>
+                      <label className="field-label" htmlFor="prov-city">City</label>
+                      <div className={`input-wrap${errors.locationCity ? " error" : ""}`}>
+                        <input
+                          id="prov-city"
+                          className="input"
+                          placeholder="Ljubljana"
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                          autoComplete="address-level2"
+                        />
+                      </div>
+                      {errors.locationCity && <span className="field-error">{errors.locationCity}</span>}
+                    </div>
+                  </div>
+
+                  <div className="row" style={{ gap: 12, alignItems: "flex-start", marginTop: 8 }}>
+                    <div className="field" style={{ flex: 1 }}>
+                      <label className="field-label" htmlFor="prov-country">Country</label>
+                      <div className={`input-wrap${errors.locationCountry ? " error" : ""}`}>
+                        <input
+                          id="prov-country"
+                          className="input"
+                          placeholder="Slovenia"
+                          value={country}
+                          onChange={(e) => setCountry(e.target.value)}
+                          autoComplete="country-name"
+                        />
+                      </div>
+                      {errors.locationCountry && <span className="field-error">{errors.locationCountry}</span>}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Section 3 — Trades */}

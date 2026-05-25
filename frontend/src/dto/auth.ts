@@ -25,8 +25,11 @@ export type ProviderRegisterRequestDto = {
   firstName: string
   lastName: string
   phoneNumber?: string
-  locationLat: number
-  locationLon: number
+  locationStreetName: string
+  locationStreetNumber?: string
+  locationCity: string
+  locationPostalCode: string
+  locationCountry: string
   pricePerHour: number
   yearsOfExperience: number
   serviceRadiusKm: number

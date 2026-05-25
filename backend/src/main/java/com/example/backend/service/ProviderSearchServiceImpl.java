@@ -1,6 +1,8 @@
 package com.example.backend.service;
 
 import com.example.backend.domain.user.Provider;
+import com.example.backend.domain.user.ServiceCategory;
+import com.example.backend.domain.user.UserStatus;
 import com.example.backend.repository.ProviderRepository;
 import com.example.backend.repository.ProviderSpecification;
 import com.example.backend.web.dto.request.ProviderSearchParams;
@@ -10,6 +12,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +23,7 @@ public class ProviderSearchServiceImpl implements ProviderSearchService {
     private final ProviderRepository providerRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public Page<ProviderSearchResult> search(ProviderSearchParams params) {
         Specification<Provider> spec = Specification
             .where(ProviderSpecification.isActive())
@@ -31,15 +37,23 @@ public class ProviderSearchServiceImpl implements ProviderSearchService {
             .map(p -> ProviderSearchResult.from(p, computeDistance(p, params)));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Set<ServiceCategory> getActiveCategories() {
+        return providerRepository.findDistinctCategoriesByStatus(UserStatus.ACTIVE);
+    }
+
     private Double computeDistance(Provider provider, ProviderSearchParams params) {
         if (params.getLatitude() == null || params.getLongitude() == null
-                || provider.getLocationLat() == null || provider.getLocationLon() == null) {
+                || provider.getLocation() == null
+                || provider.getLocation().getLatitude() == null
+                || provider.getLocation().getLongitude() == null) {
             return null;
         }
         double lat1 = Math.toRadians(params.getLatitude());
         double lon1 = Math.toRadians(params.getLongitude());
-        double lat2 = Math.toRadians(provider.getLocationLat().doubleValue());
-        double lon2 = Math.toRadians(provider.getLocationLon().doubleValue());
+        double lat2 = Math.toRadians(provider.getLocation().getLatitude());
+        double lon2 = Math.toRadians(provider.getLocation().getLongitude());
         double cosAngle = Math.sin(lat1) * Math.sin(lat2)
             + Math.cos(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1);
         // clamp to [-1, 1] to guard against floating-point rounding past domain of acos

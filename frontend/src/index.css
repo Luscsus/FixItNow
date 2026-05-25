@@ -93,6 +93,23 @@ input, textarea, select { font: inherit; color: inherit; }
 }
 .brand-now { color: var(--accent); }
 
+/* ─── Skeleton shimmer ─── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+.skeleton {
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--slate-200) 25%,
+    var(--slate-100) 50%,
+    var(--slate-200) 75%
+  );
+  background-size: 1200px 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
 /* ─── Eyebrow ─── */
 .eyebrow {
   font-family: var(--font-mono);
@@ -1990,6 +2007,95 @@ input, textarea, select { font: inherit; color: inherit; }
 .wg-event.off { background: repeating-linear-gradient(135deg, var(--slate-100) 0 6px, var(--slate-200) 6px 12px); border-color: var(--border); border-left-color: var(--slate-400); color: var(--text-muted); }
 .wg-event b { display: block; font-weight: 700; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.04em; }
 
+/* ─── FullCalendar Week Calendar ─── */
+.fc-week-calendar {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card);
+}
+
+/* Remove default FC scrollgrid border — container provides it */
+.fc-week-calendar .fc-scrollgrid { border: none !important; }
+.fc-week-calendar .fc-scrollgrid-section > td,
+.fc-week-calendar .fc-scrollgrid-section > th { border: none !important; }
+
+/* Day header row */
+.fc-week-calendar .fc-col-header { background: var(--slate-50); }
+.fc-week-calendar .fc-col-header-cell {
+  border-right: 1px solid var(--border) !important;
+  border-bottom: 1px solid var(--border) !important;
+  padding: 0;
+}
+.fc-week-calendar .fc-col-header-cell:last-child { border-right: none !important; }
+.fc-week-calendar .fc-col-header-cell-cushion { text-decoration: none !important; }
+
+/* Time axis label column */
+.fc-week-calendar .fc-timegrid-axis {
+  background: var(--slate-50);
+  border-right: 1px solid var(--border) !important;
+  border-bottom: none !important;
+  width: 52px !important;
+}
+.fc-week-calendar .fc-timegrid-axis-frame { justify-content: flex-start; }
+.fc-week-calendar .fc-timegrid-slot-label-cushion { padding: 4px 6px 0 0; }
+
+/* Slot rows */
+.fc-week-calendar .fc-timegrid-slot {
+  height: 56px !important;
+  border-bottom: 1px solid var(--slate-100) !important;
+  border-top: none !important;
+}
+.fc-week-calendar .fc-timegrid-slot-minor { display: none !important; }
+.fc-week-calendar .fc-timegrid-slot-label {
+  border-color: var(--border) !important;
+  background: var(--slate-50);
+}
+
+/* Day columns */
+.fc-week-calendar .fc-timegrid-col { border-right: 1px solid var(--border) !important; }
+.fc-week-calendar .fc-timegrid-col:last-child { border-right: none !important; }
+.fc-week-calendar .fc-timegrid-col-frame { border-bottom: 1px solid var(--slate-100) !important; }
+
+/* Today column tint */
+.fc-week-calendar .fc-day-today { background: rgba(245, 158, 11, 0.04) !important; }
+
+/* Remove FC's default event shadows / rounded corners override */
+.fc-week-calendar .fc-timegrid-event {
+  border-radius: 6px !important;
+  box-shadow: none !important;
+}
+.fc-week-calendar .fc-timegrid-event-harness { margin: 2px 3px !important; }
+
+/* Event borders per type — thick left accent matching wg-event design */
+.fc-week-calendar .fc-event.fc-block-available {
+  border: 1px solid #A7F3D0 !important;
+  border-left: 3px solid #059669 !important;
+}
+.fc-week-calendar .fc-event.fc-block-break {
+  border: 1px solid transparent !important;
+  border-left: 3px solid #142C5E !important;
+}
+.fc-week-calendar .fc-event.fc-block-booked {
+  border: 1px solid #FEF3C7 !important;
+  border-left: 3px solid #F59E0B !important;
+}
+.fc-week-calendar .fc-event.fc-block-off {
+  border: 1px solid var(--border) !important;
+  border-left: 3px solid var(--slate-400) !important;
+  background-color: transparent !important;
+}
+
+/* Now indicator */
+.fc-week-calendar .fc-timegrid-now-indicator-line {
+  border-color: var(--amber-500) !important;
+  border-width: 2px !important;
+}
+.fc-week-calendar .fc-timegrid-now-indicator-arrow {
+  border-top-color: var(--amber-500) !important;
+  border-bottom-color: var(--amber-500) !important;
+}
+
 /* ─── Document card row ─── */
 .doc-row {
   display: grid; grid-template-columns: 56px 1fr auto; gap: 16px; align-items: center;
@@ -2045,13 +2151,92 @@ input, textarea, select { font: inherit; color: inherit; }
 .steprail-bar.current { background: var(--accent); }
 .steprail-labels {
   display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px;
-  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em;
+  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.04em;
   text-transform: uppercase; color: var(--text-muted);
+}
+.steprail-labels span {
+  text-align: center; word-break: break-word; overflow-wrap: break-word;
+  white-space: normal; line-height: 1.35;
 }
 .steprail-labels b {
   font-weight: 700; color: var(--text); display: block;
   font-family: var(--font-sans); font-size: 13.5px; letter-spacing: -0.005em;
   text-transform: none; margin-top: 4px;
+}
+
+/* ─── Provider Availability Picker ─── */
+.avail-picker { display: flex; flex-direction: column; gap: 12px; }
+
+.avail-week-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.avail-nav-btn {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.12s, background 0.12s;
+  flex-shrink: 0;
+}
+.avail-nav-btn:hover:not(:disabled) { border-color: var(--emerald-600); background: var(--slate-50); }
+.avail-nav-btn:disabled { opacity: 0.35; cursor: default; }
+.avail-week-label {
+  font-size: 13px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  flex: 1;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.avail-days { display: flex; flex-direction: column; gap: 10px; }
+
+.avail-day-group { display: flex; flex-direction: column; gap: 6px; }
+.avail-day-label {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding-left: 2px;
+}
+.avail-slots-row { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.avail-slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+  font-family: var(--font-mono);
+  transition: border-color 0.12s, background 0.12s;
+  white-space: nowrap;
+}
+.avail-slot:hover { border-color: var(--emerald-600); background: var(--slate-50); }
+.avail-slot.selected {
+  border-color: var(--emerald-600);
+  background: var(--emerald-100);
+  color: var(--emerald-700);
+  font-weight: 600;
+}
+
+.avail-loading, .avail-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 10px 0;
 }
 
 /* ─── New Ticket page ─── */
@@ -2517,4 +2702,14 @@ input, textarea, select { font: inherit; color: inherit; }
 /* Chat empty state */
 .chat-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text-muted); background: var(--slate-50); }
 .chat-empty-icon { width: 56px; height: 56px; border-radius: 16px; background: var(--slate-100); display: grid; place-items: center; }
+
+.browse-provider-card {
+  cursor: pointer;
+  transition: border-color 0.12s, transform 0.12s, box-shadow 0.12s;
+}
+.browse-provider-card:hover {
+  border-color: var(--border-strong, #94a3b8);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
 

@@ -8,6 +8,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -37,13 +38,14 @@ public class TicketResponse {
     private LocalDateTime createdAt;
     private String assignedServiceProviderName;
     private String submittedByName;
+    private UUID chatRoomId;
 
     public TicketResponse() {
     }
 
     public TicketResponse(Long id, String serviceType, String description, String location, TicketStatus status,
                           TicketPriority priority, BigDecimal estimatedCost, LocalDateTime createdAt,
-                          String assignedServiceProviderName, String submittedByName) {
+                          String assignedServiceProviderName, String submittedByName, UUID chatRoomId) {
         this.id = id;
         this.serviceType = serviceType;
         this.description = description;
@@ -54,5 +56,6 @@ public class TicketResponse {
         this.createdAt = createdAt;
         this.assignedServiceProviderName = assignedServiceProviderName;
         this.submittedByName = submittedByName;
+        this.chatRoomId = chatRoomId;
     }
 }

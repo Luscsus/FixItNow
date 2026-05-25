@@ -1,5 +1,28 @@
 import { requestJson } from './httpClient'
 
+// Full public provider profile (matches backend ProviderResponse). All optional
+// because we don't always know which fields the backend populates.
+export interface ProviderProfileDto {
+  id: string
+  firstName: string | null
+  lastName: string | null
+  phoneNumber: string | null
+  pricePerHour: number | null
+  yearsOfExperience: number | null
+  serviceRadiusKm: number | null
+  categories: string[] | null
+  bio: string | null
+  status: string | null
+  createdAt: string | null
+  approvedAt: string | null
+}
+
+export async function getProvider(providerId: string, accessToken: string): Promise<ProviderProfileDto> {
+  return requestJson<ProviderProfileDto>(`/api/v1/providers/${providerId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+}
+
 export interface ProviderDto {
   id: string
   firstName: string

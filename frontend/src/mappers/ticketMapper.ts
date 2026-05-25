@@ -13,6 +13,7 @@ export function mapTicket(dto: TicketResponseDto): Ticket {
     createdAt: new Date(dto.createdAt),
     assignedServiceProviderName: dto.assignedServiceProviderName ?? null,
     submittedByName: dto.submittedByName ?? null,
+    chatRoomId: dto.chatRoomId ?? null,
   };
 }
 

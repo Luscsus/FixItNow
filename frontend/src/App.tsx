@@ -18,6 +18,7 @@ import { UserDashboardPage } from "@/pages/UserDashboardPage";
 import { HomePage } from "@/pages/HomePage";
 import { NewTicketPage } from "@/pages/NewTicketsPage";
 import { BrowseProvidersPage } from "@/pages/BrowseProvidersPage";
+import { ChatPage } from "@/pages/ChatPage";
 
 function App() {
   return (
@@ -48,6 +49,7 @@ function App() {
             path="/dashboard/provider"
             element={<ProviderDashboardPage />}
           />
+          <Route path="/chat" element={<ChatPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Route>

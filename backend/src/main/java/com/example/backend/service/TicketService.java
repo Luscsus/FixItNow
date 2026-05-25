@@ -105,7 +105,16 @@ public class TicketService {
     }
 
     @Transactional(readOnly = true)
-    public List<OpenTicketSummary> getOpenTickets() {
+    public List<TicketResponse> getOpenTickets() {
+        return ticketRepository
+            .findByAssignedServiceProviderIsNullAndStatusOrderByCreatedAtDesc(TicketStatus.PENDING_APPROVAL)
+            .stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<OpenTicketSummary> getPublicOpenTicketSummaries() {
         return ticketRepository.findTop20OpenTicketSummaries();
     }
 

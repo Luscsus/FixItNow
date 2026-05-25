@@ -46,7 +46,6 @@ public class SecurityConfig {
         "/api/v1/providers/search",
         "/api/v1/providers/categories",
         "/api/tickets/public/open",
-        "/api/tickets/open",
         "/actuator/health",
         "/swagger-ui/**",
         "/swagger-ui.html",

@@ -27,8 +27,13 @@ export interface ProviderDto {
   id: string
   firstName: string
   lastName: string
-  locationLat: number
-  locationLon: number
+  locationStreetName: string | null
+  locationStreetNumber: string | null
+  locationCity: string | null
+  locationPostalCode: string | null
+  locationCountry: string | null
+  locationLat: number | null
+  locationLon: number | null
   pricePerHour: number
   yearsOfExperience: number
   serviceRadiusKm: number
@@ -44,9 +49,9 @@ export interface ProviderSearchParams {
   minPrice: string
   maxPrice: string
   minYearsOfExperience: number
-  latitude: number
-  longitude: number
-  radiusKm: number
+  latitude: number | null
+  longitude: number | null
+  radiusKm: number | null
   page: number
   size: number
 }
@@ -59,8 +64,22 @@ export interface PagedProvidersResponse {
 
 interface RawPagedResponse {
   content: ProviderDto[]
-  totalPages: number
-  totalElements: number
+  totalPages?: number
+  totalElements?: number
+  page?: {
+    size: number
+    number: number
+    totalElements: number
+    totalPages: number
+  }
+}
+
+export async function getActiveCategories(): Promise<string[]> {
+  return requestJson<string[]>('/api/v1/providers/categories')
+}
+
+export async function getProviderById(id: string): Promise<ProviderDto> {
+  return requestJson<ProviderDto>(`/api/v1/providers/${id}`)
 }
 
 export async function searchProviders(params: URLSearchParams): Promise<ProviderDto[]> {
@@ -76,9 +95,9 @@ export async function searchProvidersPaged(p: ProviderSearchParams): Promise<Pag
   sp.set('minPrice', p.minPrice || '1')
   sp.set('maxPrice', p.maxPrice || '99999')
   sp.set('minYearsOfExperience', String(p.minYearsOfExperience))
-  sp.set('latitude', String(p.latitude))
-  sp.set('longitude', String(p.longitude))
-  sp.set('radiusKm', String(p.radiusKm))
+  if (p.latitude != null) sp.set('latitude', String(p.latitude))
+  if (p.longitude != null) sp.set('longitude', String(p.longitude))
+  if (p.radiusKm != null) sp.set('radiusKm', String(p.radiusKm))
   sp.set('page', String(p.page))
   sp.set('size', String(p.size))
 
@@ -88,5 +107,9 @@ export async function searchProvidersPaged(p: ProviderSearchParams): Promise<Pag
   if (Array.isArray(data)) {
     return { content: data, totalPages: 1, totalElements: data.length }
   }
-  return data
+  return {
+    content: data.content ?? [],
+    totalPages: data.page?.totalPages ?? data.totalPages ?? 1,
+    totalElements: data.page?.totalElements ?? data.totalElements ?? 0,
+  }
 }

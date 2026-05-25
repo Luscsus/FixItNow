@@ -3,13 +3,16 @@ package com.example.backend.service;
 import com.example.backend.domain.ticket.Ticket;
 import com.example.backend.domain.ticket.TicketPriority;
 import com.example.backend.domain.ticket.TicketStatus;
+import com.example.backend.domain.ticket.TicketStatusHistory;
 import com.example.backend.dto.CreateTicketRequest;
+import com.example.backend.dto.OpenTicketSummary;
 import com.example.backend.dto.TicketResponse;
 import com.example.backend.exception.InvalidTicketStatusTransitionException;
 import com.example.backend.exception.TicketNotFoundException;
 import com.example.backend.exception.UserNotFoundException;
 import com.example.backend.repository.ProviderRepository;
 import com.example.backend.repository.TicketRepository;
+import com.example.backend.repository.TicketStatusHistoryRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.LocationRepository;
 import com.example.backend.repository.ChatRoomRepository;
@@ -17,9 +20,11 @@ import com.example.backend.domain.chat.ChatRoom;
 import com.example.backend.domain.user.Provider;
 import com.example.backend.domain.user.User;
 import com.example.backend.domain.location.Location;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -35,16 +40,21 @@ public class TicketService {
     private final ProviderRepository providerRepository;
     private final ChatRoomRepository chatRoomRepository;
     private final ChatService chatService;
+    private final CalendarService calendarService;
+    private final TicketStatusHistoryRepository statusHistoryRepository;
 
     public TicketService(TicketRepository ticketRepository, UserRepository userRepository,
                          LocationRepository locationRepository, ProviderRepository providerRepository,
-                         ChatRoomRepository chatRoomRepository, ChatService chatService) {
+                         ChatRoomRepository chatRoomRepository, ChatService chatService, CalendarService calendarService,
+                         TicketStatusHistoryRepository statusHistoryRepository) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
         this.locationRepository = locationRepository;
         this.providerRepository = providerRepository;
         this.chatRoomRepository = chatRoomRepository;
         this.chatService = chatService;
+        this.calendarService = calendarService;
+        this.statusHistoryRepository = statusHistoryRepository;
     }
 
     @Transactional
@@ -55,6 +65,7 @@ public class TicketService {
         Ticket ticket = new Ticket();
         ticket.setUser(user);
         ticket.setServiceType(request.getServiceType());
+        ticket.setCategory(request.getCategory());
         ticket.setDescription(request.getDescription());
         Location location = upsertLocation(user, request);
         ticket.setLocation(location);
@@ -68,7 +79,15 @@ public class TicketService {
             ticket.setAssignedServiceProvider(provider);
         }
 
+        // Carry over requested schedule window if the customer suggested one
+        if (request.getRequestedStartAt() != null && request.getRequestedEndAt() != null) {
+            ticket.setRequestedStartAt(request.getRequestedStartAt());
+            ticket.setRequestedEndAt(request.getRequestedEndAt());
+        }
+
         Ticket saved = ticketRepository.save(ticket);
+        recordHistory(saved, TicketStatus.PENDING_APPROVAL);
+
         if (assignedProviderId != null) {
             ensureChatRoom(saved, assignedProviderId);
             saved = ticketRepository.save(saved);
@@ -103,6 +122,8 @@ public class TicketService {
 
         ticket.setStatus(newStatus);
         Ticket saved = ticketRepository.save(ticket);
+        recordHistory(saved, newStatus);
+        calendarService.syncBookedBlockForTicket(saved);
         if (currentStatus != newStatus) {
             String body = statusChangeMessage(saved, currentStatus, newStatus);
             if (body != null) {
@@ -112,9 +133,30 @@ public class TicketService {
         return toResponse(saved);
     }
 
+    @Transactional
+    public TicketResponse scheduleTicket(Long ticketId, UUID providerId, LocalDateTime startAt, LocalDateTime endAt) {
+        Ticket ticket = getTicketOrThrow(ticketId);
+        if (ticket.getAssignedServiceProvider() == null
+            || !ticket.getAssignedServiceProvider().getId().equals(providerId)) {
+            throw new AccessDeniedException("Only the assigned provider can schedule this ticket.");
+        }
+        ticket.setScheduledStartAt(startAt);
+        ticket.setScheduledEndAt(endAt);
+        Ticket saved = ticketRepository.save(ticket);
+        calendarService.syncBookedBlockForTicket(saved);
+        return toResponse(saved);
+    }
+
     @Transactional(readOnly = true)
     public TicketResponse getTicketDetails(Long ticketId) throws TicketNotFoundException {
-        return toResponse(getTicketOrThrow(ticketId));
+        Ticket ticket = getTicketOrThrow(ticketId);
+        TicketResponse resp = toResponse(ticket);
+        resp.setStatusHistory(
+            statusHistoryRepository.findByTicket_IdOrderByChangedAtAsc(ticketId).stream()
+                .map(h -> new TicketResponse.StatusHistoryEntry(h.getStatus(), h.getChangedAt()))
+                .toList()
+        );
+        return resp;
     }
 
     @Transactional(readOnly = true)
@@ -127,10 +169,47 @@ public class TicketService {
 
     @Transactional(readOnly = true)
     public List<TicketResponse> getOpenTickets() {
-        return ticketRepository.findByAssignedServiceProviderIsNullAndStatusOrderByCreatedAtDesc(TicketStatus.PENDING_APPROVAL)
+        return ticketRepository
+            .findByAssignedServiceProviderIsNullAndStatusOrderByCreatedAtDesc(TicketStatus.PENDING_APPROVAL)
             .stream()
             .map(this::toResponse)
             .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<OpenTicketSummary> getPublicOpenTicketSummaries() {
+        return ticketRepository.findTop20OpenTicketSummaries();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TicketResponse> getOpenTicketsFull() {
+        return ticketRepository
+                .findByAssignedServiceProviderIsNullAndStatusOrderByCreatedAtDesc(TicketStatus.PENDING_APPROVAL)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional
+    public TicketResponse confirmTicket(Long ticketId, UUID providerId) {
+        Ticket ticket = getTicketOrThrow(ticketId);
+        if (ticket.getAssignedServiceProvider() == null
+                || !ticket.getAssignedServiceProvider().getId().equals(providerId)) {
+            throw new AccessDeniedException("Only the assigned provider can confirm this ticket.");
+        }
+        if (ticket.getStatus() != TicketStatus.PENDING_APPROVAL) {
+            throw new InvalidTicketStatusTransitionException(
+                "Ticket " + ticketId + " is not awaiting confirmation (status: " + ticket.getStatus() + ")");
+        }
+        ticket.setStatus(TicketStatus.APPROVED);
+        if (ticket.getRequestedStartAt() != null && ticket.getRequestedEndAt() != null) {
+            ticket.setScheduledStartAt(ticket.getRequestedStartAt());
+            ticket.setScheduledEndAt(ticket.getRequestedEndAt());
+        }
+        Ticket saved = ticketRepository.save(ticket);
+        recordHistory(saved, TicketStatus.APPROVED);
+        calendarService.syncBookedBlockForTicket(saved);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -152,6 +231,7 @@ public class TicketService {
         ticket.setStatus(TicketStatus.APPROVED);
         ensureChatRoom(ticket, provider.getId());
         Ticket saved = ticketRepository.save(ticket);
+        recordHistory(saved, TicketStatus.APPROVED);
         postSystemMessage(saved, formatProviderName(provider)
             + " accepted ticket " + formatTicketCode(saved.getId()));
         return toResponse(saved);
@@ -173,6 +253,15 @@ public class TicketService {
             .sorted(Comparator.comparingDouble(candidate -> candidate.distanceKm))
             .map(candidate -> toResponse(candidate.ticket))
             .toList();
+    }
+
+    private void recordHistory(Ticket ticket, TicketStatus status) {
+        statusHistoryRepository.save(
+            TicketStatusHistory.builder()
+                .ticket(ticket)
+                .status(status)
+                .build()
+        );
     }
 
     private static String formatTicketCode(Long id) {
@@ -240,11 +329,12 @@ public class TicketService {
         String submittedByName = ticket.getUser() != null
             ? formatProviderName(ticket.getUser())
             : null;
-        return new TicketResponse(
+        TicketResponse resp = new TicketResponse(
             ticket.getId(),
             ticket.getServiceType(),
+            ticket.getCategory(),
             ticket.getDescription(),
-            ticket.getLocation() != null ? ticket.getLocation().getAddress() : null,
+            ticket.getLocation() != null ? ticket.getLocation().getFormattedAddress() : null,
             ticket.getStatus(),
             ticket.getPriority(),
             ticket.getEstimatedCost(),
@@ -253,6 +343,9 @@ public class TicketService {
             submittedByName,
             ticket.getChatRoomId()
         );
+        resp.setRequestedStartAt(ticket.getRequestedStartAt());
+        resp.setRequestedEndAt(ticket.getRequestedEndAt());
+        return resp;
     }
 
     private void ensureChatRoom(Ticket ticket, UUID providerId) {
@@ -277,7 +370,7 @@ public class TicketService {
         if (location == null) {
             location = new Location();
         }
-        location.setAddress(request.getLocation());
+        location.setStreetName(request.getLocation());
         location.setLatitude(request.getLatitude());
         location.setLongitude(request.getLongitude());
         location = locationRepository.save(location);

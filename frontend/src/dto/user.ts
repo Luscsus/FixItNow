@@ -5,4 +5,5 @@ export type UserResponseDto = {
   lastName: string;
   emailVerified: boolean;
   createdAt: string;
+  notificationPreferences?: Record<string, boolean> | null;
 };

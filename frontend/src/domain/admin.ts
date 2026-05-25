@@ -31,6 +31,11 @@ export type Provider = {
   phoneNumber: string | null
   status: ProviderStatus
   emailVerified: boolean
+  locationStreetName: string | null
+  locationStreetNumber: string | null
+  locationCity: string | null
+  locationPostalCode: string | null
+  locationCountry: string | null
   locationLat: number | null
   locationLon: number | null
   pricePerHour: number | null
@@ -41,4 +46,5 @@ export type Provider = {
   rejectionReason: string | null
   approvedAt: Date | null
   createdAt: Date
+  notificationPreferences: Record<string, boolean>
 }

@@ -8,7 +8,20 @@ import type { ProviderDto } from "@/services/providerService";
 import { SearchBar } from "@/components/browse/SearchBar";
 import { FilterSidebar } from "@/components/browse/FilterSidebar";
 import { ResultsSection } from "@/components/browse/ResultsSection";
+import { ProvidersMap } from "@/components/browse/ProvidersMap";
 import { PAGE_SIZE, type Segment } from "@/components/browse/browseConstants";
+
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 export function BrowseProvidersPage() {
   const [searchParams] = useSearchParams();
@@ -43,6 +56,7 @@ export function BrowseProvidersPage() {
   const [openSeg, setOpenSeg] = useState<Segment | null>(null);
   const [hoverSeg, setHoverSeg] = useState<Segment | null>(null);
   const [page, setPage] = useState(1);
+  const [mapOpen, setMapOpen] = useState(false);
 
   /* ── Refs ── */
   const barRef = useRef<HTMLFormElement>(null);
@@ -93,6 +107,23 @@ export function BrowseProvidersPage() {
     );
     return map;
   }, [allProviders]);
+
+  const mapProviders = useMemo((): ProviderDto[] => {
+    let providers = allProviders;
+    if (selectedCategories.length > 0)
+      providers = providers.filter((p) =>
+        p.categories.some((c) => selectedCategories.includes(c)),
+      );
+    if (minPrice) providers = providers.filter((p) => p.pricePerHour >= Number(minPrice));
+    if (maxPrice) providers = providers.filter((p) => p.pricePerHour <= Number(maxPrice));
+    if (minExp > 0) providers = providers.filter((p) => p.yearsOfExperience >= minExp);
+    if (locationEnabled && coords)
+      providers = providers.filter((p) => {
+        if (p.locationLat == null || p.locationLon == null) return false;
+        return haversineKm(coords.lat, coords.lon, p.locationLat, p.locationLon) <= radiusKm;
+      });
+    return providers;
+  }, [allProviders, selectedCategories, minPrice, maxPrice, minExp, locationEnabled, coords, radiusKm]);
 
   const sortedResults = useMemo((): ProviderDto[] | null => {
     if (!results) return null;
@@ -304,6 +335,7 @@ export function BrowseProvidersPage() {
           </p>
         </div>
 
+        <div style={{ position: "relative", zIndex: 10 }}>
         <SearchBar
           barRef={barRef}
           selectedCategories={selectedCategories}
@@ -333,6 +365,69 @@ export function BrowseProvidersPage() {
           setHoverSeg={setHoverSeg}
           onSearch={handleSearch}
         />
+        </div>
+
+        {/* Map toggle button */}
+        <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+          <button
+            type="button"
+            onClick={() => setMapOpen((v) => !v)}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 7,
+              padding: "8px 16px",
+              background: mapOpen ? "var(--navy-700, #1e3a8a)" : "var(--card, #fff)",
+              color: mapOpen ? "#fff" : "var(--text)",
+              border: "1px solid var(--border)",
+              borderRadius: 8,
+              fontSize: 13.5,
+              fontWeight: 500,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              transition: "background 0.15s, color 0.15s",
+            }}
+          >
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
+              <line x1="9" y1="3" x2="9" y2="18" />
+              <line x1="15" y1="6" x2="15" y2="21" />
+            </svg>
+            {mapOpen ? "Hide map" : "Show on map"}
+          </button>
+          {mapOpen && (
+            <span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>
+              {mapProviders.filter((p) => p.locationLat != null).length} providers shown
+            </span>
+          )}
+        </div>
+
+        {/* Map panel */}
+        {mapOpen && (
+          <div
+            style={{
+              position: "relative",
+              zIndex: 1,
+              height: 440,
+              borderRadius: 12,
+              overflow: "hidden",
+              border: "1px solid var(--border)",
+              marginBottom: 24,
+              boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
+            }}
+          >
+            <ProvidersMap providers={mapProviders} userCoords={coords} />
+          </div>
+        )}
 
         <div
           style={{

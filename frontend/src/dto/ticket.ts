@@ -21,6 +21,7 @@ export type TicketResponseDto = {
   createdAt: string;
   assignedServiceProviderName: string | null;
   submittedByName: string | null;
+  chatRoomId?: string | null;
 };
 
 export type CreateTicketRequestDto = {

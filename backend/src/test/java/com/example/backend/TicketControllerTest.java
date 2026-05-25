@@ -91,6 +91,8 @@ class TicketControllerTest {
             TicketPriority.CRITICAL,
             new BigDecimal("49.99"),
             LocalDateTime.now(),
+            null,
+            null,
             null
         );
         when(ticketService.createTicket(any(), any())).thenReturn(response);
@@ -121,7 +123,9 @@ class TicketControllerTest {
             TicketPriority.MEDIUM,
             null,
             LocalDateTime.now(),
-            "Elektro Servis"
+            "Elektro Servis",
+            null,
+            null
         );
         when(ticketService.getUserTickets(any())).thenReturn(List.of(response));
 
@@ -144,6 +148,8 @@ class TicketControllerTest {
             TicketPriority.HIGH,
             null,
             LocalDateTime.now(),
+            null,
+            null,
             null
         );
         when(ticketService.getTicketDetails(3L)).thenReturn(response);
@@ -167,6 +173,8 @@ class TicketControllerTest {
             TicketPriority.MEDIUM,
             null,
             LocalDateTime.now(),
+            null,
+            null,
             null
         );
         when(ticketService.updateTicketStatus(4L, TicketStatus.IN_TRANSIT)).thenReturn(response);
@@ -190,6 +198,8 @@ class TicketControllerTest {
             TicketPriority.HIGH,
             null,
             LocalDateTime.now(),
+            null,
+            null,
             null
         );
         when(ticketService.findNearbyTickets(anyDouble(), anyDouble(), anyDouble())).thenReturn(List.of(response));

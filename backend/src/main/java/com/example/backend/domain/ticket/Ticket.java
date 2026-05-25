@@ -76,6 +76,18 @@ public class Ticket {
     @JoinColumn(name = "assigned_service_provider_id")
     private User assignedServiceProvider;
 
+    @Column(name = "scheduled_start_at")
+    private LocalDateTime scheduledStartAt;
+
+    @Column(name = "scheduled_end_at")
+    private LocalDateTime scheduledEndAt;
+
+    @Column(name = "requested_start_at")
+    private LocalDateTime requestedStartAt;
+
+    @Column(name = "requested_end_at")
+    private LocalDateTime requestedEndAt;
+
     public Ticket() {
     }
 

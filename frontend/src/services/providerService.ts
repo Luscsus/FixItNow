@@ -39,6 +39,7 @@ export interface ProviderDto {
   serviceRadiusKm: number
   categories: string[]
   bio: string
+  profilePictureUrl?: string | null
   status: string
   createdAt: string
   distanceKm: number | null

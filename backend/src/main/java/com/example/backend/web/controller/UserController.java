@@ -7,10 +7,12 @@ import com.example.backend.domain.user.User;
 import com.example.backend.repository.LocationRepository;
 import com.example.backend.repository.ProviderRepository;
 import com.example.backend.repository.UserRepository;
+import com.example.backend.service.CloudinaryService;
 import com.example.backend.service.GeocodingService;
 import com.example.backend.security.UserPrincipal;
 import com.example.backend.web.dto.request.ChangePasswordRequest;
 import com.example.backend.web.dto.request.UpdateNotificationPreferencesRequest;
+import com.example.backend.web.dto.request.UpdateProfilePictureRequest;
 import com.example.backend.web.dto.request.UpdateProviderProfileRequest;
 import com.example.backend.web.dto.request.UpdateUserProfileRequest;
 import com.example.backend.web.dto.response.MessageResponse;
@@ -43,6 +45,7 @@ public class UserController {
     private final LocationRepository locationRepository;
     private final GeocodingService geocodingService;
     private final PasswordEncoder passwordEncoder;
+    private final CloudinaryService cloudinaryService;
 
     @Operation(summary = "Get the currently authenticated user's profile (any role).")
     @GetMapping("/users/me")
@@ -126,6 +129,21 @@ public class UserController {
         provider.setBio(request.getBio());
         providerRepository.save(provider);
         return ResponseEntity.ok(ProviderResponse.from(provider));
+    }
+
+    @Operation(summary = "Update the current user's profile picture URL.")
+    @PatchMapping("/users/me/profile-picture")
+    @Transactional
+    public ResponseEntity<UserSummaryResponse> updateProfilePicture(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @Valid @RequestBody UpdateProfilePictureRequest request
+    ) {
+        User user = userRepository.findById(principal.getUser().getId())
+            .orElseThrow(() -> new ApiException("User not found"));
+        cloudinaryService.deleteImage(user.getProfilePictureUrl());
+        user.setProfilePictureUrl(request.getUrl());
+        userRepository.save(user);
+        return ResponseEntity.ok(UserSummaryResponse.from(user));
     }
 
     @Operation(summary = "Change the current user's password.")

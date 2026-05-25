@@ -23,6 +23,7 @@ export function mapTicket(dto: TicketResponseDto): Ticket {
           changedAt: new Date(h.changedAt),
         }))
       : null,
+    imageUrls: dto.imageUrls ?? [],
   };
 }
 

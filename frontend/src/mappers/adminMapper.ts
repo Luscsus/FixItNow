@@ -8,6 +8,7 @@ export function mapProvider(dto: ProviderResponseDto): Provider {
     firstName: dto.firstName,
     lastName: dto.lastName,
     phoneNumber: dto.phoneNumber,
+    profilePictureUrl: dto.profilePictureUrl ?? null,
     status: dto.status as ProviderStatus,
     emailVerified: dto.emailVerified,
     locationStreetName: dto.locationStreetName,

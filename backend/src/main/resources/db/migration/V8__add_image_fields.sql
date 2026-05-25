@@ -1,0 +1,2 @@
+ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_picture_url VARCHAR(1024);
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS image_urls JSONB DEFAULT '[]'::jsonb;

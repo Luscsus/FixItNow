@@ -23,6 +23,7 @@ import com.example.backend.domain.location.Location;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.backend.common.exception.ApiException;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -38,6 +39,7 @@ public class TicketService {
     private final UserRepository userRepository;
     private final LocationRepository locationRepository;
     private final ProviderRepository providerRepository;
+    private final CloudinaryService cloudinaryService;
     private final ChatRoomRepository chatRoomRepository;
     private final ChatService chatService;
     private final CalendarService calendarService;
@@ -45,6 +47,7 @@ public class TicketService {
 
     public TicketService(TicketRepository ticketRepository, UserRepository userRepository,
                          LocationRepository locationRepository, ProviderRepository providerRepository,
+                         CloudinaryService cloudinaryService,
                          ChatRoomRepository chatRoomRepository, ChatService chatService, CalendarService calendarService,
                          TicketStatusHistoryRepository statusHistoryRepository) {
         this.ticketRepository = ticketRepository;
@@ -55,6 +58,7 @@ public class TicketService {
         this.chatService = chatService;
         this.calendarService = calendarService;
         this.statusHistoryRepository = statusHistoryRepository;
+        this.cloudinaryService = cloudinaryService;
     }
 
     @Transactional
@@ -71,6 +75,9 @@ public class TicketService {
         ticket.setLocation(location);
         ticket.setPriority(request.getPriority() != null ? request.getPriority() : TicketPriority.MEDIUM);
         ticket.setStatus(TicketStatus.PENDING_APPROVAL);
+        if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
+            ticket.setImageUrls(request.getImageUrls());
+        }
 
         UUID assignedProviderId = request.getAssignedProviderId();
         if (assignedProviderId != null) {
@@ -237,6 +244,18 @@ public class TicketService {
         return toResponse(saved);
     }
 
+    @Transactional
+    public void deleteTicket(Long ticketId, UUID userId) {
+        Ticket ticket = getTicketOrThrow(ticketId);
+        if (!ticket.getUser().getId().equals(userId)) {
+            throw new ApiException("You are not authorized to delete this ticket.");
+        }
+        if (ticket.getImageUrls() != null) {
+            ticket.getImageUrls().forEach(cloudinaryService::deleteImage);
+        }
+        ticketRepository.delete(ticket);
+    }
+
     @Transactional(readOnly = true)
     public List<TicketResponse> findNearbyTickets(Double latitude, Double longitude, Double radiusKm) {
         double effectiveRadius = radiusKm == null ? 5.0 : radiusKm;
@@ -343,6 +362,7 @@ public class TicketService {
             submittedByName,
             ticket.getChatRoomId()
         );
+        resp.setImageUrls(ticket.getImageUrls() != null ? ticket.getImageUrls() : List.of());
         resp.setRequestedStartAt(ticket.getRequestedStartAt());
         resp.setRequestedEndAt(ticket.getRequestedEndAt());
         return resp;

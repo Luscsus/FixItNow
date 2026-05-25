@@ -29,6 +29,7 @@ export type Provider = {
   firstName: string
   lastName: string
   phoneNumber: string | null
+  profilePictureUrl?: string | null
   status: ProviderStatus
   emailVerified: boolean
   locationStreetName: string | null

@@ -48,5 +48,6 @@ export type Ticket = {
   requestedStartAt?: Date | null;
   requestedEndAt?: Date | null;
   statusHistory?: StatusHistoryEntry[] | null;
+  imageUrls?: string[];
 };
 

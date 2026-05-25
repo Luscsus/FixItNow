@@ -60,6 +60,7 @@ export function ProviderAccountPage() {
       <ProviderHero
         fullName={fullName}
         initials={initials}
+        profilePictureUrl={ownProfile?.profilePictureUrl}
         email={email}
         online={online}
         setOnline={setOnline}

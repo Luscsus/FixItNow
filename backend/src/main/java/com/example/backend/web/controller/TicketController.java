@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -101,6 +102,16 @@ public class TicketController {
         @AuthenticationPrincipal UserPrincipal userDetails
     ) {
         return ResponseEntity.ok(ticketService.acceptOpenTicket(ticketId, userDetails.getUser().getId()));
+    }
+
+    @DeleteMapping("/{ticketId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> deleteTicket(
+        @PathVariable Long ticketId,
+        @AuthenticationPrincipal UserPrincipal userDetails
+    ) {
+        ticketService.deleteTicket(ticketId, userDetails.getUser().getId());
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/public/open")

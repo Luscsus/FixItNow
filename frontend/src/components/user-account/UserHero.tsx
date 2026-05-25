@@ -4,9 +4,10 @@ interface UserHeroProps {
   fullName: string;
   initials: string;
   email: string | undefined;
+  profilePictureUrl?: string | null;
 }
 
-export function UserHero({ fullName, initials, email }: UserHeroProps) {
+export function UserHero({ fullName, initials, email, profilePictureUrl }: UserHeroProps) {
   return (
     <section className="acct-hero">
       <div className="acct-hero-grid" />
@@ -18,7 +19,17 @@ export function UserHero({ fullName, initials, email }: UserHeroProps) {
         </div>
 
         <div className="acct-hero-inner">
-          <div className="acct-avatar">{initials}</div>
+          <div className="acct-avatar" style={profilePictureUrl ? { padding: 0, overflow: "hidden" } : undefined}>
+            {profilePictureUrl ? (
+              <img
+                src={profilePictureUrl}
+                alt={fullName}
+                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              />
+            ) : (
+              initials
+            )}
+          </div>
           <div>
             <h1>{fullName}</h1>
             <div className="sub">

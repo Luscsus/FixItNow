@@ -22,6 +22,7 @@ public class ProviderResponse {
     private String firstName;
     private String lastName;
     private String phoneNumber;
+    private String profilePictureUrl;
     private UserStatus status;
     private boolean emailVerified;
     private String locationStreetName;
@@ -48,6 +49,7 @@ public class ProviderResponse {
             .firstName(p.getFirstName())
             .lastName(p.getLastName())
             .phoneNumber(p.getPhoneNumber())
+            .profilePictureUrl(p.getProfilePictureUrl())
             .status(p.getStatus())
             .emailVerified(p.isEmailVerified())
             .locationStreetName(p.getLocation() != null ? p.getLocation().getStreetName() : null)

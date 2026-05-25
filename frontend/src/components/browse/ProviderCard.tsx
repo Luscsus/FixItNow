@@ -65,9 +65,18 @@ export function ProviderCard({
           letterSpacing: "-0.01em",
           flexShrink: 0,
           userSelect: "none",
+          overflow: "hidden",
         }}
       >
-        {init}
+        {p.profilePictureUrl ? (
+          <img
+            src={p.profilePictureUrl}
+            alt={`${p.firstName} ${p.lastName}`}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        ) : (
+          init
+        )}
       </div>
 
       {/* Content */}

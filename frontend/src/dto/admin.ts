@@ -4,6 +4,7 @@ export type ProviderResponseDto = {
   firstName: string
   lastName: string
   phoneNumber: string | null
+  profilePictureUrl?: string | null
   status: string
   emailVerified: boolean
   locationStreetName: string | null

@@ -9,9 +9,12 @@ import { avatarColor, initials, CATEGORY_LABEL } from "./browseConstants";
 function createProviderIcon(provider: ProviderDto) {
   const av = avatarColor(provider.id);
   const init = initials(provider.firstName, provider.lastName);
+  const inner = provider.profilePictureUrl
+    ? `<img src="${provider.profilePictureUrl}" alt="" style="width:40px;height:40px;object-fit:cover;display:block" />`
+    : init;
   return L.divIcon({
     className: "",
-    html: `<div style="width:40px;height:40px;border-radius:50%;background:${av.bg};color:${av.color};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.35);cursor:pointer;letter-spacing:-0.01em">${init}</div>`,
+    html: `<div style="width:40px;height:40px;border-radius:50%;background:${av.bg};color:${av.color};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.35);cursor:pointer;letter-spacing:-0.01em;overflow:hidden">${inner}</div>`,
     iconSize: [40, 40],
     iconAnchor: [20, 20],
     popupAnchor: [0, -24],
@@ -21,10 +24,10 @@ function createProviderIcon(provider: ProviderDto) {
 function AutoFitBounds({
   providers,
   userCoords,
-}: {
+}: Readonly<{
   providers: ProviderDto[];
   userCoords: { lat: number; lon: number } | null;
-}) {
+}>) {
   const map = useMap();
 
   useEffect(() => {
@@ -56,11 +59,11 @@ export function ProvidersMap({ providers, userCoords }: ProvidersMapProps) {
     [providers],
   );
 
+  const defaultCenter: [number, number] =
+    mappable.length > 0 ? [mappable[0].locationLat!, mappable[0].locationLon!] : [46.5, 15.6];
   const center: [number, number] = userCoords
     ? [userCoords.lat, userCoords.lon]
-    : mappable.length > 0
-      ? [mappable[0].locationLat!, mappable[0].locationLon!]
-      : [46.5, 15.6];
+    : defaultCenter;
 
   if (mappable.length === 0) {
     return (

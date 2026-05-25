@@ -8,7 +8,7 @@ interface VisitorProfileProps {
   provider: ProviderDto | undefined;
 }
 
-export function VisitorProfile({ provider }: VisitorProfileProps) {
+export function VisitorProfile({ provider }: Readonly<VisitorProfileProps>) {
   if (!provider) {
     return (
       <div>
@@ -41,8 +41,21 @@ export function VisitorProfile({ provider }: VisitorProfileProps) {
           </div>
 
           <div className="pro-hero-inner">
-            <div className="pro-avatar" style={{ background: av.bg, color: av.color }}>
-              {init}
+            <div
+              className="pro-avatar"
+              style={provider.profilePictureUrl
+                ? { padding: 0, overflow: "hidden" }
+                : { background: av.bg, color: av.color }}
+            >
+              {provider.profilePictureUrl ? (
+                <img
+                  src={provider.profilePictureUrl}
+                  alt={`${provider.firstName} ${provider.lastName}`}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              ) : (
+                init
+              )}
             </div>
             <div>
               <h1>

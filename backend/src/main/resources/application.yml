@@ -2,6 +2,12 @@ spring:
   application:
     name: backend
 
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5433/backend_db}
     username: ${DB_USERNAME:postgres}
@@ -69,6 +75,12 @@ app:
   email:
     from-address: ${EMAIL_FROM_ADDRESS:noreply@example.com}
     from-name: ${EMAIL_FROM_NAME:Backend App}
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:}
+  api-key: ${CLOUDINARY_API_KEY:}
+  api-secret: ${CLOUDINARY_API_SECRET:}
+  max-file-size-mb: ${CLOUDINARY_MAX_FILE_SIZE_MB:5}
 
 springdoc:
   api-docs:

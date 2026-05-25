@@ -255,8 +255,11 @@ export function AdminDashboardPage() {
                   fontSize: 13, fontWeight: 600,
                   display: "grid", placeItems: "center",
                   flexShrink: 0,
+                  overflow: "hidden",
                 }}>
-                  {initials(p)}
+                  {p.profilePictureUrl
+                    ? <img src={p.profilePictureUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    : initials(p)}
                 </div>
                 <div>
                   <div style={{ fontSize: 14.5, fontWeight: 600, letterSpacing: "-0.01em", lineHeight: 1.2, color: "var(--text)" }}>
@@ -293,8 +296,11 @@ export function AdminDashboardPage() {
                 background: avatarColor(selected.id), color: "#fff",
                 fontSize: 20, fontWeight: 600,
                 display: "grid", placeItems: "center",
+                overflow: "hidden",
               }}>
-                {initials(selected)}
+                {selected.profilePictureUrl
+                  ? <img src={selected.profilePictureUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  : initials(selected)}
               </div>
               <div>
                 <h2 style={{ margin: 0, fontSize: 24, letterSpacing: "-0.02em" }}>

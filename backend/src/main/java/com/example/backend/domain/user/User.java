@@ -66,6 +66,9 @@ public class User {
     @Column(length = 100)
     private String twoFactorSecret;
 
+    @Column(name = "profile_picture_url", length = 1024)
+    private String profilePictureUrl;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "location_id")
     private Location location;

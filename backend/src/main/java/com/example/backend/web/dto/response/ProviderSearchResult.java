@@ -30,6 +30,7 @@ public class ProviderSearchResult {
     private Integer serviceRadiusKm;
     private Set<ServiceCategory> categories;
     private String bio;
+    private String profilePictureUrl;
     private UserStatus status;
     private LocalDateTime createdAt;
 
@@ -53,6 +54,7 @@ public class ProviderSearchResult {
             .serviceRadiusKm(p.getServiceRadiusKm())
             .categories(p.getCategories())
             .bio(p.getBio())
+            .profilePictureUrl(p.getProfilePictureUrl())
             .status(p.getStatus())
             .createdAt(p.getCreatedAt())
             .distanceKm(distanceKm)

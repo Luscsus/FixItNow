@@ -4,6 +4,7 @@ export type User = {
   firstName: string;
   lastName: string;
   emailVerified: boolean;
+  profilePictureUrl?: string | null;
   createdAt: Date;
   notificationPreferences: Record<string, boolean>;
 };

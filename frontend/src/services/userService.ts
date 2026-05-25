@@ -16,6 +16,7 @@ function mapUser(dto: UserResponseDto): User {
     firstName: dto.firstName,
     lastName: dto.lastName,
     emailVerified: dto.emailVerified,
+    profilePictureUrl: dto.profilePictureUrl ?? null,
     createdAt: new Date(dto.createdAt),
     notificationPreferences: dto.notificationPreferences ?? {},
   };
@@ -78,6 +79,18 @@ export async function updateCurrentProvider(
     body: JSON.stringify(payload),
   });
   return mapProvider(data);
+}
+
+export async function updateProfilePicture(
+  accessToken: string,
+  url: string,
+): Promise<User> {
+  const data = await requestJson<UserResponseDto>("/api/v1/users/me/profile-picture", {
+    method: "PATCH",
+    headers: authHeader(accessToken),
+    body: JSON.stringify({ url }),
+  });
+  return mapUser(data);
 }
 
 export async function changePassword(

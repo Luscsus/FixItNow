@@ -48,6 +48,7 @@ export type TicketResponseDto = {
   requestedStartAt: string | null;
   requestedEndAt: string | null;
   statusHistory?: StatusHistoryEntryDto[] | null;
+  imageUrls?: string[];
 };
 
 export type OpenTicketSummaryDto = {
@@ -64,4 +65,5 @@ export type CreateTicketRequestDto = {
   assignedProviderId?: string | null;
   requestedStartAt?: string | null;
   requestedEndAt?: string | null;
+  imageUrls?: string[];
 };

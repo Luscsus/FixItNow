@@ -105,7 +105,7 @@ public class TicketController {
 
     @GetMapping("/public/open")
     public ResponseEntity<List<OpenTicketSummary>> getPublicOpenTickets() {
-        return ResponseEntity.ok(ticketService.getOpenTickets());
+        return ResponseEntity.ok(ticketService.getPublicOpenTicketSummaries());
     }
 
     @PostMapping("/{ticketId}/confirm")

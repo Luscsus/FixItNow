@@ -9,7 +9,7 @@ import { Link } from "react-router-dom";
 
 const ACTIVE_STATUSES: TicketStatus[] = ["APPROVED", "IN_TRANSIT", "PENDING_PROVIDER_INVOICE", "PENDING_PAYMENT"];
 
-function priorityClass(p: TicketPriority): string {
+function priorityClass(p: TicketPriority | null): string {
   return p === "CRITICAL" ? "critical" : p === "HIGH" ? "high" : p === "MEDIUM" ? "medium" : "low";
 }
 
@@ -66,7 +66,7 @@ function RequestCard({ ticket, onAccept, onDecline, acceptLabel = "Accept →", 
           <span className="rcat">· {ticket.serviceType}</span>
           <span className="grow" />
           <span className={`urgency urgency-${pc}`}>
-            {ticket.priority.charAt(0) + ticket.priority.slice(1).toLowerCase()}
+            {ticket.priority ? ticket.priority.charAt(0) + ticket.priority.slice(1).toLowerCase() : "—"}
           </span>
         </div>
         <h3 className="req-title">{ticket.serviceType}</h3>

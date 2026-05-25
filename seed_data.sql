@@ -210,16 +210,15 @@ BEGIN
         lat        := 46.430 + ((i - 1) / 16) * 0.016;
         lon        := 15.490 + ((i - 1) % 16) * 0.025;
 
-        INSERT INTO locations (address, latitude, longitude, created_at, updated_at)
+        INSERT INTO locations (street_name, street_number, city, postal_code, country, latitude, longitude)
         VALUES (
-            street_names[((i - 1) % 20) + 1] || ' ' || street_num || ', '
-                || postal_codes[city_i] || ' ' || city_names[city_i],
-            lat, lon,
-            base_ts + (i * INTERVAL '1 day'),
-            base_ts + (i * INTERVAL '1 day')
+            street_names[((i - 1) % 20) + 1],
+            street_num::TEXT,
+            city_names[city_i],
+            postal_codes[city_i],
+            'Slovenia',
+            lat, lon
         )
-        ON CONFLICT ON CONSTRAINT uq_locations_address
-            DO UPDATE SET updated_at = EXCLUDED.updated_at
         RETURNING id INTO new_loc_id;
 
         prov_loc_ids := array_append(prov_loc_ids, new_loc_id);
@@ -235,16 +234,15 @@ BEGIN
         lat        := 46.430 + ((i + 49) / 16) * 0.016;
         lon        := 15.490 + ((i + 49) % 16) * 0.025;
 
-        INSERT INTO locations (address, latitude, longitude, created_at, updated_at)
+        INSERT INTO locations (street_name, street_number, city, postal_code, country, latitude, longitude)
         VALUES (
-            street_names[((i + 5 - 1) % 20) + 1] || ' ' || street_num || ', '
-                || postal_codes[city_i] || ' ' || city_names[city_i],
-            lat, lon,
-            base_ts + (i * INTERVAL '8 hours'),
-            base_ts + (i * INTERVAL '8 hours')
+            street_names[((i + 5 - 1) % 20) + 1],
+            street_num::TEXT,
+            city_names[city_i],
+            postal_codes[city_i],
+            'Slovenia',
+            lat, lon
         )
-        ON CONFLICT ON CONSTRAINT uq_locations_address
-            DO UPDATE SET updated_at = EXCLUDED.updated_at
         RETURNING id INTO new_loc_id;
 
         cust_loc_ids := array_append(cust_loc_ids, new_loc_id);
@@ -260,16 +258,15 @@ BEGIN
         lat        := 46.430 + ((i + 149) / 16) * 0.016;
         lon        := 15.490 + ((i + 149) % 16) * 0.025;
 
-        INSERT INTO locations (address, latitude, longitude, created_at, updated_at)
+        INSERT INTO locations (street_name, street_number, city, postal_code, country, latitude, longitude)
         VALUES (
-            street_names[((i + 9 - 1) % 20) + 1] || ' ' || street_num || ', '
-                || postal_codes[city_i] || ' ' || city_names[city_i],
-            lat, lon,
-            base_ts + (i * INTERVAL '6 hours'),
-            base_ts + (i * INTERVAL '6 hours')
+            street_names[((i + 9 - 1) % 20) + 1],
+            street_num::TEXT,
+            city_names[city_i],
+            postal_codes[city_i],
+            'Slovenia',
+            lat, lon
         )
-        ON CONFLICT ON CONSTRAINT uq_locations_address
-            DO UPDATE SET updated_at = EXCLUDED.updated_at
         RETURNING id INTO new_loc_id;
 
         tick_loc_ids := array_append(tick_loc_ids, new_loc_id);
@@ -304,12 +301,12 @@ BEGIN
         );
 
         INSERT INTO providers (
-            id, location_lat, location_lon,
+            id,
             price_per_hour, years_of_experience, service_radius_km,
             bio, phone_number,
             approved_at, approved_by, rejection_reason
         ) VALUES (
-            new_uid, lat, lon,
+            new_uid,
             (25 + (i * 3) % 75)::NUMERIC(10,2),
             (i % 20) + 1,
             10 + (i % 40),
@@ -402,3 +399,21 @@ BEGIN
 
     RAISE NOTICE 'Seed complete — 50 providers, 100 customers, 100 tickets inserted.';
 END $$;
+
+-- =============================================================================
+-- Admin user: luka1.grobelnik@gmail.com / Geslo123!
+-- =============================================================================
+INSERT INTO users (
+    id, user_type, email, password,
+    first_name, last_name, role, status,
+    email_verified, two_factor_enabled,
+    location_id, created_at, updated_at
+) VALUES (
+    gen_random_uuid(), 'USER',
+    'luka1.grobelnik@gmail.com',
+    '$2b$10$W.gv9evUSVrmxRUx4KPhYudP9oPNofv5iOygZcTQprH92PTvWHHmK',
+    'Luka', 'Grobelnik',
+    'ADMIN', 'ACTIVE',
+    TRUE, FALSE,
+    NULL, NOW(), NOW()
+) ON CONFLICT (email) DO NOTHING;

@@ -20,7 +20,7 @@ export function AppLayout() {
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-canvas)", color: "var(--text)" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-canvas)", color: "var(--text)" }}>
       {/* Marketing top bar */}
       <header style={{
         position: "sticky", top: 0, zIndex: 30,
@@ -81,6 +81,12 @@ export function AppLayout() {
           )}
           {isAuthenticated && (
             <>
+              <NavLink
+                to="/chat"
+                style={{ padding: "8px 12px", borderRadius: 8, fontSize: 13.5, fontWeight: 500, color: "var(--text-muted)", textDecoration: "none" }}
+              >
+                Inbox
+              </NavLink>
               <NavLink
                 to="/profile"
                 style={{ padding: "8px 12px", borderRadius: 8, fontSize: 13.5, fontWeight: 500, color: "var(--text-muted)", textDecoration: "none" }}

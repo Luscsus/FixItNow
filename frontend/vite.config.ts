@@ -35,4 +35,8 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  // sockjs-client expects Node's `global` to exist; alias it to the browser's window
+  define: {
+    global: 'window',
+  },
 })

@@ -44,6 +44,7 @@ export type TicketResponseDto = {
   createdAt: string;
   assignedServiceProviderName: string | null;
   submittedByName: string | null;
+  chatRoomId?: string | null;
   requestedStartAt: string | null;
   requestedEndAt: string | null;
   statusHistory?: StatusHistoryEntryDto[] | null;

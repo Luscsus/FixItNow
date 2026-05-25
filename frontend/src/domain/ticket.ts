@@ -39,5 +39,7 @@ export type Ticket = {
   createdAt: Date;
   assignedServiceProviderName?: string | null;
   submittedByName?: string | null;
+  requestedStartAt?: Date | null;
+  requestedEndAt?: Date | null;
 };
 

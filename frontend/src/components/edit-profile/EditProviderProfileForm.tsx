@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 
 import { useAuth } from "@/context/auth";
 import { useCurrentProvider } from "@/hooks/useCurrentProvider";
-import { updateCurrentProvider } from "@/services/userService";
+import { updateCurrentProvider, updateProfilePicture } from "@/services/userService";
+import { uploadImage } from "@/services/imageService";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { mapZodErrors } from "@/lib/validation";
 import type { ServiceCategory } from "@/domain/admin";
@@ -64,6 +65,20 @@ export function EditProviderProfileForm() {
   const { accessToken } = useAuth();
   const { data: provider } = useCurrentProvider();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl && previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const [form, setForm] = useState({
     firstName: "",
@@ -112,6 +127,28 @@ export function EditProviderProfileForm() {
     },
   });
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError("Only JPEG, PNG, and WebP images are allowed.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("File size must not exceed 5 MB.");
+      return;
+    }
+
+    setUploadError(null);
+    setPendingFile(file);
+    if (previewUrl?.startsWith("blob:")) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(URL.createObjectURL(file));
+  }
+
   const setField = (field: keyof typeof form) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       setForm((p) => ({ ...p, [field]: e.target.value }));
@@ -153,14 +190,87 @@ export function EditProviderProfileForm() {
     }
     setErrors({});
     try {
+      if (pendingFile) {
+        setIsUploading(true);
+        const imageUrl = await uploadImage(pendingFile, "profile-pictures", accessToken);
+        await updateProfilePicture(accessToken, imageUrl);
+        setPendingFile(null);
+        setIsUploading(false);
+        queryClient.invalidateQueries({ queryKey: ["currentProvider"] });
+      }
       await mutation.mutateAsync(payload);
     } catch (error) {
+      setIsUploading(false);
       setErrors({ firstName: getErrorMessage(error) });
     }
   };
 
+  const currentPicture = previewUrl ?? provider?.profilePictureUrl ?? null;
+  const initials =
+    ((provider?.firstName?.[0] ?? "") + (provider?.lastName?.[0] ?? "")).toUpperCase() || "?";
+  const isPending = mutation.isPending || isUploading;
+  const submitLabel = mutation.isPending ? "Saving…" : "Save changes";
+
   return (
     <form onSubmit={handleSubmit} className="col" style={{ gap: 20 }}>
+      {/* Profile picture */}
+      <div className="col" style={{ gap: 8, alignItems: "flex-start" }}>
+        <label className="field-label">Profile photo</label>
+        <div className="row" style={{ gap: 14, alignItems: "center" }}>
+          <div
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: "50%",
+              overflow: "hidden",
+              background: "var(--amber-500)",
+              display: "grid",
+              placeItems: "center",
+              fontSize: 26,
+              fontWeight: 700,
+              color: "var(--navy-900)",
+              flexShrink: 0,
+              border: "2px solid var(--slate-200)",
+            }}
+          >
+            {currentPicture ? (
+              <img
+                src={currentPicture}
+                alt="Profile"
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            ) : (
+              initials
+            )}
+          </div>
+          <div className="col" style={{ gap: 4 }}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {pendingFile ? "Change photo" : "Upload photo"}
+            </button>
+            <span style={{ fontSize: 12, color: "var(--slate-500)" }}>
+              JPEG, PNG or WebP · max 5 MB
+            </span>
+          </div>
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          style={{ display: "none" }}
+          onChange={handleFileChange}
+        />
+        {uploadError && <span className="field-error">{uploadError}</span>}
+        {pendingFile && !uploadError && (
+          <span style={{ fontSize: 12, color: "var(--emerald-700)" }}>
+            "{pendingFile.name}" ready to upload
+          </span>
+        )}
+      </div>
+
       <div className="row" style={{ gap: 12, alignItems: "flex-start" }}>
         <div className="field grow">
           <label className="field-label" htmlFor="p-first">First name</label>
@@ -299,8 +409,8 @@ export function EditProviderProfileForm() {
       </div>
 
       <div className="row" style={{ gap: 12, alignItems: "center" }}>
-        <button type="submit" className="btn btn-primary" disabled={mutation.isPending}>
-          {mutation.isPending ? "Saving…" : "Save changes"}
+        <button type="submit" className="btn btn-primary" disabled={isPending}>
+          {isUploading ? "Uploading…" : submitLabel}
         </button>
         {success && <span style={{ color: "var(--emerald-700)", fontSize: 13 }}>Saved.</span>}
       </div>

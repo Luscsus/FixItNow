@@ -16,15 +16,16 @@ export function UserAccountPage() {
   const { data: profile } = useCurrentUser();
   const [activeTab, setActiveTab] = useState<Tab>("Overview");
 
-  const firstName = profile?.firstName ?? userInfo.firstName;
-  const lastName  = profile?.lastName  ?? userInfo.lastName;
-  const email     = profile?.email     ?? userInfo.email;
-  const fullName  = [firstName, lastName].filter(Boolean).join(" ") || "Account";
-  const initials  = [firstName[0], lastName[0]].filter(Boolean).join("").toUpperCase() || userInfo.initials || "?";
+  const firstName        = profile?.firstName ?? userInfo.firstName;
+  const lastName         = profile?.lastName  ?? userInfo.lastName;
+  const email            = profile?.email     ?? userInfo.email;
+  const fullName         = [firstName, lastName].filter(Boolean).join(" ") || "Account";
+  const initials         = [firstName[0], lastName[0]].filter(Boolean).join("").toUpperCase() || userInfo.initials || "?";
+  const profilePictureUrl = profile?.profilePictureUrl ?? null;
 
   return (
     <div>
-      <UserHero fullName={fullName} initials={initials} email={email} />
+      <UserHero fullName={fullName} initials={initials} email={email} profilePictureUrl={profilePictureUrl} />
 
       <main className="container acct-body">
         <div>

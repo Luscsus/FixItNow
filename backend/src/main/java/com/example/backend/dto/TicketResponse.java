@@ -9,6 +9,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 import java.util.List;
 
@@ -57,6 +58,7 @@ public class TicketResponse {
             this.changedAt = changedAt;
         }
     }
+    private List<String> imageUrls;
 
     public TicketResponse() {
     }

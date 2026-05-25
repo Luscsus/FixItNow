@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 
 import { useAuth } from "@/context/auth";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { updateCurrentUser } from "@/services/userService";
+import { updateCurrentUser, updateProfilePicture } from "@/services/userService";
+import { uploadImage } from "@/services/imageService";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { mapZodErrors } from "@/lib/validation";
 
@@ -19,16 +20,30 @@ export function EditUserProfileForm() {
   const { accessToken } = useAuth();
   const { data: user } = useCurrentUser();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({ firstName: "", lastName: "" });
   const [errors, setErrors] = useState<Partial<Record<Fields, string>>>({});
   const [success, setSuccess] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (user) {
       setForm({ firstName: user.firstName ?? "", lastName: user.lastName ?? "" });
     }
   }, [user]);
+
+  // Revoke the object URL when the component unmounts or the preview changes
+  useEffect(() => {
+    return () => {
+      if (previewUrl && previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -47,6 +62,28 @@ export function EditUserProfileForm() {
     setSuccess(false);
   };
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError("Only JPEG, PNG, and WebP images are allowed.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("File size must not exceed 5 MB.");
+      return;
+    }
+
+    setUploadError(null);
+    setPendingFile(file);
+    if (previewUrl && previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(URL.createObjectURL(file));
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = schema.safeParse({
@@ -58,15 +95,92 @@ export function EditUserProfileForm() {
       return;
     }
     setErrors({});
+
     try {
+      if (pendingFile) {
+        setIsUploading(true);
+        const imageUrl = await uploadImage(pendingFile, "profile-pictures", accessToken);
+        await updateProfilePicture(accessToken, imageUrl);
+        setPendingFile(null);
+        setIsUploading(false);
+        queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+      }
       await mutation.mutateAsync();
     } catch (error) {
+      setIsUploading(false);
       setErrors({ firstName: getErrorMessage(error) });
     }
   };
 
+  const currentPicture = previewUrl ?? user?.profilePictureUrl ?? null;
+  const initials =
+    ((user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "")).toUpperCase() || "?";
+
+  const isPending = mutation.isPending || isUploading;
+
   return (
     <form onSubmit={handleSubmit} className="col" style={{ gap: 20 }}>
+      {/* Profile picture */}
+      <div className="col" style={{ gap: 8, alignItems: "flex-start" }}>
+        <label className="field-label">Profile photo</label>
+        <div className="row" style={{ gap: 14, alignItems: "center" }}>
+          <div
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: "50%",
+              overflow: "hidden",
+              background: "var(--amber-500)",
+              display: "grid",
+              placeItems: "center",
+              fontSize: 26,
+              fontWeight: 700,
+              color: "var(--navy-900)",
+              flexShrink: 0,
+              border: "2px solid var(--slate-200)",
+            }}
+          >
+            {currentPicture ? (
+              <img
+                src={currentPicture}
+                alt="Profile"
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            ) : (
+              initials
+            )}
+          </div>
+          <div className="col" style={{ gap: 4 }}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {pendingFile ? "Change photo" : "Upload photo"}
+            </button>
+            <span style={{ fontSize: 12, color: "var(--slate-500)" }}>
+              JPEG, PNG or WebP · max 5 MB
+            </span>
+          </div>
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          style={{ display: "none" }}
+          onChange={handleFileChange}
+        />
+        {uploadError && (
+          <span className="field-error">{uploadError}</span>
+        )}
+        {pendingFile && !uploadError && (
+          <span style={{ fontSize: 12, color: "var(--emerald-700)" }}>
+            "{pendingFile.name}" ready to upload
+          </span>
+        )}
+      </div>
+
+      {/* Name fields */}
       <div className="row" style={{ gap: 12, alignItems: "flex-start" }}>
         <div className="field grow">
           <label className="field-label" htmlFor="edit-first">First name</label>
@@ -100,9 +214,9 @@ export function EditUserProfileForm() {
         <button
           type="submit"
           className="btn btn-primary"
-          disabled={mutation.isPending}
+          disabled={isPending}
         >
-          {mutation.isPending ? "Saving…" : "Save changes"}
+          {isUploading ? "Uploading…" : isPending ? "Saving…" : "Save changes"}
         </button>
         {success && (
           <span style={{ color: "var(--emerald-700)", fontSize: 13 }}>Saved.</span>

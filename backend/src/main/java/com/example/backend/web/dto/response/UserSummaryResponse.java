@@ -22,6 +22,7 @@ public class UserSummaryResponse {
     private UserRole role;
     private UserStatus status;
     private boolean emailVerified;
+    private String profilePictureUrl;
     private LocalDateTime createdAt;
     private Map<String, Boolean> notificationPreferences;
 
@@ -34,6 +35,7 @@ public class UserSummaryResponse {
             .role(u.getRole())
             .status(u.getStatus())
             .emailVerified(u.isEmailVerified())
+            .profilePictureUrl(u.getProfilePictureUrl())
             .createdAt(u.getCreatedAt())
             .notificationPreferences(u.getNotificationPreferences() != null ? u.getNotificationPreferences() : new HashMap<>())
             .build();

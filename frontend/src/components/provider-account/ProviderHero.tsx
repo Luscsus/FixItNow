@@ -10,13 +10,14 @@ interface ProviderStats {
 interface ProviderHeroProps {
   fullName: string;
   initials: string;
+  profilePictureUrl?: string | null;
   email: string | undefined;
   online: boolean;
   setOnline: (updater: (v: boolean) => boolean) => void;
   stats?: ProviderStats;
 }
 
-export function ProviderHero({ fullName, initials, email, online, setOnline, stats }: ProviderHeroProps) {
+export function ProviderHero({ fullName, initials, profilePictureUrl, email, online, setOnline, stats }: Readonly<ProviderHeroProps>) {
   return (
     <section className="pro-hero">
       <div className="pro-hero-grid" />
@@ -28,7 +29,13 @@ export function ProviderHero({ fullName, initials, email, online, setOnline, sta
         </div>
 
         <div className="pro-hero-inner">
-          <div className="pro-avatar">{initials}</div>
+          <div className="pro-avatar" style={profilePictureUrl ? { padding: 0, overflow: "hidden" } : undefined}>
+            {profilePictureUrl ? (
+              <img src={profilePictureUrl} alt={fullName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              initials
+            )}
+          </div>
           <div>
             <h1>
               {fullName}
@@ -67,6 +74,16 @@ export function ProviderHero({ fullName, initials, email, online, setOnline, sta
               {stats?.totalEarned != null
                 ? `$${stats.totalEarned.toFixed(2)}`
                 : "—"}
+            <div className="lbl">Earnings · this month</div>
+            <div className="val">$6,840<span className="rev-delta">▲ 18%</span></div>
+            <div className="hint">vs $5,790 last month · 23 jobs</div>
+            <div className="sparkrow">
+              {[40, 55, 30, 65, 50, 75, 45, 85, 60, 90, 70, 100].map((h) => {
+                let cls: string | undefined;
+                if (h >= 85) cls = "peak";
+                else if (h === 30) cls = "dim";
+                return <span key={h} style={{ height: `${h}%` }} className={cls} />;
+              })}
             </div>
             <div className="hint">{stats?.completedJobs ?? 0} completed job{stats?.completedJobs !== 1 ? "s" : ""}</div>
           </div>

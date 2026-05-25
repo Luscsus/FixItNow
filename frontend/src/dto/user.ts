@@ -4,6 +4,7 @@ export type UserResponseDto = {
   firstName: string;
   lastName: string;
   emailVerified: boolean;
+  profilePictureUrl?: string | null;
   createdAt: string;
   notificationPreferences?: Record<string, boolean> | null;
 };

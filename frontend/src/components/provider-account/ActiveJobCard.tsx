@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useProviderTicketsQuery } from "@/hooks/useProviderTicketsQuery";
 import { useUpdateTicketStatusMutation } from "@/hooks/useUpdateTicketStatusMutation";
 import type { Ticket, TicketStatus } from "@/domain/ticket";
@@ -18,22 +19,22 @@ const PRIORITY_CLASS: Record<string, string> = {
 
 const STATUS_CHIP: Record<string, { label: string; color: string; bg: string }> = {
   APPROVED:                 { label: "ACCEPTED",         color: "var(--emerald-700)", bg: "var(--emerald-50)" },
-  IN_TRANSIT:               { label: "EN ROUTE",         color: "var(--amber-700)",   bg: "var(--amber-50)"   },
+  IN_TRANSIT:               { label: "IN TRANSIT",       color: "var(--amber-700)",   bg: "var(--amber-50)"   },
   PENDING_PROVIDER_INVOICE: { label: "AWAITING INVOICE", color: "var(--slate-600)",   bg: "var(--slate-100)"  },
   PENDING_PAYMENT:          { label: "PENDING PAYMENT",  color: "var(--slate-600)",   bg: "var(--slate-100)"  },
 };
 
 const STATUS_PILL: Record<string, string> = {
   APPROVED:                 "Accepted",
-  IN_TRANSIT:               "En route",
+  IN_TRANSIT:               "In Transit",
   PENDING_PROVIDER_INVOICE: "Awaiting invoice",
   PENDING_PAYMENT:          "Pending payment",
 };
 
 const NEXT_STATUS: Partial<Record<TicketStatus, { status: TicketStatus; label: string }>> = {
-  APPROVED:                 { status: "IN_TRANSIT",               label: "Mark en route →"   },
-  IN_TRANSIT:               { status: "PENDING_PROVIDER_INVOICE", label: "Mark done →"       },
-  PENDING_PROVIDER_INVOICE: { status: "PENDING_PAYMENT",          label: "Submit invoice →"  },
+  APPROVED:                 { status: "IN_TRANSIT",               label: "Mark as In Transit →"               },
+  IN_TRANSIT:               { status: "PENDING_PROVIDER_INVOICE", label: "Mark as Pending Provider Invoice →" },
+  PENDING_PROVIDER_INVOICE: { status: "PENDING_PAYMENT",          label: "Mark as Pending Payment →"          },
 };
 
 type Step = { label: string; status: TicketStatus };
@@ -72,12 +73,17 @@ function fmtTime(d: Date): string {
 }
 
 function ActiveJob({ ticket }: { ticket: Ticket }) {
+  const navigate = useNavigate();
   const updateMut = useUpdateTicketStatusMutation();
   const next = NEXT_STATUS[ticket.status];
   const chip = STATUS_CHIP[ticket.status];
 
   return (
-    <div className="job-card in-progress" style={{ marginBottom: 20 }}>
+    <div
+      className="job-card in-progress"
+      style={{ marginBottom: 20, cursor: "pointer" }}
+      onClick={() => navigate(`/tickets/${ticket.id}`)}
+    >
       <div className="job-rail" />
       <div className="job-body">
         <div className="job-head">
@@ -157,7 +163,7 @@ function ActiveJob({ ticket }: { ticket: Ticket }) {
             <button
               className="btn btn-primary"
               disabled={updateMut.isPending}
-              onClick={() => updateMut.mutate({ ticketId: ticket.id, status: next.status })}
+              onClick={(e) => { e.stopPropagation(); updateMut.mutate({ ticketId: ticket.id, status: next.status }); }}
             >
               {updateMut.isPending ? "Updating…" : next.label}
             </button>

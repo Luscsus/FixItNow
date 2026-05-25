@@ -3,6 +3,7 @@ import { useParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/auth";
 import { useCurrentProvider } from "@/hooks/useCurrentProvider";
 import { useProviderByIdQuery } from "@/hooks/useProviderByIdQuery";
+import { useProviderTicketsQuery } from "@/hooks/useProviderTicketsQuery";
 import type { ProviderDto } from "@/services/providerService";
 import { VisitorProfile } from "@/components/provider-account/VisitorProfile";
 import { ProviderHero } from "@/components/provider-account/ProviderHero";
@@ -28,6 +29,7 @@ export function ProviderAccountPage() {
   const { data: fetchedProvider } = useProviderByIdQuery(
     urlId && !stateProvider ? urlId : "",
   );
+  const { data: providerTickets = [] } = useProviderTicketsQuery();
 
   const isOwner = !urlId || ownProfile?.id === urlId;
 
@@ -41,6 +43,18 @@ export function ProviderAccountPage() {
   const fullName  = [firstName, lastName].filter(Boolean).join(" ") || "Provider";
   const initials  = [firstName[0], lastName[0]].filter(Boolean).join("").toUpperCase() || userInfo.initials || "?";
 
+  const ACTIVE_STATUSES = ["APPROVED", "IN_TRANSIT", "PENDING_PROVIDER_INVOICE", "PENDING_PAYMENT"];
+  const completedTickets = providerTickets.filter((t) => t.status === "COMPLETED");
+  const activeTickets    = providerTickets.filter((t) => ACTIVE_STATUSES.includes(t.status));
+  const inboundTickets   = providerTickets.filter((t) => t.status === "PENDING_APPROVAL");
+  const totalEarned = completedTickets.reduce((sum, t) => sum + (t.estimatedCost ?? 0), 0);
+  const stats = {
+    completedJobs:    completedTickets.length,
+    activeJobs:       activeTickets.length,
+    inboundRequests:  inboundTickets.length,
+    totalEarned:      completedTickets.some((t) => t.estimatedCost != null) ? totalEarned : null,
+  };
+
   return (
     <div>
       <ProviderHero
@@ -49,6 +63,7 @@ export function ProviderAccountPage() {
         email={email}
         online={online}
         setOnline={setOnline}
+        stats={stats}
       />
 
       <main className="container pro-body">

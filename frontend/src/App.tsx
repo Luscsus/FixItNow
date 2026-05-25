@@ -20,6 +20,7 @@ import { HomePage } from "@/pages/HomePage";
 import { NewTicketPage } from "@/pages/NewTicketsPage";
 import { BrowseProvidersPage } from "@/pages/BrowseProvidersPage";
 import { ProviderAccountPage } from "@/pages/ProviderAccountPage";
+import { TicketDetailPage } from "@/pages/TicketDetailPage";
 
 function App() {
   return (
@@ -46,6 +47,7 @@ function App() {
         <Route path="/providers" element={<BrowseProvidersPage />} />
         <Route path="/providers/:id" element={<ProviderAccountPage />} />
         <Route path="/tickets/new" element={<NewTicketPage />} />
+        <Route path="/tickets/:id" element={<TicketDetailPage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/profile/edit" element={<EditProfilePage />} />

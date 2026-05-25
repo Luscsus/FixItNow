@@ -43,4 +43,19 @@ public interface ProviderTimeBlockRepository extends JpaRepository<ProviderTimeB
         @Param("end") LocalDateTime end,
         @Param("excludeId") UUID excludeId
     );
+
+    @Query("""
+        SELECT (COUNT(b) > 0) FROM ProviderTimeBlock b
+        WHERE b.provider.id = :providerId
+          AND b.type = com.example.backend.domain.calendar.TimeBlockType.BOOKED
+          AND b.startAt < :end
+          AND b.endAt > :start
+          AND (:excludeTicketId IS NULL OR b.ticket.id <> :excludeTicketId)
+        """)
+    boolean existsBookedOverlap(
+        @Param("providerId") UUID providerId,
+        @Param("start") LocalDateTime start,
+        @Param("end") LocalDateTime end,
+        @Param("excludeTicketId") Long excludeTicketId
+    );
 }

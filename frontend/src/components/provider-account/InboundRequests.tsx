@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useProviderTicketsQuery } from "@/hooks/useProviderTicketsQuery";
 import { useConfirmTicketMutation, useDeclineTicketMutation } from "@/hooks/useConfirmTicketMutation";
 import type { Ticket } from "@/domain/ticket";
@@ -59,12 +60,17 @@ function RequestedTimeChip({ startAt, endAt }: { startAt: Date; endAt: Date | nu
 }
 
 function InboundRow({ ticket }: { ticket: Ticket }) {
+  const navigate = useNavigate();
   const confirmMut = useConfirmTicketMutation();
   const declineMut = useDeclineTicketMutation();
   const busy = confirmMut.isPending || declineMut.isPending;
 
   return (
-    <div className="inbound-req">
+    <div
+      className="inbound-req"
+      style={{ cursor: "pointer" }}
+      onClick={() => navigate(`/tickets/${ticket.id}`)}
+    >
       <span className="ireq-id">FIX-{ticket.id}</span>
       <div>
         <div className="ireq-title">{ticket.serviceType}</div>
@@ -97,14 +103,14 @@ function InboundRow({ ticket }: { ticket: Ticket }) {
         <button
           className="btn btn-secondary btn-sm"
           disabled={busy}
-          onClick={() => declineMut.mutate(ticket.id)}
+          onClick={(e) => { e.stopPropagation(); declineMut.mutate(ticket.id); }}
         >
           Decline
         </button>
         <button
           className="btn btn-primary btn-sm"
           disabled={busy}
-          onClick={() => confirmMut.mutate(ticket.id)}
+          onClick={(e) => { e.stopPropagation(); confirmMut.mutate(ticket.id); }}
         >
           {confirmMut.isPending ? "Confirming…" : ticket.requestedStartAt ? "Confirm & schedule →" : "Accept →"}
         </button>

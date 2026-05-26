@@ -84,10 +84,16 @@ public class TicketService {
             Provider provider = providerRepository.findById(assignedProviderId)
                 .orElseThrow(() -> new UserNotFoundException("Provider not found: " + assignedProviderId));
             ticket.setAssignedServiceProvider(provider);
-        }
 
-        // Carry over requested schedule window if the customer suggested one
-        if (request.getRequestedStartAt() != null && request.getRequestedEndAt() != null) {
+            // A specific provider requires a concrete time inside their availability.
+            if (request.getRequestedStartAt() == null || request.getRequestedEndAt() == null) {
+                throw new ApiException("Please choose a time within the provider's availability.");
+            }
+            calendarService.validateRequestedSlot(
+                assignedProviderId,
+                request.getRequestedStartAt(),
+                request.getRequestedEndAt(),
+                null);
             ticket.setRequestedStartAt(request.getRequestedStartAt());
             ticket.setRequestedEndAt(request.getRequestedEndAt());
         }
@@ -98,6 +104,8 @@ public class TicketService {
         if (assignedProviderId != null) {
             ensureChatRoom(saved, assignedProviderId);
             saved = ticketRepository.save(saved);
+            // Hold the requested slot immediately so other customers see it as unavailable.
+            calendarService.syncBookedBlockForTicket(saved);
             // Opening greeting so the chat isn't empty when the provider opens it
             postSystemMessage(saved, "Ticket " + formatTicketCode(saved.getId())
                 + " · " + saved.getServiceType() + " · awaiting provider response.");

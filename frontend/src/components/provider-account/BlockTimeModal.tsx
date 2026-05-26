@@ -39,8 +39,6 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
   const [startAt, setStartAt] = useState("");
   const [endAt, setEndAt] = useState("");
   const [type, setType] = useState<TimeBlockType>("AVAILABLE");
-  const [title, setTitle] = useState("");
-  const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -50,8 +48,6 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
       setStartAt(toLocalInputValue(initial.startAt));
       setEndAt(toLocalInputValue(initial.endAt));
       setType(initial.type === "BOOKED" ? "AVAILABLE" : initial.type);
-      setTitle(initial.title ?? "");
-      setNotes(initial.notes ?? "");
     } else {
       const start = defaultDate
         ? (defaultDate.includes("T") ? defaultDate : `${defaultDate}T09:00`)
@@ -69,8 +65,6 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
       setStartAt(start);
       setEndAt(end);
       setType("AVAILABLE");
-      setTitle("");
-      setNotes("");
     }
     setError(null);
     /* eslint-enable react-hooks/set-state-in-effect */
@@ -85,8 +79,8 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
       startAt: fromLocalInputValue(startAt),
       endAt: fromLocalInputValue(endAt),
       type,
-      title: title || null,
-      notes: notes || null,
+      title: null,
+      notes: null,
     };
     try {
       if (isEdit && initial) {
@@ -180,25 +174,6 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
             />
           </div>
         </div>
-
-        <label style={{ display: "block", fontSize: 13, marginBottom: 4 }}>Title</label>
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          maxLength={120}
-          placeholder="e.g. Lunch, Site visit, Maintenance"
-          style={{ width: "100%", padding: "8px 10px", marginBottom: 14, border: "1px solid var(--border, #e2e8f0)", borderRadius: 6 }}
-        />
-
-        <label style={{ display: "block", fontSize: 13, marginBottom: 4 }}>Notes (private)</label>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          maxLength={500}
-          rows={3}
-          style={{ width: "100%", padding: "8px 10px", marginBottom: 14, border: "1px solid var(--border, #e2e8f0)", borderRadius: 6, resize: "vertical" }}
-        />
 
         {error && (
           <div style={{ color: "#b91c1c", fontSize: 13, marginBottom: 10 }}>{error}</div>

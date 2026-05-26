@@ -593,7 +593,6 @@ export function HomePage() {
             <ul>
               <li><a href="#how">How it works</a></li>
               <li><a href="#">Browse providers</a></li>
-              <li><a href="#">Pricing</a></li>
               <li><a href="#">Changelog</a></li>
             </ul>
           </div>

@@ -15,7 +15,6 @@ export function AppLayout() {
   const NAV_LINKS = [
     { label: "How it works",    href: "/#how"  },
     { label: "Find a provider", href: "/browse" },
-    { label: "Pricing",         href: "#"       },
     { label: "Dashboard",       href: dashboardHref(role, isAuthenticated) },
   ];
 

@@ -90,6 +90,27 @@ export async function getPublicOpenTickets(): Promise<OpenTicketSummaryDto[]> {
   return requestJson<OpenTicketSummaryDto[]>("/api/tickets/public/open");
 }
 
+export async function issueInvoice(
+  ticketId: number,
+  amount: number,
+  pdfBlob: Blob,
+  accessToken?: string,
+): Promise<Ticket> {
+  const form = new FormData();
+  form.append('amount', amount.toString());
+  form.append('pdf', pdfBlob, `Invoice-FIX-${String(ticketId).padStart(4, '0')}.pdf`);
+  const data = await requestJson<TicketResponseDto>(
+    `/api/tickets/${ticketId}/invoice`,
+    {
+      method: 'POST',
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      body: form,
+      // Do NOT set Content-Type — browser sets it with the multipart boundary
+    },
+  );
+  return mapTicket(data);
+}
+
 export async function getNearbyTickets(
   latitude: number,
   longitude: number,

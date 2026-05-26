@@ -13,4 +13,14 @@ public interface EmailService {
     void sendProviderApproved(String to, String firstName);
 
     void sendProviderDeclined(String to, String firstName, String reason);
+
+    void sendInvoiceEmail(
+        String to,
+        String customerFirstName,
+        String ticketCode,
+        String serviceType,
+        String providerName,
+        java.math.BigDecimal amount,
+        byte[] pdfBytes
+    );
 }

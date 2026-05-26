@@ -139,16 +139,9 @@ export function BrowseProvidersPage() {
   }, [coords, sortBy]);
 
   useEffect(() => {
-    // Location is off by default — start the query immediately.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // No auto location request — mark geo as settled immediately so the
+    // search query fires without waiting for a permission prompt.
     setGeoSettled(true);
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-        () => {},
-        { timeout: 5000 },
-      );
-    }
   }, []);
 
   useEffect(() => {
@@ -173,6 +166,20 @@ export function BrowseProvidersPage() {
     e.preventDefault();
     setOpenSeg(null);
     setPage(1);
+  };
+
+  const handleLocationToggle = (enabled: boolean) => {
+    setLocationEnabled(enabled);
+    setPage(1);
+    // Only request permission when the user explicitly turns the toggle on
+    // and we don't already have coords.
+    if (enabled && !coords && "geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+        () => {},
+        { timeout: 10_000 },
+      );
+    }
   };
 
   const handleReset = () => {
@@ -348,7 +355,7 @@ export function BrowseProvidersPage() {
           setPage={setPage}
           coords={coords}
           locationEnabled={locationEnabled}
-          setLocationEnabled={setLocationEnabled}
+          setLocationEnabled={handleLocationToggle}
           isLoading={effectiveLoading}
           categories={activeCategories}
           categoryCountMap={categoryCountMap}
@@ -444,7 +451,7 @@ export function BrowseProvidersPage() {
             setPage={setPage}
             coords={coords}
             locationEnabled={locationEnabled}
-            setLocationEnabled={setLocationEnabled}
+            setLocationEnabled={handleLocationToggle}
             categories={activeCategories}
             categoryCountMap={categoryCountMap}
             onReset={handleReset}

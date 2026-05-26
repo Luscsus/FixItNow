@@ -13,6 +13,7 @@ import { WeekSchedule } from "@/components/provider-account/WeekSchedule";
 import { CompletedJobsCard } from "@/components/provider-account/CompletedJobsCard";
 import { PayoutsCard } from "@/components/provider-account/PayoutsCard";
 import { NotificationsCard } from "@/components/provider-account/NotificationsCard";
+import { ReviewsSection } from "@/components/reviews/ReviewsSection";
 
 const TABS = ["Overview", "Schedule", "Jobs", "Reviews"] as const;
 type Tab = (typeof TABS)[number];
@@ -96,9 +97,13 @@ export function ProviderAccountPage() {
           {activeTab === "Jobs" && <CompletedJobsCard />}
 
           {activeTab === "Reviews" && (
-            <div className="card" style={{ padding: "24px", color: "var(--text-muted)", fontSize: 14 }}>
-              Reviews coming soon.
-            </div>
+            ownProfile?.id ? (
+              <ReviewsSection providerId={ownProfile.id} sectionNumber="01" />
+            ) : (
+              <div className="card" style={{ padding: "24px", color: "var(--text-muted)", fontSize: 14 }}>
+                Loading reviews…
+              </div>
+            )
           )}
         </div>
 

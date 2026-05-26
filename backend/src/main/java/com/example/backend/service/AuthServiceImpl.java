@@ -75,7 +75,8 @@ public class AuthServiceImpl implements AuthService {
             .firstName(request.getFirstName())
             .lastName(request.getLastName())
             .role(UserRole.CUSTOMER)
-            .status(UserStatus.PENDING_VERIFICATION)
+            .status(UserStatus.ACTIVE)
+            .emailVerified(false)
             .build();
 
         userRepository.save(user);
@@ -85,7 +86,7 @@ public class AuthServiceImpl implements AuthService {
         emailService.sendEmailConfirmation(user.getEmail(), user.getFirstName(), confirmationUrl);
 
         log.info("Registered new customer: {}", user.getEmail());
-        return new MessageResponse("Registration successful. Please check your email to verify your account.");
+        return new MessageResponse("Registration successful. Your account is ready — you can sign in now.");
     }
 
     @Override
@@ -162,9 +163,6 @@ public class AuthServiceImpl implements AuthService {
         }
         if (user.getStatus() == UserStatus.REJECTED) {
             throw new ApiException("Your provider application has been declined.");
-        }
-        if (!user.isEmailVerified()) {
-            throw new ApiException("Please verify your email address before logging in.");
         }
         if (user.getStatus() != UserStatus.ACTIVE) {
             throw new ApiException("Account is not active. Status: " + user.getStatus());

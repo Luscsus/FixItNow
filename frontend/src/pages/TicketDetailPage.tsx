@@ -3,6 +3,7 @@ import { useTicketQuery } from "@/hooks/useTicketQuery";
 import { useAuth } from "@/context/auth";
 import { useUpdateTicketStatusMutation } from "@/hooks/useUpdateTicketStatusMutation";
 import type { Ticket, TicketPriority, TicketStatus, StatusHistoryEntry } from "@/domain/ticket";
+import { TicketChatPanel } from "@/components/ticket/TicketChatPanel";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -174,14 +175,6 @@ function buildActivityLog(ticket: Ticket): LogEntry[] {
   ];
 }
 
-// ─── Chat placeholder ─────────────────────────────────────────────────────────
-
-const PLACEHOLDER_MESSAGES = [
-  { mine: false, text: "Hi! I've reviewed your ticket. This looks like a straightforward fix.", time: "—" },
-  { mine: true,  text: "Great — how soon can you come by?",                                    time: "—" },
-  { mine: false, text: "I can be there within the hour. I'll send a quote shortly.",           time: "—" },
-];
-
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function PhaseRail({ ticketStatus }: { ticketStatus: TicketStatus }) {
@@ -350,218 +343,6 @@ function ActivityLog({ entries }: { entries: LogEntry[] }) {
           <div style={{ fontSize: 14.5, lineHeight: 1.55 }}>{entry.text}</div>
         </div>
       ))}
-    </div>
-  );
-}
-
-function ChatPlaceholder({ ticket }: { ticket: Ticket }) {
-  const providerName = ticket.assignedServiceProviderName;
-  const providerInitials = providerName ? initials(providerName) : "?";
-
-  return (
-    <div
-      style={{
-        position: "sticky",
-        top: 90,
-        background: "var(--card)",
-        border: "1px solid var(--border)",
-        borderRadius: 16,
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
-        height: "calc(100vh - 110px)",
-        maxHeight: 680,
-        boxShadow: "var(--shadow-sm)",
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          padding: "16px 18px",
-          borderBottom: "1px solid var(--border)",
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-        }}
-      >
-        <div
-          className="avatar"
-          style={{
-            width: 40,
-            height: 40,
-            fontSize: 14,
-            background: providerName ? "var(--navy-900)" : "var(--slate-200)",
-            color: providerName ? "var(--amber-500)" : "var(--slate-500)",
-          }}
-        >
-          {providerInitials}
-        </div>
-        <div>
-          <div className="row gap-8" style={{ gap: 8 }}>
-            <b style={{ fontSize: 14, letterSpacing: "-0.01em" }}>
-              {providerName ?? "No provider yet"}
-            </b>
-            {providerName && (
-              <span
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  background: "var(--emerald-600)",
-                }}
-              />
-            )}
-          </div>
-          <div
-            className="mono muted"
-            style={{
-              fontSize: 10.5,
-              letterSpacing: "0.05em",
-              textTransform: "uppercase",
-            }}
-          >
-            {providerName ? "Provider · Chat" : "Awaiting assignment"}
-          </div>
-        </div>
-        <span className="grow" />
-        <span
-          className="mono"
-          style={{
-            fontSize: 10.5,
-            color: "var(--text-muted)",
-            background: "var(--slate-100)",
-            padding: "3px 8px",
-            borderRadius: 6,
-            letterSpacing: "0.05em",
-            textTransform: "uppercase",
-          }}
-        >
-          Coming soon
-        </span>
-      </div>
-
-      {/* Messages */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: 18,
-          display: "flex",
-          flexDirection: "column",
-          gap: 14,
-        }}
-      >
-        {!providerName && (
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              textAlign: "center",
-              color: "var(--text-muted)",
-              gap: 8,
-              padding: "24px 16px",
-            }}
-          >
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 24,
-                background: "var(--slate-100)",
-                display: "grid",
-                placeItems: "center",
-                fontSize: 22,
-                marginBottom: 4,
-              }}
-            >
-              💬
-            </div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
-              No chat yet
-            </div>
-            <div style={{ fontSize: 13 }}>
-              Messaging will be available once a provider is assigned.
-            </div>
-          </div>
-        )}
-
-        {providerName && (
-          <>
-            <div
-              className="mono muted"
-              style={{ textAlign: "center", fontSize: 10.5, margin: "4px 0" }}
-            >
-              Chat history · placeholder
-            </div>
-            {PLACEHOLDER_MESSAGES.map((msg, i) => (
-              <div
-                key={i}
-                style={{
-                  maxWidth: "86%",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 4,
-                  alignSelf: msg.mine ? "flex-end" : "flex-start",
-                  alignItems: msg.mine ? "flex-end" : "flex-start",
-                }}
-              >
-                <div
-                  style={{
-                    padding: "10px 14px",
-                    borderRadius: 12,
-                    borderBottomRightRadius: msg.mine ? 4 : 12,
-                    borderBottomLeftRadius: msg.mine ? 12 : 4,
-                    background: msg.mine ? "var(--navy-700)" : "var(--slate-100)",
-                    color: msg.mine ? "#fff" : "var(--text)",
-                    fontSize: 14,
-                    lineHeight: 1.45,
-                  }}
-                >
-                  {msg.text}
-                </div>
-                <div
-                  className="mono muted"
-                  style={{ fontSize: 10.5, letterSpacing: "0.04em" }}
-                >
-                  {msg.mine ? "You" : providerName} · {msg.time}
-                </div>
-              </div>
-            ))}
-          </>
-        )}
-      </div>
-
-      {/* Compose — disabled placeholder */}
-      <div
-        style={{
-          borderTop: "1px solid var(--border)",
-          padding: "12px 14px",
-          display: "flex",
-          gap: 8,
-          alignItems: "center",
-          opacity: providerName ? 0.5 : 0.35,
-          pointerEvents: "none",
-        }}
-      >
-        <div
-          style={{
-            flex: 1,
-            background: "var(--slate-100)",
-            borderRadius: 10,
-            padding: "10px 14px",
-            fontSize: 14,
-            color: "var(--text-muted)",
-          }}
-        >
-          Messaging coming soon…
-        </div>
-        <button className="btn btn-primary btn-sm" disabled style={{ opacity: 0.5 }}>
-          Send
-        </button>
-      </div>
     </div>
   );
 }
@@ -922,7 +703,7 @@ export function TicketDetailPage() {
 
         {/* Right column: chat */}
         <aside>
-          <ChatPlaceholder ticket={ticket} />
+          <TicketChatPanel ticket={ticket} />
         </aside>
       </main>
     </>

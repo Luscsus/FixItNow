@@ -196,6 +196,8 @@ export function ChatPage() {
   const threadRef = useRef<HTMLDivElement>(null);
   // Track which incoming messages we've already marked as DELIVERED/READ to avoid spam
   const ackedRef = useRef<Set<number>>(new Set());
+  // Prevent React Query focus-refetches from overwriting real-time WS messages
+  const seededRoomRef = useRef<string | null>(null);
 
   const isProvider = role === 'PROVIDER';
 
@@ -254,10 +256,15 @@ export function ChatPage() {
   });
 
   useEffect(() => {
-    if (messagesQuery.data) {
-      // Backend returns DESC; reverse for chronological order
-      setMessages([...messagesQuery.data].reverse());
-    }
+    // When switching rooms, clear immediately so the previous room's messages
+    // don't flash. When data arrives for a new room, seed once and then let
+    // real-time WS updates take over — subsequent React Query refetches (e.g.
+    // window focus) must not overwrite messages that arrived via WebSocket.
+    if (!selectedRoomId) { setMessages([]); return; }
+    if (!messagesQuery.data) { setMessages([]); return; }
+    if (seededRoomRef.current === selectedRoomId) return;
+    seededRoomRef.current = selectedRoomId;
+    setMessages([...messagesQuery.data].reverse());
   }, [messagesQuery.data, selectedRoomId]);
 
   // Reset acked set when switching rooms
@@ -389,9 +396,10 @@ export function ChatPage() {
   }, [messages.length, isOtherTyping]);
 
   const selectRoom = (roomId: string) => {
+    if (roomId === selectedRoomId) return;
+    seededRoomRef.current = null;
     setSelectedRoomId(roomId);
     setSearchParams({ room: roomId });
-    setMessages([]);
     ackedRef.current.clear();
     setIsOtherTyping(false);
     setText('');

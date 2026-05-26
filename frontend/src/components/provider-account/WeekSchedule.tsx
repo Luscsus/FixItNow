@@ -52,14 +52,16 @@ function weekRangeLabel(start: Date): string {
 }
 
 function renderBlockLabel(b: AnyBlock): string {
-  if (isOwnerBlock(b)) {
-    return b.title?.trim() || (
-      b.type === "AVAILABLE" ? "Available" :
-      b.type === "BREAK" ? "Break" :
-      b.type === "OFF" ? "Off" : "Booked"
-    );
+  if (b.type === "BOOKED") {
+    const owner = (b as TimeBlock).title;
+    if (owner && owner.trim()) return owner.trim();
+    const pub = (b as PublicTimeBlock).label;
+    if (pub && pub.trim()) return pub.trim();
+    return "Booked";
   }
-  return b.label;
+  return b.type === "AVAILABLE" ? "Available"
+    : b.type === "BREAK" ? "Break"
+    : "Off";
 }
 
 function formatTime(d: Date): string {
@@ -81,6 +83,7 @@ const DAY_ABBR = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
 function EventContent({ arg, editable }: { arg: EventContentArg; editable: boolean }) {
   const type = arg.event.extendedProps.type as TimeBlockType;
+  const block = arg.event.extendedProps.block as AnyBlock | undefined;
   const start = arg.event.start;
   const end = arg.event.end;
 
@@ -90,6 +93,7 @@ function EventContent({ arg, editable }: { arg: EventContentArg; editable: boole
   }
 
   const isOff = type === "OFF";
+  const label = block ? renderBlockLabel(block) : "";
 
   return (
     <div
@@ -110,7 +114,7 @@ function EventContent({ arg, editable }: { arg: EventContentArg; editable: boole
       <b style={{ display: "block", fontWeight: 700, fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.04em" }}>
         {timeText}
       </b>
-      {arg.event.title}
+      {label}
     </div>
   );
 }
@@ -145,7 +149,7 @@ export function WeekSchedule({ providerId, editable }: WeekScheduleProps) {
   const events = useMemo(
     () =>
       blocks.map((b, i) => ({
-        id: isOwnerBlock(b) ? b.id : `pub-${i}`,
+        id: isOwnerBlock(b) && b.id ? b.id : `virt-${i}`,
         title: renderBlockLabel(b),
         start: b.startAt,
         end: b.endAt,
@@ -180,7 +184,7 @@ export function WeekSchedule({ providerId, editable }: WeekScheduleProps) {
     (arg: EventClickArg) => {
       if (!editable) return;
       const block = arg.event.extendedProps.block as AnyBlock;
-      if (!isOwnerBlock(block) || block.type === "BOOKED") return;
+      if (!isOwnerBlock(block) || block.type === "BOOKED" || !block.id) return;
       setEditingBlock(block);
       setDefaultDate(undefined);
       setModalOpen(true);

@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,7 +43,7 @@ public class CalendarService {
     public List<TimeBlockResponse> listOwn(UUID providerId, LocalDateTime from, LocalDateTime to) {
         validateRange(from, to);
         List<ProviderTimeBlock> blocks = blockRepository.findInRange(providerId, from, to);
-        return suppressAvailableUnderBooked(blocks).stream()
+        return subtractBookedFromAvailable(blocks).stream()
             .map(TimeBlockResponse::from)
             .toList();
     }
@@ -54,20 +55,77 @@ public class CalendarService {
             throw new UserNotFoundException("Provider not found: " + providerId);
         }
         List<ProviderTimeBlock> blocks = blockRepository.findInRange(providerId, from, to);
-        return suppressAvailableUnderBooked(blocks).stream()
+        return subtractBookedFromAvailable(blocks).stream()
             .map(PublicTimeBlockResponse::from)
             .toList();
     }
 
-    private List<ProviderTimeBlock> suppressAvailableUnderBooked(List<ProviderTimeBlock> blocks) {
+    /**
+     * Splits each AVAILABLE block by all BOOKED blocks so customers see the actual remaining
+     * availability. For example, AVAILABLE 8:00-11:00 with a BOOKED 8:00-10:00 becomes a single
+     * AVAILABLE 10:00-11:00. Non-AVAILABLE blocks (BOOKED, BREAK, OFF) pass through unchanged.
+     */
+    private List<ProviderTimeBlock> subtractBookedFromAvailable(List<ProviderTimeBlock> blocks) {
         List<ProviderTimeBlock> booked = blocks.stream()
             .filter(b -> b.getType() == TimeBlockType.BOOKED)
             .toList();
-        if (booked.isEmpty()) return blocks;
-        return blocks.stream()
-            .filter(b -> b.getType() != TimeBlockType.AVAILABLE || booked.stream().noneMatch(bk ->
-                b.getStartAt().isBefore(bk.getEndAt()) && b.getEndAt().isAfter(bk.getStartAt())))
-            .toList();
+        List<ProviderTimeBlock> result = new ArrayList<>();
+        for (ProviderTimeBlock b : blocks) {
+            if (b.getType() != TimeBlockType.AVAILABLE) {
+                result.add(b);
+                continue;
+            }
+            List<LocalDateTime[]> segments = new ArrayList<>();
+            segments.add(new LocalDateTime[]{ b.getStartAt(), b.getEndAt() });
+            for (ProviderTimeBlock bk : booked) {
+                List<LocalDateTime[]> next = new ArrayList<>();
+                for (LocalDateTime[] seg : segments) {
+                    LocalDateTime s = seg[0], e = seg[1];
+                    LocalDateTime bs = bk.getStartAt(), be = bk.getEndAt();
+                    boolean overlaps = s.isBefore(be) && e.isAfter(bs);
+                    if (!overlaps) {
+                        next.add(seg);
+                        continue;
+                    }
+                    if (s.isBefore(bs)) next.add(new LocalDateTime[]{ s, bs });
+                    if (e.isAfter(be)) next.add(new LocalDateTime[]{ be, e });
+                }
+                segments = next;
+            }
+            for (LocalDateTime[] seg : segments) {
+                result.add(ProviderTimeBlock.builder()
+                    .provider(b.getProvider())
+                    .startAt(seg[0])
+                    .endAt(seg[1])
+                    .type(TimeBlockType.AVAILABLE)
+                    .title(b.getTitle())
+                    .notes(b.getNotes())
+                    .build());
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Throws if the requested window is not fully inside one of the provider's AVAILABLE blocks
+     * or if it overlaps an existing BOOKED block. Excludes a specific ticket's own BOOKED block
+     * from the conflict check (used when re-validating after creation).
+     */
+    @Transactional(readOnly = true)
+    public void validateRequestedSlot(UUID providerId, LocalDateTime start, LocalDateTime end, Long excludeTicketId) {
+        if (start == null || end == null || !end.isAfter(start)) {
+            throw new ApiException("Requested time window is invalid.");
+        }
+        List<ProviderTimeBlock> blocks = blockRepository.findInRange(providerId, start, end);
+        boolean insideAvailable = blocks.stream()
+            .filter(b -> b.getType() == TimeBlockType.AVAILABLE)
+            .anyMatch(b -> !start.isBefore(b.getStartAt()) && !end.isAfter(b.getEndAt()));
+        if (!insideAvailable) {
+            throw new ApiException("Requested time is not within any of the provider's available slots.");
+        }
+        if (blockRepository.existsBookedOverlap(providerId, start, end, excludeTicketId)) {
+            throw new ApiException("This time slot is already taken.");
+        }
     }
 
     @Transactional
@@ -156,9 +214,11 @@ public class CalendarService {
             || ticket.getStatus() == TicketStatus.CANCELLED
             || ticket.getStatus() == TicketStatus.DECLINED;
 
-        boolean hasSchedule = ticket.getScheduledStartAt() != null
-            && ticket.getScheduledEndAt() != null
-            && ticket.getScheduledEndAt().isAfter(ticket.getScheduledStartAt());
+        LocalDateTime startAt = ticket.getScheduledStartAt() != null
+            ? ticket.getScheduledStartAt() : ticket.getRequestedStartAt();
+        LocalDateTime endAt = ticket.getScheduledEndAt() != null
+            ? ticket.getScheduledEndAt() : ticket.getRequestedEndAt();
+        boolean hasSchedule = startAt != null && endAt != null && endAt.isAfter(startAt);
 
         UUID assignedId = ticket.getAssignedServiceProvider() != null
             ? ticket.getAssignedServiceProvider().getId() : null;
@@ -174,7 +234,7 @@ public class CalendarService {
 
         boolean isNew = existing.isEmpty();
         if (isNew && blockRepository.existsBookedOverlap(provider.getId(),
-                ticket.getScheduledStartAt(), ticket.getScheduledEndAt(), ticket.getId())) {
+                startAt, endAt, ticket.getId())) {
             throw new ApiException("This time slot is already booked for another job.");
         }
 
@@ -184,8 +244,8 @@ public class CalendarService {
             .build());
 
         block.setProvider(provider);
-        block.setStartAt(ticket.getScheduledStartAt());
-        block.setEndAt(ticket.getScheduledEndAt());
+        block.setStartAt(startAt);
+        block.setEndAt(endAt);
         block.setType(TimeBlockType.BOOKED);
         block.setTicket(ticket);
         String title = ticket.getServiceType() != null ? ticket.getServiceType() : "Booked job";

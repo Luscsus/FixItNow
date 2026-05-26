@@ -110,7 +110,7 @@ export function ProviderAvailabilityPicker({
       map.get(key)!.push(slot);
     }
     return map;
-  }, [blocks, weekStart, weekEnd]);
+  }, [blocks, weekStart, weekEnd, minBookableMs]);
 
   if (isLoading) {
     return <div className="avail-loading">Loading availability…</div>;

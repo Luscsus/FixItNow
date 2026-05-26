@@ -190,8 +190,6 @@ export function RegisterProviderPage() {
 
   const [geoStatus, setGeoStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
   const [geoMessage, setGeoMessage] = useState("");
-  const [_lat, setLat] = useState<string>("");
-  const [_lon, setLon] = useState<string>("");
 
   const pwStrength = passwordStrength(form.password);
 
@@ -213,9 +211,7 @@ export function RegisterProviderPage() {
     setGeoStatus("loading");
     setGeoMessage("");
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLat(pos.coords.latitude.toFixed(6));
-        setLon(pos.coords.longitude.toFixed(6));
+      () => {
         setGeoStatus("ok");
         setGeoMessage("Location captured.");
         setErrors((c) => ({ ...c, location: undefined }));

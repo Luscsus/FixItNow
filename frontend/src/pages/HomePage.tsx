@@ -19,6 +19,7 @@ export function HomePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [view, setView] = useState<LandingView>(() => readInitialView(searchParams.get("view")));
   const prevViewRef = useRef<LandingView>(view);
+  const [direction, setDirection] = useState<"forward" | "back">("forward");
 
   // Sync URL + storage when view changes
   useEffect(() => {
@@ -35,13 +36,13 @@ export function HomePage() {
     }
   }, [view, searchParams, setSearchParams]);
 
-  // Direction of transition (provider sits to the right of user)
-  const direction: "forward" | "back" =
-    view === "provider" && prevViewRef.current === "user" ? "forward" :
-    view === "user" && prevViewRef.current === "provider" ? "back" :
-    "forward";
-
-  useEffect(() => { prevViewRef.current = view; }, [view]);
+  useEffect(() => {
+    // Direction of transition (provider sits to the right of user)
+    let next: "forward" | "back" = "forward";
+    if (view === "user" && prevViewRef.current === "provider") next = "back";
+    setDirection(next);
+    prevViewRef.current = view;
+  }, [view]);
 
   return (
     <div className="landing-root">

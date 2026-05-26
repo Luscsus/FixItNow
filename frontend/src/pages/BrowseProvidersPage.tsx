@@ -40,7 +40,7 @@ export function BrowseProvidersPage() {
     null,
   );
   const [locationEnabled, setLocationEnabled] = useState(false);
-  const [geoSettled, setGeoSettled] = useState(false);
+  const [geoSettled] = useState(true);
 
   /* ── UI state ── */
   const [sortBy, setSortBy] = useState("default");
@@ -137,12 +137,6 @@ export function BrowseProvidersPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!coords && sortBy === "distance_asc") setSortBy("default");
   }, [coords, sortBy]);
-
-  useEffect(() => {
-    // No auto location request — mark geo as settled immediately so the
-    // search query fires without waiting for a permission prompt.
-    setGeoSettled(true);
-  }, []);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {

@@ -1,5 +1,7 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTicketQuery } from "@/hooks/useTicketQuery";
+import { useAuth } from "@/context/auth";
+import { useUpdateTicketStatusMutation } from "@/hooks/useUpdateTicketStatusMutation";
 import type { Ticket, TicketPriority, TicketStatus, StatusHistoryEntry } from "@/domain/ticket";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -54,6 +56,12 @@ const STATUS_ORDER: TicketStatus[] = [
   "PENDING_PAYMENT",
   "COMPLETED",
 ];
+
+const NEXT_STATUS: Partial<Record<TicketStatus, { status: TicketStatus; label: string }>> = {
+  APPROVED:                 { status: "IN_TRANSIT",               label: "Mark as In Transit →"               },
+  IN_TRANSIT:               { status: "PENDING_PROVIDER_INVOICE", label: "Mark as Pending Provider Invoice →" },
+  PENDING_PROVIDER_INVOICE: { status: "PENDING_PAYMENT",          label: "Mark as Pending Payment →"          },
+};
 
 function stepState(stepStatus: TicketStatus, ticketStatus: TicketStatus): "done" | "current" | "pending" {
   const stepIdx   = STATUS_ORDER.indexOf(stepStatus);
@@ -558,6 +566,8 @@ export function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const ticketId = id ? parseInt(id, 10) : NaN;
+  const { role } = useAuth();
+  const updateMut = useUpdateTicketStatusMutation();
 
   const { data: ticket, isLoading, isError } = useTicketQuery(ticketId);
 
@@ -585,6 +595,7 @@ export function TicketDetailPage() {
   const headline = headlineText(ticket);
   const activityEntries = buildActivityLog(ticket);
   const isTerminal = ticket.status === "DECLINED" || ticket.status === "CANCELLED";
+  const nextStatus = role === "PROVIDER" ? NEXT_STATUS[ticket.status] : undefined;
 
   return (
     <>
@@ -885,7 +896,16 @@ export function TicketDetailPage() {
               ← Back to dashboard
             </button>
             <span className="grow" />
-            {!isTerminal && (
+            {nextStatus && (
+              <button
+                className="btn btn-primary"
+                disabled={updateMut.isPending}
+                onClick={() => updateMut.mutate({ ticketId: ticket.id, status: nextStatus.status })}
+              >
+                {updateMut.isPending ? "Updating…" : nextStatus.label}
+              </button>
+            )}
+            {!isTerminal && role !== "PROVIDER" && (
               <button className="btn btn-danger" disabled title="Coming soon">
                 Cancel ticket
               </button>

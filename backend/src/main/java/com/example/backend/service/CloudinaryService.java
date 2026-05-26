@@ -21,6 +21,14 @@ public class CloudinaryService {
             "image/jpeg", "image/png", "image/webp"
     );
 
+    private static final Set<String> ALLOWED_CHAT_FILE_TYPES = Set.of(
+            "image/jpeg", "image/jpg", "image/png",
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    );
+    private static final long MAX_CHAT_FILE_BYTES = 10L * 1024 * 1024;
+
     // Magic byte signatures
     private static final byte[] JPEG_MAGIC = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
     private static final byte[] PNG_MAGIC = {(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
@@ -34,6 +42,29 @@ public class CloudinaryService {
                              @Value("${cloudinary.max-file-size-mb:5}") long maxFileSizeMb) {
         this.cloudinary = cloudinary;
         this.maxFileSizeBytes = maxFileSizeMb * 1024 * 1024;
+    }
+
+    public String uploadFile(MultipartFile file, String folder) {
+        if (file == null || file.isEmpty()) throw new ApiException("No file provided.");
+        if (file.getSize() > MAX_CHAT_FILE_BYTES) throw new ApiException("File exceeds 10 MB limit.");
+        String ct = file.getContentType();
+        if (ct == null || !ALLOWED_CHAT_FILE_TYPES.contains(ct.toLowerCase()))
+            throw new ApiException("File type not allowed. Accepted: JPEG, PNG, PDF, DOC, DOCX.");
+        try {
+            byte[] bytes = file.getBytes();
+            Map<?, ?> result = cloudinary.uploader().upload(bytes, ObjectUtils.asMap(
+                    "folder", folder,
+                    "resource_type", "auto",
+                    "use_filename", true,
+                    "unique_filename", true
+            ));
+            String secureUrl = (String) result.get("secure_url");
+            log.debug("Uploaded file to Cloudinary: {}", secureUrl);
+            return secureUrl;
+        } catch (IOException e) {
+            log.error("Failed to upload file to Cloudinary", e);
+            throw new ApiException("Failed to upload file. Please try again.");
+        }
     }
 
     public void deleteImage(String imageUrl) {

@@ -1,12 +1,12 @@
-import type { ChatMessage, ChatRoomDetails } from '@/domain/chat';
+import type { ChatMessage, ChatRoomDetails, ChatRoomSummary } from '@/domain/chat';
 import { requestJson } from '@/services/httpClient';
 
 function authHeader(accessToken: string): HeadersInit {
   return { Authorization: `Bearer ${accessToken}` };
 }
 
-export async function getChatRooms(accessToken: string): Promise<string[]> {
-  return requestJson<string[]>('/api/chat/rooms', {
+export async function getChatRooms(accessToken: string): Promise<ChatRoomSummary[]> {
+  return requestJson<ChatRoomSummary[]>('/api/chat/rooms', {
     headers: authHeader(accessToken),
   });
 }

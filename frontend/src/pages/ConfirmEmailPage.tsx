@@ -91,6 +91,7 @@ export function ConfirmEmailPage() {
     if (autoConfirmedRef.current === trimmed) return;
     autoConfirmedRef.current = trimmed;
     void confirmWithToken(trimmed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialToken, token]);
 
   const handleConfirm = async (e: React.FormEvent) => {

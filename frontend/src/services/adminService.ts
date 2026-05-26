@@ -2,7 +2,7 @@ import type { DeclineProviderRequestDto, ProviderResponseDto } from "@/dto/admin
 import type { MessageResponseDto } from "@/dto/message";
 import type { Provider } from "@/domain/admin";
 import type { Message } from "@/domain/message";
-import { mapProvider, mapProviders } from "@/mappers/adminMapper";
+import { mapProviders } from "@/mappers/adminMapper";
 import { mapMessageResponse } from "@/mappers/messageMapper";
 import { requestJson } from "@/services/httpClient";
 

@@ -352,6 +352,7 @@ export function ChatPage() {
     // don't flash. When data arrives for a new room, seed once and then let
     // real-time WS updates take over — subsequent React Query refetches (e.g.
     // window focus) must not overwrite messages that arrived via WebSocket.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!selectedRoomId) { setMessages([]); return; }
     if (!messagesQuery.data) { setMessages([]); return; }
     if (seededRoomRef.current === selectedRoomId) return;

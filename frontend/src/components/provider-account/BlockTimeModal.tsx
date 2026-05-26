@@ -36,20 +36,8 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
   const updateMut = useUpdateTimeBlockMutation();
   const deleteMut = useDeleteTimeBlockMutation();
 
-  const defaultStart = defaultDate
-    ? (defaultDate.includes("T") ? defaultDate : `${defaultDate}T09:00`)
-    : toLocalInputValue(new Date().toISOString());
-  const defaultEnd = (() => {
-    if (!defaultDate) return toLocalInputValue(new Date(Date.now() + 60 * 60 * 1000).toISOString());
-    const startStr = defaultDate.includes("T") ? defaultDate : `${defaultDate}T09:00`;
-    const d = new Date(startStr);
-    d.setHours(d.getHours() + 1);
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${startStr.split("T")[0]}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  })();
-
-  const [startAt, setStartAt] = useState(defaultStart);
-  const [endAt, setEndAt] = useState(defaultEnd);
+  const [startAt, setStartAt] = useState("");
+  const [endAt, setEndAt] = useState("");
   const [type, setType] = useState<TimeBlockType>("AVAILABLE");
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
@@ -57,6 +45,7 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
 
   useEffect(() => {
     if (!open) return;
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (initial) {
       setStartAt(toLocalInputValue(initial.startAt));
       setEndAt(toLocalInputValue(initial.endAt));
@@ -64,13 +53,27 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
       setTitle(initial.title ?? "");
       setNotes(initial.notes ?? "");
     } else {
-      setStartAt(defaultStart);
-      setEndAt(defaultEnd);
+      const start = defaultDate
+        ? (defaultDate.includes("T") ? defaultDate : `${defaultDate}T09:00`)
+        : toLocalInputValue(new Date().toISOString());
+      const end = (() => {
+        if (!defaultDate) {
+          return toLocalInputValue(new Date(new Date().getTime() + 60 * 60 * 1000).toISOString());
+        }
+        const startStr = defaultDate.includes("T") ? defaultDate : `${defaultDate}T09:00`;
+        const d = new Date(startStr);
+        d.setHours(d.getHours() + 1);
+        const pad = (n: number) => String(n).padStart(2, "0");
+        return `${startStr.split("T")[0]}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      })();
+      setStartAt(start);
+      setEndAt(end);
       setType("AVAILABLE");
       setTitle("");
       setNotes("");
     }
     setError(null);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [open, initial, defaultDate]);
 
   if (!open) return null;

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { z } from "zod";
 
 import { useRegisterMutation } from "@/hooks/useRegisterMutation";
@@ -53,7 +53,6 @@ function IconLock() {
 }
 
 export function RegisterUserPage() {
-  const navigate = useNavigate();
   const registerMutation = useRegisterMutation();
 
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", password: "" });

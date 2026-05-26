@@ -100,6 +100,7 @@ export function EditProviderProfileForm() {
 
   useEffect(() => {
     if (provider) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm({
         firstName: provider.firstName ?? "",
         lastName: provider.lastName ?? "",

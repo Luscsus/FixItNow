@@ -10,13 +10,6 @@ const ACTIVE_STATUSES: TicketStatus[] = [
   "PENDING_PAYMENT",
 ];
 
-const PRIORITY_CLASS: Record<string, string> = {
-  CRITICAL: "urgency-critical",
-  HIGH: "urgency-high",
-  MEDIUM: "urgency-medium",
-  LOW: "urgency-low",
-};
-
 const STATUS_CHIP: Record<string, { label: string; color: string; bg: string }> = {
   APPROVED:                 { label: "ACCEPTED",         color: "var(--emerald-700)", bg: "var(--emerald-50)" },
   IN_TRANSIT:               { label: "IN TRANSIT",       color: "var(--amber-700)",   bg: "var(--amber-50)"   },
@@ -76,7 +69,6 @@ function ActiveJob({ ticket }: { ticket: Ticket }) {
   const navigate = useNavigate();
   const updateMut = useUpdateTicketStatusMutation();
   const next = NEXT_STATUS[ticket.status];
-  const chip = STATUS_CHIP[ticket.status];
 
   return (
     <div

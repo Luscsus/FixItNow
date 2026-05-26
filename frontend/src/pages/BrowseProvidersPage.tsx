@@ -30,20 +30,11 @@ export function BrowseProvidersPage() {
   const routerState = routerLocation.state as { formState?: unknown } | null;
   const selectionMode = routerState?.formState != null;
 
-  const urlInit = useRef({
-    cats: searchParams.getAll("categories"),
-    minP: searchParams.get("minPrice") ?? "",
-    maxP: searchParams.get("maxPrice") ?? "",
-    radius: Number(searchParams.get("radiusKm") ?? "25"),
-  });
-
   /* ── Search state ── */
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(
-    urlInit.current.cats,
-  );
-  const [radiusKm, setRadiusKm] = useState(urlInit.current.radius);
-  const [minPrice, setMinPrice] = useState(urlInit.current.minP);
-  const [maxPrice, setMaxPrice] = useState(urlInit.current.maxP);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(() => searchParams.getAll("categories"));
+  const [radiusKm, setRadiusKm] = useState(() => Number(searchParams.get("radiusKm") ?? "25"));
+  const [minPrice, setMinPrice] = useState(() => searchParams.get("minPrice") ?? "");
+  const [maxPrice, setMaxPrice] = useState(() => searchParams.get("maxPrice") ?? "");
   const [minExp, setMinExp] = useState(0);
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(
     null,
@@ -143,11 +134,13 @@ export function BrowseProvidersPage() {
 
   /* ── Effects ── */
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!coords && sortBy === "distance_asc") setSortBy("default");
   }, [coords, sortBy]);
 
   useEffect(() => {
     // Location is off by default — start the query immediately.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setGeoSettled(true);
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(

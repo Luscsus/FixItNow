@@ -5,10 +5,13 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import jakarta.mail.util.ByteArrayDataSource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
@@ -101,6 +104,110 @@ public class EmailServiceImpl implements EmailService {
             </body></html>
             """.formatted(escape(firstName), escape(reason));
         sendEmail(to, "Provider application declined", body);
+    }
+
+    @Override
+    @Async
+    public void sendInvoiceEmail(String to, String customerFirstName, String ticketCode,
+                                 String serviceType, String providerName, BigDecimal amount,
+                                 byte[] pdfBytes) {
+        String subject = "Your invoice for " + ticketCode + " — FixItNow";
+        String html = buildInvoiceEmailHtml(customerFirstName, ticketCode, serviceType, providerName, amount);
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(fromAddress, fromName);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(html, true);
+            helper.addAttachment("Invoice-" + ticketCode + ".pdf",
+                    new ByteArrayDataSource(pdfBytes, "application/pdf"));
+            mailSender.send(message);
+            log.info("Invoice email sent to {} for ticket {}", to, ticketCode);
+        } catch (MessagingException | java.io.UnsupportedEncodingException e) {
+            log.error("Failed to send invoice email to {}: {}", to, e.getMessage());
+        }
+    }
+
+    private String buildInvoiceEmailHtml(String customerFirstName, String ticketCode,
+                                         String serviceType, String providerName, BigDecimal amount) {
+        return """
+            <!DOCTYPE html>
+            <html lang="en">
+            <head><meta charset="UTF-8"/><title>Invoice — FixItNow</title></head>
+            <body style="margin:0;padding:0;background:#F8FAFC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+              <table width="100%%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;padding:40px 16px;">
+                <tr><td align="center">
+                  <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%%;">
+                    <tr>
+                      <td style="background:#0B1E3F;border-radius:12px 12px 0 0;padding:28px 36px;">
+                        <table cellpadding="0" cellspacing="0"><tr>
+                          <td style="background:#F59E0B;width:32px;height:32px;border-radius:8px;text-align:center;vertical-align:middle;">
+                            <span style="font-size:16px;">🔧</span>
+                          </td>
+                          <td style="padding-left:10px;font-size:18px;font-weight:700;color:#fff;letter-spacing:-0.3px;">
+                            FixIt<span style="color:#F59E0B;">Now</span>
+                          </td>
+                          <td style="padding-left:180px;font-size:12px;font-weight:600;color:rgba(255,255,255,0.6);letter-spacing:0.1em;text-transform:uppercase;vertical-align:middle;">
+                            Invoice
+                          </td>
+                        </tr></table>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="background:#fff;padding:40px 36px 32px;border-left:1px solid #E2E8F0;border-right:1px solid #E2E8F0;">
+                        <p style="margin:0 0 8px;font-size:11px;font-weight:600;letter-spacing:0.08em;color:#64748B;text-transform:uppercase;">Invoice received</p>
+                        <h1 style="margin:0 0 24px;font-size:24px;font-weight:700;color:#0F172A;letter-spacing:-0.4px;">
+                          Your invoice is ready, %s.
+                        </h1>
+                        <p style="margin:0 0 24px;font-size:15px;color:#334155;line-height:1.6;">
+                          <strong>%s</strong> has completed the work on ticket <strong>%s</strong>
+                          and issued an invoice. Please find the PDF attached to this email.
+                        </p>
+                        <table width="100%%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;margin-bottom:28px;">
+                          <tr>
+                            <td style="padding:20px 24px;">
+                              <table width="100%%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                  <td style="font-size:13px;color:#64748B;">Ticket</td>
+                                  <td style="font-size:13px;color:#0F172A;font-weight:600;text-align:right;">%s</td>
+                                </tr>
+                                <tr><td colspan="2" style="padding:6px 0;"><hr style="border:none;border-top:1px solid #E2E8F0;"/></td></tr>
+                                <tr>
+                                  <td style="font-size:13px;color:#64748B;">Service</td>
+                                  <td style="font-size:13px;color:#0F172A;font-weight:600;text-align:right;">%s</td>
+                                </tr>
+                                <tr><td colspan="2" style="padding:6px 0;"><hr style="border:none;border-top:1px solid #E2E8F0;"/></td></tr>
+                                <tr>
+                                  <td style="font-size:15px;color:#0F172A;font-weight:700;">Total due</td>
+                                  <td style="font-size:20px;color:#0B1E3F;font-weight:700;text-align:right;">$%s</td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                        </table>
+                        <p style="margin:0;font-size:13px;color:#94A3B8;">
+                          The full invoice PDF is attached. Please process payment at your earliest convenience.
+                        </p>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="background:#F8FAFC;border:1px solid #E2E8F0;border-top:none;border-radius:0 0 12px 12px;padding:20px 36px;text-align:center;">
+                        <p style="margin:0;font-size:12px;color:#94A3B8;">© 2026 FixItNow · Your maintenance marketplace</p>
+                      </td>
+                    </tr>
+                  </table>
+                </td></tr>
+              </table>
+            </body></html>
+            """.formatted(
+                escape(customerFirstName),
+                escape(providerName),
+                escape(ticketCode),
+                escape(ticketCode),
+                escape(serviceType),
+                amount.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()
+        );
     }
 
     private void sendEmail(String to, String subject, String htmlBody) {

@@ -43,6 +43,7 @@ export type Ticket = {
   estimatedCost: number | null;
   createdAt: Date;
   assignedServiceProviderName?: string | null;
+  assignedServiceProviderId?: string | null;
   assignedServiceProviderProfilePictureUrl?: string | null;
   submittedByName?: string | null;
   submittedByProfilePictureUrl?: string | null;

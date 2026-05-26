@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/context/auth';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -453,9 +454,18 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
         </div>
         <div>
           <div className="row gap-8" style={{ gap: 8 }}>
-            <b style={{ fontSize: 14, letterSpacing: '-0.01em' }}>
-              {providerName ?? 'No provider yet'}
-            </b>
+            {providerName && ticket.assignedServiceProviderId ? (
+              <Link
+                to={`/providers/${ticket.assignedServiceProviderId}`}
+                style={{ fontSize: 14, letterSpacing: '-0.01em', fontWeight: 700, textDecoration: 'none', color: 'inherit' }}
+              >
+                {providerName}
+              </Link>
+            ) : (
+              <b style={{ fontSize: 14, letterSpacing: '-0.01em' }}>
+                {providerName ?? 'No provider yet'}
+              </b>
+            )}
             {providerName && wsConnected && (
               <span style={{ width: 6, height: 6, borderRadius: 3, background: 'var(--emerald-600)' }} />
             )}

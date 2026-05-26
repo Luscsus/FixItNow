@@ -281,39 +281,83 @@ function MetaCard({ ticket }: { ticket: Ticket }) {
     {
       label: "Provider",
       value: ticket.assignedServiceProviderName ? (
-        <div className="row gap-8" style={{ marginTop: 8 }}>
-          <div
-            className="avatar"
-            style={{
-              width: 28,
-              height: 28,
-              fontSize: 11,
-              background: "var(--navy-900)",
-              color: "var(--amber-500)",
-              ...(providerPic ? { padding: 0, overflow: "hidden" } : {}),
-            }}
+        ticket.assignedServiceProviderId ? (
+          <Link
+            to={`/providers/${ticket.assignedServiceProviderId}`}
+            className="row gap-8"
+            style={{ marginTop: 8, textDecoration: "none", color: "inherit" }}
           >
-            {providerPic ? (
-              <img
-                src={providerPic}
-                alt={ticket.assignedServiceProviderName}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  display: "block",
-                }}
-              />
-            ) : (
-              initials(ticket.assignedServiceProviderName)
-            )}
+            <div
+              className="avatar"
+              style={{
+                width: 28,
+                height: 28,
+                fontSize: 11,
+                background: "var(--navy-900)",
+                color: "var(--amber-500)",
+                ...(providerPic ? { padding: 0, overflow: "hidden" } : {}),
+              }}
+            >
+              {providerPic ? (
+                <img
+                  src={providerPic}
+                  alt={ticket.assignedServiceProviderName}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    display: "block",
+                  }}
+                />
+              ) : (
+                initials(ticket.assignedServiceProviderName)
+              )}
+            </div>
+            <span
+              style={{
+                fontSize: 14,
+                fontWeight: 600,
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {ticket.assignedServiceProviderName}
+            </span>
+          </Link>
+        ) : (
+          <div className="row gap-8" style={{ marginTop: 8 }}>
+            <div
+              className="avatar"
+              style={{
+                width: 28,
+                height: 28,
+                fontSize: 11,
+                background: "var(--navy-900)",
+                color: "var(--amber-500)",
+                ...(providerPic ? { padding: 0, overflow: "hidden" } : {}),
+              }}
+            >
+              {providerPic ? (
+                <img
+                  src={providerPic}
+                  alt={ticket.assignedServiceProviderName}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    display: "block",
+                  }}
+                />
+              ) : (
+                initials(ticket.assignedServiceProviderName)
+              )}
+            </div>
+            <span
+              style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em" }}
+            >
+              {ticket.assignedServiceProviderName}
+            </span>
           </div>
-          <span
-            style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em" }}
-          >
-            {ticket.assignedServiceProviderName}
-          </span>
-        </div>
+        )
       ) : (
         <div style={{ marginTop: 8, fontSize: 14, color: "var(--text-muted)" }}>
           Unassigned

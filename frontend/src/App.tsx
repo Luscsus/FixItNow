@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import { ScrollToTop } from "@/components/routing/ScrollToTop";
 
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AdminRoute } from "@/components/routing/AdminRoute";
@@ -25,7 +26,9 @@ import { TicketDetailPage } from "@/pages/TicketDetailPage";
 
 function App() {
   return (
-    <Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
       {/* Full-screen auth pages (no navbar) */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
@@ -62,6 +65,7 @@ function App() {
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Route>
     </Routes>
+    </>
   );
 }
 

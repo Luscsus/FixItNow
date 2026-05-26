@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import type { Ticket, TicketPriority, TicketStatus } from "@/domain/ticket";
 
 function priorityClass(priority: TicketPriority | null) {
@@ -118,31 +118,68 @@ export function TicketCard({ ticket }: { ticket: Ticket }) {
         <div className="ticket-prov">
           {ticket.assignedServiceProviderName ? (
             <>
-              <div
-                className="avatar"
-                style={{
-                  width: 36,
-                  height: 36,
-                  fontSize: 13,
-                  background: "var(--amber-500)",
-                  color: "var(--navy-900)",
-                  borderRadius: "50%",
-                  display: "grid",
-                  placeItems: "center",
-                  flexShrink: 0,
-                }}
-              >
-                {ticket.assignedServiceProviderName
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .slice(0, 2)
-                  .toUpperCase()}
-              </div>
-              <div>
-                <div className="ticket-prov-name">{ticket.assignedServiceProviderName}</div>
-                <div className="ticket-prov-role">Service provider</div>
-              </div>
+              {ticket.assignedServiceProviderId ? (
+                <Link
+                  to={`/providers/${ticket.assignedServiceProviderId}`}
+                  className="row gap-8"
+                  style={{ textDecoration: "none", color: "inherit", alignItems: "center" }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div
+                    className="avatar"
+                    style={{
+                      width: 36,
+                      height: 36,
+                      fontSize: 13,
+                      background: "var(--amber-500)",
+                      color: "var(--navy-900)",
+                      borderRadius: "50%",
+                      display: "grid",
+                      placeItems: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {ticket.assignedServiceProviderName
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="ticket-prov-name">{ticket.assignedServiceProviderName}</div>
+                    <div className="ticket-prov-role">Service provider</div>
+                  </div>
+                </Link>
+              ) : (
+                <>
+                  <div
+                    className="avatar"
+                    style={{
+                      width: 36,
+                      height: 36,
+                      fontSize: 13,
+                      background: "var(--amber-500)",
+                      color: "var(--navy-900)",
+                      borderRadius: "50%",
+                      display: "grid",
+                      placeItems: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {ticket.assignedServiceProviderName
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="ticket-prov-name">{ticket.assignedServiceProviderName}</div>
+                    <div className="ticket-prov-role">Service provider</div>
+                  </div>
+                </>
+              )}
               {ticket.estimatedCost != null ? (
                 <>
                   <span className="grow" />

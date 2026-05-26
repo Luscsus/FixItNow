@@ -68,6 +68,7 @@ export function NewTicketPage() {
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const ticketId = useMemo(() => "", []);
@@ -137,6 +138,7 @@ export function NewTicketPage() {
 
   async function handleSubmit() {
     if (!canSubmit || !urgency) {
+      setSubmitAttempted(true);
       return;
     }
 
@@ -223,9 +225,13 @@ export function NewTicketPage() {
                     onChange={(e) => setTitle(e.target.value)}
                   />
                 </div>
-                <span className="field-hint">
-                  A one-sentence headline — providers see this first.
-                </span>
+                {submitAttempted && !title.trim() ? (
+                  <span className="field-error">Title is required.</span>
+                ) : (
+                  <span className="field-hint">
+                    A one-sentence headline — providers see this first.
+                  </span>
+                )}
               </div>
 
               <div className="field">
@@ -247,9 +253,13 @@ export function NewTicketPage() {
                     </option>
                   ))}
                 </select>
-                <span className="field-hint">
-                  Choose the type of service needed.
-                </span>
+                {submitAttempted && !category ? (
+                  <span className="field-error">Please select a category.</span>
+                ) : (
+                  <span className="field-hint">
+                    Choose the type of service needed.
+                  </span>
+                )}
               </div>
 
               <div className="field">
@@ -260,9 +270,13 @@ export function NewTicketPage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
-                <span className="field-hint">
-                  Mention anything you&apos;ve already tried.
-                </span>
+                {submitAttempted && !description.trim() ? (
+                  <span className="field-error">Description is required.</span>
+                ) : (
+                  <span className="field-hint">
+                    Mention anything you&apos;ve already tried.
+                  </span>
+                )}
               </div>
 
               <div className="field">
@@ -376,9 +390,13 @@ export function NewTicketPage() {
                     onChange={(e) => setLocation(e.target.value)}
                   />
                 </div>
-                <span className="field-hint">
-                  Be as specific as you can — building, floor, room.
-                </span>
+                {submitAttempted && !location.trim() ? (
+                  <span className="field-error">Location is required.</span>
+                ) : (
+                  <span className="field-hint">
+                    Be as specific as you can — building, floor, room.
+                  </span>
+                )}
               </div>
 
               <div className="field">
@@ -417,6 +435,11 @@ export function NewTicketPage() {
                     hint="Safety risk or active damage."
                   />
                 </div>
+                {submitAttempted && !urgency && (
+                  <span className="field-error" style={{ marginTop: 6 }}>
+                    Please select an urgency level.
+                  </span>
+                )}
               </div>
             </div>
           </section>
@@ -666,7 +689,6 @@ export function NewTicketPage() {
               type="button"
               onClick={handleSubmit}
               disabled={
-                !canSubmit ||
                 createTicketMutation.isPending ||
                 uploadImageMutation.isPending
               }

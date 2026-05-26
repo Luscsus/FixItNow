@@ -3,9 +3,41 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/context/auth';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { getChatRoom, getChatMessages } from '@/services/chatService';
+import { uploadFile as uploadFileToServer } from '@/services/imageService';
 import { useChatWebSocket } from '@/hooks/useChatWebSocket';
 import type { Ticket } from '@/domain/ticket';
 import type { ChatMessage } from '@/domain/chat';
+
+// ─── Attachment helpers ────────────────────────────────────────────────────────
+
+const MAX_ATTACHMENTS = 5;
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_MIME: Record<string, true> = {
+  'image/jpeg': true, 'image/jpg': true, 'image/png': true,
+  'application/pdf': true,
+  'application/msword': true,
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': true,
+};
+
+type StagedFile = { localId: string; file: File; objectUrl: string | null };
+
+function validateAttachment(file: File): string | null {
+  if (!ALLOWED_MIME[file.type]) return `"${file.name}" — type not allowed (JPEG, PNG, PDF, DOC, DOCX only)`;
+  if (file.size > MAX_FILE_BYTES) return `"${file.name}" — exceeds 10 MB limit`;
+  return null;
+}
+
+function fileNameFromUrl(url: string): string {
+  try { return decodeURIComponent(new URL(url).pathname.split('/').pop() ?? 'File'); }
+  catch { return 'File'; }
+}
+
+function fileIcon(name: string): string {
+  const ext = name.split('.').pop()?.toLowerCase();
+  if (ext === 'pdf') return '📄';
+  if (ext === 'doc' || ext === 'docx') return '📝';
+  return '📎';
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -52,26 +84,75 @@ function MessageBubble({
   if (msg.type === 'SYSTEM') {
     return <div className="sys-msg"><span>{msg.content}</span></div>;
   }
+
+  const avatar = (
+    <div
+      className="avatar"
+      style={{
+        width: 30,
+        height: 30,
+        fontSize: 11,
+        background: isMine ? 'var(--navy-700)' : 'var(--navy-900)',
+        color: isMine ? '#fff' : 'var(--amber-500)',
+      }}
+    >
+      {getInitials(senderName)}
+    </div>
+  );
+
+  const meta = (
+    <div className="bubble-meta">
+      {isMine ? 'You' : senderName} · {formatMsgTime(msg.timestamp)}
+      {isMine && <> · <StatusTicks status={msg.status} /></>}
+    </div>
+  );
+
+  if (msg.type === 'IMAGE') {
+    return (
+      <div className={`msg-row${isMine ? ' mine' : ''}`}>
+        {avatar}
+        <div>
+          <a href={msg.content} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+            <img
+              src={msg.content}
+              alt=""
+              style={{ maxWidth: 200, maxHeight: 200, borderRadius: 10, display: 'block', objectFit: 'cover', cursor: 'zoom-in', border: '1px solid var(--border)' }}
+            />
+          </a>
+          {meta}
+        </div>
+      </div>
+    );
+  }
+
+  if (msg.type === 'FILE') {
+    const name = fileNameFromUrl(msg.content);
+    return (
+      <div className={`msg-row${isMine ? ' mine' : ''}`}>
+        {avatar}
+        <div>
+          <a
+            href={msg.content}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bubble"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none', maxWidth: 220 }}
+          >
+            <span style={{ fontSize: 20, lineHeight: 1 }}>{fileIcon(name)}</span>
+            <span style={{ fontSize: 13, wordBreak: 'break-all' }}>{name}</span>
+          </a>
+          {meta}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`msg-row${isMine ? ' mine' : ''}`}>
-      <div
-        className="avatar"
-        style={{
-          width: 30,
-          height: 30,
-          fontSize: 11,
-          background: isMine ? 'var(--navy-700)' : 'var(--navy-900)',
-          color: isMine ? '#fff' : 'var(--amber-500)',
-        }}
-      >
-        {getInitials(senderName)}
-      </div>
+      {avatar}
       <div>
         <div className="bubble">{msg.content}</div>
-        <div className="bubble-meta">
-          {isMine ? 'You' : senderName} · {formatMsgTime(msg.timestamp)}
-          {isMine && <> · <StatusTicks status={msg.status} /></>}
-        </div>
+        {meta}
       </div>
     </div>
   );
@@ -104,8 +185,12 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const [text, setText] = useState('');
   const [sendError, setSendError] = useState<string | null>(null);
+  const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const threadRef = useRef<HTMLDivElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const attachInputRef = useRef<HTMLInputElement>(null);
   const ackedRef = useRef<Set<number>>(new Set());
 
   // Resolve the other participant's ID from the room
@@ -218,19 +303,82 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
     return groups;
   }, [messages]);
 
-  const handleSend = () => {
-    const content = text.trim();
-    setSendError(null);
-    if (!content || !chatRoomId || !currentUserId || !otherParticipantId || !wsConnected) return;
-    const result = sendMessage({
-      senderId: currentUserId,
-      recipientId: otherParticipantId,
-      chatRoomId,
-      content,
-      type: 'TEXT',
+  const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const err = validateAttachment(file);
+    if (err) { setSendError(err); return; }
+    const objectUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
+    setStagedFiles(prev => [...prev, { localId: crypto.randomUUID(), file, objectUrl }]);
+  };
+
+  const handleAttachmentSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(e.target.files ?? []);
+    e.target.value = '';
+    if (!selected.length) return;
+    const errors: string[] = [];
+    const valid: StagedFile[] = [];
+    for (const file of selected) {
+      if (stagedFiles.length + valid.length >= MAX_ATTACHMENTS) {
+        errors.push(`Maximum ${MAX_ATTACHMENTS} attachments allowed`);
+        break;
+      }
+      const err = validateAttachment(file);
+      if (err) { errors.push(err); continue; }
+      const objectUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
+      valid.push({ localId: crypto.randomUUID(), file, objectUrl });
+    }
+    if (errors.length) setSendError(errors[0]);
+    if (valid.length) setStagedFiles(prev => [...prev, ...valid]);
+  };
+
+  const removeStagedFile = (localId: string) => {
+    setStagedFiles(prev => {
+      const f = prev.find(s => s.localId === localId);
+      if (f?.objectUrl) URL.revokeObjectURL(f.objectUrl);
+      return prev.filter(s => s.localId !== localId);
     });
-    if (!result.ok) { setSendError(`Send failed: ${result.reason}`); return; }
-    setText('');
+  };
+
+  const handleSend = async () => {
+    setSendError(null);
+    const hasText = text.trim().length > 0;
+    const hasFiles = stagedFiles.length > 0;
+    if (!hasText && !hasFiles) return;
+    if (!chatRoomId || !currentUserId || !otherParticipantId || !wsConnected) return;
+
+    if (hasFiles) {
+      setIsUploading(true);
+      for (const sf of stagedFiles) {
+        try {
+          const url = await uploadFileToServer(sf.file, 'chat', accessToken);
+          const isImage = sf.file.type.startsWith('image/');
+          const result = sendMessage({
+            senderId: currentUserId, recipientId: otherParticipantId,
+            chatRoomId, content: url, type: isImage ? 'IMAGE' : 'FILE',
+          });
+          if (!result.ok) { setSendError(`Send failed: ${result.reason}`); setIsUploading(false); return; }
+        } catch {
+          setSendError('Upload failed — check your connection and try again.');
+          setIsUploading(false);
+          return;
+        }
+      }
+      stagedFiles.forEach(sf => { if (sf.objectUrl) URL.revokeObjectURL(sf.objectUrl); });
+      setStagedFiles([]);
+      setIsUploading(false);
+    }
+
+    if (hasText) {
+      const result = sendMessage({
+        senderId: currentUserId, recipientId: otherParticipantId,
+        chatRoomId, content: text.trim(), type: 'TEXT',
+      });
+      if (!result.ok) { setSendError(`Send failed: ${result.reason}`); return; }
+      setText('');
+    }
+
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     sendTyping({ chatRoomId, userId: currentUserId, typing: false });
   };
@@ -252,7 +400,7 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
     }, 2500);
   };
 
-  const canSend = wsConnected && text.trim().length > 0 && Boolean(otherParticipantId);
+  const canSend = wsConnected && Boolean(otherParticipantId) && !isUploading && (text.trim().length > 0 || stagedFiles.length > 0);
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
@@ -419,6 +567,24 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
         {isOtherTyping && providerName && <TypingIndicator name={providerName} />}
       </div>
 
+      {/* Hidden file inputs */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: 'none' }}
+        onChange={handleCameraCapture}
+      />
+      <input
+        ref={attachInputRef}
+        type="file"
+        accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleAttachmentSelect}
+      />
+
       {/* Compose */}
       <div
         style={{
@@ -431,6 +597,38 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
           pointerEvents: chatRoomId ? 'auto' : 'none',
         }}
       >
+        {/* Staged files preview */}
+        {stagedFiles.length > 0 && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {stagedFiles.map(sf => (
+              <div key={sf.localId} style={{ position: 'relative', flexShrink: 0 }}>
+                {sf.objectUrl ? (
+                  <img
+                    src={sf.objectUrl}
+                    alt={sf.file.name}
+                    style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)', display: 'block' }}
+                  />
+                ) : (
+                  <div style={{ width: 56, height: 56, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--slate-100)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                    <span style={{ fontSize: 18, lineHeight: 1 }}>{fileIcon(sf.file.name)}</span>
+                    <span style={{ fontSize: 9, color: 'var(--text-muted)', textAlign: 'center', padding: '0 4px', wordBreak: 'break-all', lineHeight: 1.2 }}>
+                      {sf.file.name.length > 10 ? sf.file.name.slice(0, 8) + '…' : sf.file.name}
+                    </span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => removeStagedFile(sf.localId)}
+                  style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: '50%', background: 'var(--navy-900)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 11, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                  aria-label="Remove attachment"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
           <textarea
             placeholder={
@@ -459,14 +657,42 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
               outline: 'none',
             }}
           />
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={handleSend}
-            disabled={!canSend}
-            style={{ flexShrink: 0 }}
-          >
-            Send
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button
+                className="icon-btn"
+                type="button"
+                title="Attach file"
+                aria-label="Attach file"
+                disabled={stagedFiles.length >= MAX_ATTACHMENTS || isUploading}
+                onClick={() => attachInputRef.current?.click()}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66L9.41 17.41a2 2 0 01-2.83-2.83l8.49-8.49" />
+                </svg>
+              </button>
+              <button
+                className="icon-btn"
+                type="button"
+                title="Take photo"
+                aria-label="Take photo"
+                disabled={stagedFiles.length >= MAX_ATTACHMENTS || isUploading}
+                onClick={() => cameraInputRef.current?.click()}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
+              </button>
+            </div>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleSend}
+              disabled={!canSend}
+            >
+              {isUploading ? 'Sending…' : 'Send'}
+            </button>
+          </div>
         </div>
         {sendError && (
           <div style={{ fontSize: 12, color: '#B91C1C', background: '#FEE2E2', padding: '5px 9px', borderRadius: 6 }}>

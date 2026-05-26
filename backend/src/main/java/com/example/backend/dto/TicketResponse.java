@@ -41,7 +41,9 @@ public class TicketResponse {
     private BigDecimal estimatedCost;
     private LocalDateTime createdAt;
     private String assignedServiceProviderName;
+    private String assignedServiceProviderProfilePictureUrl;
     private String submittedByName;
+    private String submittedByProfilePictureUrl;
     private UUID chatRoomId;
     private LocalDateTime requestedStartAt;
     private LocalDateTime requestedEndAt;

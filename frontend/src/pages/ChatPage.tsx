@@ -135,7 +135,7 @@ type Conversation = {
   ticketId: number | null;
   description: string;
   status: TicketStatus | null;
-  priority: TicketPriority;
+  priority: TicketPriority | null;
   otherName: string;
   otherProfilePictureUrl: string | null;
 };

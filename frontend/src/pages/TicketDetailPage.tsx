@@ -1006,7 +1006,7 @@ export function TicketDetailPage() {
                       location: ticket.location ?? "",
                       providerName: ticket.assignedServiceProviderName ?? "Provider",
                       customerName: ticket.submittedByName ?? "Customer",
-                      amount: ticket.estimatedCost,
+                      amount: ticket.estimatedCost!,
                     });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement("a");

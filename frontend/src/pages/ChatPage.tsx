@@ -48,7 +48,7 @@ function priorityToUrgency(priority: string | null): string {
   const map: Record<string, string> = {
     LOW: 'urgency-low', MEDIUM: 'urgency-medium', HIGH: 'urgency-high', CRITICAL: 'urgency-critical',
   };
-  return map[priority] ?? 'urgency-low';
+  return (priority ? map[priority] : undefined) ?? 'urgency-low';
 }
 
 // Format ticket id as "FIX-2418" — matches the design across the rest of the app.

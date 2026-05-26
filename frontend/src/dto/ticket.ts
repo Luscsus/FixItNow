@@ -43,7 +43,9 @@ export type TicketResponseDto = {
   estimatedCost: number | null;
   createdAt: string;
   assignedServiceProviderName: string | null;
+  assignedServiceProviderProfilePictureUrl?: string | null;
   submittedByName: string | null;
+  submittedByProfilePictureUrl?: string | null;
   chatRoomId?: string | null;
   requestedStartAt: string | null;
   requestedEndAt: string | null;

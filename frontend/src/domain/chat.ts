@@ -1,4 +1,4 @@
-export type MessageType = 'TEXT' | 'IMAGE' | 'SYSTEM';
+export type MessageType = 'TEXT' | 'IMAGE' | 'FILE' | 'SYSTEM';
 export type MessageStatus = 'SENT' | 'DELIVERED' | 'READ';
 
 export type ChatMessage = {
@@ -19,6 +19,13 @@ export type ChatRoomDetails = {
   ticketId: number;
   customerId: string;
   providerId: string;
+};
+
+export type ChatRoomSummary = {
+  id: string;
+  otherParticipantId: string;
+  otherParticipantName: string;
+  otherParticipantProfilePictureUrl: string | null;
 };
 
 export type ChatTypingEvent = {

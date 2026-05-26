@@ -4,11 +4,14 @@ import com.example.backend.domain.chat.ChatMessage;
 import com.example.backend.domain.chat.ChatRoom;
 import com.example.backend.domain.chat.MessageType;
 import com.example.backend.domain.chat.MessageStatus;
+import com.example.backend.domain.user.User;
 import com.example.backend.dto.ChatMessageRequest;
 import com.example.backend.dto.ChatMessageResponse;
 import com.example.backend.dto.ChatRoomResponse;
+import com.example.backend.dto.ChatRoomSummaryResponse;
 import com.example.backend.repository.ChatRepository;
 import com.example.backend.repository.ChatRoomRepository;
+import com.example.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
@@ -25,6 +28,7 @@ public class ChatServiceImpl implements ChatService {
 
     private final ChatRepository chatRepository;
     private final ChatRoomRepository chatRoomRepository;
+    private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     @Override
@@ -85,6 +89,23 @@ public class ChatServiceImpl implements ChatService {
     @Override
     public List<UUID> getUserChatRooms(UUID userId) {
         return chatRoomRepository.findRoomIdsForUser(userId);
+    }
+
+    @Override
+    public List<ChatRoomSummaryResponse> getUserChatRoomSummaries(UUID userId) {
+        return chatRoomRepository.findRoomsForUser(userId).stream().map(room -> {
+            UUID otherId = userId.equals(room.getCustomerId()) ? room.getProviderId() : room.getCustomerId();
+            User other = userRepository.findById(otherId).orElse(null);
+            String name = other != null ? formatUserName(other) : "Unknown";
+            String pic  = other != null ? other.getProfilePictureUrl() : null;
+            return new ChatRoomSummaryResponse(room.getId(), otherId, name, pic);
+        }).toList();
+    }
+
+    private String formatUserName(User user) {
+        String full = ((user.getFirstName() != null ? user.getFirstName() : "") + " "
+            + (user.getLastName() != null ? user.getLastName() : "")).trim();
+        return full.isBlank() ? user.getEmail() : full;
     }
 
     @Override

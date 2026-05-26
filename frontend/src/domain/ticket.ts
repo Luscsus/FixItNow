@@ -43,7 +43,9 @@ export type Ticket = {
   estimatedCost: number | null;
   createdAt: Date;
   assignedServiceProviderName?: string | null;
+  assignedServiceProviderProfilePictureUrl?: string | null;
   submittedByName?: string | null;
+  submittedByProfilePictureUrl?: string | null;
   chatRoomId?: string | null;
   requestedStartAt?: Date | null;
   requestedEndAt?: Date | null;

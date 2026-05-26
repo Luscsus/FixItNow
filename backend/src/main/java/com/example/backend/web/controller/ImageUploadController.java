@@ -32,4 +32,15 @@ public class ImageUploadController {
         String url = cloudinaryService.uploadImage(file, folder);
         return ResponseEntity.ok(new ImageUploadResponse(url));
     }
+
+    @PostMapping(value = "/upload-file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Upload a chat attachment (JPEG, PNG, PDF, DOC, DOCX, max 10 MB). Returns the Cloudinary secure URL.")
+    public ResponseEntity<ImageUploadResponse> uploadFile(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "folder", defaultValue = "chat") String folder
+    ) {
+        String url = cloudinaryService.uploadFile(file, folder);
+        return ResponseEntity.ok(new ImageUploadResponse(url));
+    }
 }

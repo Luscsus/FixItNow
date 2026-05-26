@@ -44,7 +44,7 @@ function getInitials(name: string): string {
   return name.split(' ').filter(Boolean).map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
 }
 
-function priorityToUrgency(priority: string): string {
+function priorityToUrgency(priority: string | null): string {
   const map: Record<string, string> = {
     LOW: 'urgency-low', MEDIUM: 'urgency-medium', HIGH: 'urgency-high', CRITICAL: 'urgency-critical',
   };
@@ -75,7 +75,8 @@ function statusToPhase(status: TicketStatus | null): Phase {
 }
 
 // Friendly version of the priority enum for display.
-function priorityLabel(p: TicketPriority): string {
+function priorityLabel(p: TicketPriority | null): string {
+  if (!p) return "";
   return p.charAt(0) + p.slice(1).toLowerCase();
 }
 

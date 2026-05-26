@@ -85,21 +85,27 @@ function statusPill(status: TicketStatus): { label: string; pillClass: string } 
   }
 }
 
-function headlineText(ticket: Ticket): { main: string; highlight: string | null } {
+function headlineText(ticket: Ticket, isProvider: boolean): { main: string; highlight: string | null } {
   const name = ticket.assignedServiceProviderName;
   switch (ticket.status) {
     case "PENDING_APPROVAL":
-      return { main: "Waiting for a provider to accept your ticket.", highlight: null };
+      return isProvider
+        ? { main: "A new ticket is waiting for acceptance.", highlight: null }
+        : { main: "Waiting for a provider to accept your ticket.", highlight: null };
     case "APPROVED":
-      return {
-        main: name ? `${name} has accepted your ticket.` : "A provider has accepted your ticket.",
-        highlight: "Scheduling in progress.",
-      };
+      return isProvider
+        ? { main: "You have accepted this ticket.", highlight: "Scheduling in progress." }
+        : {
+            main: name ? `${name} has accepted your ticket.` : "A provider has accepted your ticket.",
+            highlight: "Scheduling in progress.",
+          };
     case "IN_TRANSIT":
-      return {
-        main: name ? `${name} is on the way.` : "Your provider is on the way.",
-        highlight: null,
-      };
+      return isProvider
+        ? { main: "You're on your way.", highlight: "The customer is waiting for you." }
+        : {
+            main: name ? `${name} is on the way.` : "Your provider is on the way.",
+            highlight: null,
+          };
     case "PENDING_PROVIDER_INVOICE":
       return { main: "Work is complete.", highlight: "Waiting for the invoice." };
     case "PENDING_PAYMENT":
@@ -592,10 +598,11 @@ export function TicketDetailPage() {
 
   const ticketIdStr = `FIX-${String(ticket.id).padStart(4, "0")}`;
   const pill = statusPill(ticket.status);
-  const headline = headlineText(ticket);
+  const isProvider = role === "PROVIDER";
+  const headline = headlineText(ticket, isProvider);
   const activityEntries = buildActivityLog(ticket);
   const isTerminal = ticket.status === "DECLINED" || ticket.status === "CANCELLED";
-  const nextStatus = role === "PROVIDER" ? NEXT_STATUS[ticket.status] : undefined;
+  const nextStatus = isProvider ? NEXT_STATUS[ticket.status] : undefined;
 
   return (
     <>

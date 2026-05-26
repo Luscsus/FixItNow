@@ -30,6 +30,7 @@ export function NotificationsCard() {
 
   useEffect(() => {
     if (provider?.notificationPreferences) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPrefs({
         inboundRequests: provider.notificationPreferences.inboundRequests ?? true,
         customerReplies: provider.notificationPreferences.customerReplies ?? true,

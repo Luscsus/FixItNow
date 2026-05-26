@@ -24,7 +24,7 @@ function fmtDate(d: Date): string {
   return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 }
 
-function CompletedJobRow({ ticket, index }: { ticket: Ticket; index: number }) {
+function CompletedJobRow({ ticket }: { ticket: Ticket }) {
   const navigate = useNavigate();
   const dateLabel = ticket.requestedStartAt
     ? fmtDate(ticket.requestedStartAt)

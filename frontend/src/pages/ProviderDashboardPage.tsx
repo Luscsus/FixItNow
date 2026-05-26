@@ -5,7 +5,7 @@ import { useCurrentProvider } from "@/hooks/useCurrentProvider";
 import { useOpenTicketsQuery } from "@/hooks/useOpenTicketsQuery";
 import { useProviderTicketsQuery } from "@/hooks/useProviderTicketsQuery";
 import { useUpdateTicketStatusMutation } from "@/hooks/useUpdateTicketStatusMutation";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const ACTIVE_STATUSES: TicketStatus[] = ["APPROVED", "IN_TRANSIT", "PENDING_PROVIDER_INVOICE", "PENDING_PAYMENT"];
 
@@ -142,7 +142,6 @@ function RequestCard({ ticket, onAccept, onDecline, acceptLabel = "Accept →", 
 
 function ActiveJobCard({ ticket }: { ticket: Ticket }) {
   const navigate = useNavigate();
-  const pc = priorityClass(ticket.priority);
 
   const statusLabel: Record<TicketStatus, string> = {
     APPROVED: "Accepted",

@@ -61,6 +61,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/providers/*/calendar").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/providers/*/reviews").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/providers/*/reviews/stats").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/providers/*").permitAll()
                 .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                 .anyRequest().authenticated()

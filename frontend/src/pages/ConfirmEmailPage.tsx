@@ -148,17 +148,17 @@ export function ConfirmEmailPage() {
               className="crumbs"
               style={{ color: "rgba(255,255,255,0.45)", marginBottom: 20 }}
             >
-              One last step
+              Optional step
             </p>
             <h1
               className="display"
               style={{ color: "#fff", fontSize: "clamp(38px,4.4vw,62px)" }}
             >
-              Confirm your
+              Get your
               <br />
-              <span style={{ color: "var(--amber-500)" }}>email</span>
+              <span style={{ color: "var(--amber-500)" }}>verified</span>
               <br />
-              address.
+              badge.
             </h1>
           </div>
 
@@ -167,24 +167,24 @@ export function ConfirmEmailPage() {
             <div className="feature-row">
               <span className="fnum">01</span>
               <span className="fbody">
-                <b>Check your inbox.</b> We sent you a confirmation link when
-                you signed up.
+                <b>Already signed in?</b> Your account is active — email
+                verification is optional.
               </span>
             </div>
             <div className="feature-divider" />
             <div className="feature-row">
               <span className="fnum">02</span>
               <span className="fbody">
-                <b>Click the link.</b> It will bring you back here and confirm
-                automatically.
+                <b>Paste your token.</b> We sent a confirmation link to your
+                email when you registered.
               </span>
             </div>
             <div className="feature-divider" />
             <div className="feature-row">
               <span className="fnum">03</span>
               <span className="fbody">
-                <b>Start using FixItNow.</b> Once confirmed, you can sign in and
-                get started.
+                <b>Earn a badge.</b> A verified checkmark appears on your
+                profile once confirmed.
               </span>
             </div>
             <div className="feature-divider" />
@@ -245,16 +245,22 @@ export function ConfirmEmailPage() {
                   <path d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h2 className="h1">Email confirmed!</h2>
+              <h2 className="h1">Email verified!</h2>
               <p className="body muted">
-                Your account is now active. Sign in to get started.
+                Your verified badge has been added to your profile.
               </p>
               <Link
-                to="/login"
+                to="/account"
                 className="btn btn-primary btn-full"
                 style={{ marginTop: 8 }}
               >
-                Go to sign in →
+                View my profile →
+              </Link>
+              <Link
+                to="/login"
+                style={{ fontSize: 13, color: "var(--navy-700)", textDecoration: "none" }}
+              >
+                Go to sign in
               </Link>
             </div>
           ) : isBusy ? (
@@ -298,10 +304,13 @@ export function ConfirmEmailPage() {
           ) : (
             <>
               <div className="col" style={{ gap: 8, marginBottom: 32 }}>
-                <p className="crumbs">Email confirmation</p>
-                <h2 className="h1">Confirm your account</h2>
+                <p className="crumbs">Email verification</p>
+                <h2 className="h1">Verify your email</h2>
                 <p className="body muted" style={{ marginTop: 4 }}>
-                  Paste the token from your inbox, or request a new link below.
+                  Paste the token from your inbox to unlock your verified badge. Already using the app?{" "}
+                  <Link to="/dashboard/user" style={{ color: "var(--navy-700)", fontWeight: 600, textDecoration: "none" }}>
+                    Skip for now →
+                  </Link>
                 </p>
               </div>
 

@@ -72,7 +72,9 @@ export function LoginPage() {
       return;
     }
 
-    setSession(result);
+    // Pass keepSignedIn — when false the session lives in sessionStorage and
+    // gets wiped when the browser/tab closes.
+    setSession(result, keepSignedIn);
     if (result.role === "PROVIDER") {
       navigate("/dashboard/provider");
     } else {

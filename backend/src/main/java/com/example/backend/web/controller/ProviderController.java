@@ -4,10 +4,8 @@ import com.example.backend.repository.ProviderRepository;
 import com.example.backend.domain.user.Provider;
 import com.example.backend.domain.user.ServiceCategory;
 import com.example.backend.exception.UserNotFoundException;
-import com.example.backend.repository.ProviderRepository;
 import com.example.backend.service.ProviderSearchService;
 import com.example.backend.web.dto.request.ProviderSearchParams;
-import com.example.backend.web.dto.response.ProviderResponse;
 import com.example.backend.web.dto.response.ProviderSearchResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,7 +13,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -56,16 +53,6 @@ public class ProviderController {
     @GetMapping("/search")
     public ResponseEntity<Page<ProviderSearchResult>> search(@Valid @ModelAttribute ProviderSearchParams params) {
         return ResponseEntity.ok(providerSearchService.search(params));
-    }
-
-    @Operation(summary = "Get a single provider's public profile by id")
-    @GetMapping("/{providerId}")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ProviderResponse> getProvider(@PathVariable UUID providerId) {
-        return providerRepository.findById(providerId)
-            .map(ProviderResponse::from)
-            .map(ResponseEntity::ok)
-            .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @Operation(

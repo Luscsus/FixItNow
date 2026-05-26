@@ -4,6 +4,8 @@ import { useTicketQuery } from "@/hooks/useTicketQuery";
 import { useAuth } from "@/context/auth";
 import { useUpdateTicketStatusMutation } from "@/hooks/useUpdateTicketStatusMutation";
 import { TicketChatPanel } from "@/components/ticket/TicketChatPanel";
+import { IssueInvoicePanel } from "@/components/ticket/IssueInvoicePanel";
+import { generateInvoicePdf } from "@/utils/generateInvoicePdf";
 import type {
   Ticket,
   TicketPriority,
@@ -78,12 +80,9 @@ const NEXT_STATUS: Partial<
   APPROVED: { status: "IN_TRANSIT", label: "Mark as In Transit →" },
   IN_TRANSIT: {
     status: "PENDING_PROVIDER_INVOICE",
-    label: "Mark as Pending Provider Invoice →",
+    label: "Mark as Work Complete →",
   },
-  PENDING_PROVIDER_INVOICE: {
-    status: "PENDING_PAYMENT",
-    label: "Mark as Pending Payment →",
-  },
+  // PENDING_PROVIDER_INVOICE is handled by IssueInvoicePanel — not a simple button
 };
 
 function stepState(
@@ -281,39 +280,83 @@ function MetaCard({ ticket }: { ticket: Ticket }) {
     {
       label: "Provider",
       value: ticket.assignedServiceProviderName ? (
-        <div className="row gap-8" style={{ marginTop: 8 }}>
-          <div
-            className="avatar"
-            style={{
-              width: 28,
-              height: 28,
-              fontSize: 11,
-              background: "var(--navy-900)",
-              color: "var(--amber-500)",
-              ...(providerPic ? { padding: 0, overflow: "hidden" } : {}),
-            }}
+        ticket.assignedServiceProviderId ? (
+          <Link
+            to={`/providers/${ticket.assignedServiceProviderId}`}
+            className="row gap-8"
+            style={{ marginTop: 8, textDecoration: "none", color: "inherit" }}
           >
-            {providerPic ? (
-              <img
-                src={providerPic}
-                alt={ticket.assignedServiceProviderName}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  display: "block",
-                }}
-              />
-            ) : (
-              initials(ticket.assignedServiceProviderName)
-            )}
+            <div
+              className="avatar"
+              style={{
+                width: 28,
+                height: 28,
+                fontSize: 11,
+                background: "var(--navy-900)",
+                color: "var(--amber-500)",
+                ...(providerPic ? { padding: 0, overflow: "hidden" } : {}),
+              }}
+            >
+              {providerPic ? (
+                <img
+                  src={providerPic}
+                  alt={ticket.assignedServiceProviderName}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    display: "block",
+                  }}
+                />
+              ) : (
+                initials(ticket.assignedServiceProviderName)
+              )}
+            </div>
+            <span
+              style={{
+                fontSize: 14,
+                fontWeight: 600,
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {ticket.assignedServiceProviderName}
+            </span>
+          </Link>
+        ) : (
+          <div className="row gap-8" style={{ marginTop: 8 }}>
+            <div
+              className="avatar"
+              style={{
+                width: 28,
+                height: 28,
+                fontSize: 11,
+                background: "var(--navy-900)",
+                color: "var(--amber-500)",
+                ...(providerPic ? { padding: 0, overflow: "hidden" } : {}),
+              }}
+            >
+              {providerPic ? (
+                <img
+                  src={providerPic}
+                  alt={ticket.assignedServiceProviderName}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    display: "block",
+                  }}
+                />
+              ) : (
+                initials(ticket.assignedServiceProviderName)
+              )}
+            </div>
+            <span
+              style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em" }}
+            >
+              {ticket.assignedServiceProviderName}
+            </span>
           </div>
-          <span
-            style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em" }}
-          >
-            {ticket.assignedServiceProviderName}
-          </span>
-        </div>
+        )
       ) : (
         <div style={{ marginTop: 8, fontSize: 14, color: "var(--text-muted)" }}>
           Unassigned
@@ -940,6 +983,43 @@ export function TicketDetailPage() {
             </span>
           </div>
           <ActivityLog entries={activityEntries} />
+
+          {/* Issue Invoice panel — provider only, when work is done */}
+          {isProvider && ticket.status === "PENDING_PROVIDER_INVOICE" && (
+            <div style={{ marginTop: 28 }}>
+              <IssueInvoicePanel ticket={ticket} />
+            </div>
+          )}
+
+          {/* Download Invoice button — visible once invoice has been issued */}
+          {(ticket.status === "PENDING_PAYMENT" || ticket.status === "COMPLETED") &&
+            ticket.estimatedCost != null && (
+              <div style={{ marginTop: 16 }}>
+                <button
+                  className="btn btn-secondary"
+                  onClick={async () => {
+                    const blob = await generateInvoicePdf({
+                      ticketCode: `FIX-${String(ticket.id).padStart(4, "0")}`,
+                      serviceType: ticket.serviceType,
+                      category: ticket.category,
+                      description: ticket.description,
+                      location: ticket.location ?? "",
+                      providerName: ticket.assignedServiceProviderName ?? "Provider",
+                      customerName: ticket.submittedByName ?? "Customer",
+                      amount: ticket.estimatedCost,
+                    });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `Invoice-FIX-${String(ticket.id).padStart(4, "0")}.pdf`;
+                    a.click();
+                    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+                  }}
+                >
+                  ↓ Download Invoice PDF
+                </button>
+              </div>
+            )}
 
           {/* Actions */}
           <div

@@ -37,7 +37,6 @@ export function NewTicketPage() {
     description?: string;
     location?: string;
     urgency?: Urgency | "";
-    note?: string;
     providerMode?: ProviderMode;
   };
   const routerState = routerLocation.state as {
@@ -64,7 +63,6 @@ export function NewTicketPage() {
   );
   const [requestedStartAt, setRequestedStartAt] = useState<string | null>(null);
   const [requestedEndAt, setRequestedEndAt] = useState<string | null>(null);
-  const [note, setNote] = useState(savedForm?.note ?? "");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [imageError, setImageError] = useState<string | null>(null);
@@ -77,12 +75,16 @@ export function NewTicketPage() {
   const { data: activeCategories = [], isLoading: loadingCategories } =
     useActiveCategoriesQuery();
 
+  const needsRequestedTime = providerMode === "SPECIFIC";
+  const hasRequestedTime = Boolean(requestedStartAt && requestedEndAt);
+
   const canSubmit = Boolean(
     title.trim() &&
     description.trim() &&
     location.trim() &&
     urgency &&
-    category,
+    category &&
+    (providerMode !== "SPECIFIC" || (selectedProvider && hasRequestedTime)),
   );
 
   function handleImageFiles(files: FileList | File[]) {
@@ -543,7 +545,6 @@ export function NewTicketPage() {
                                 description,
                                 location,
                                 urgency,
-                                note,
                                 providerMode,
                               },
                             },
@@ -556,18 +557,14 @@ export function NewTicketPage() {
 
                     {/* Schedule a time with this provider */}
                     <div className="field" style={{ marginTop: 12 }}>
-                      <label className="field-label">
-                        Request a time{" "}
-                        <span className="muted new-ticket-optional">
-                          — optional
-                        </span>
-                      </label>
+                      <label className="field-label">Request a time</label>
                       <span
                         className="field-hint"
                         style={{ display: "block", marginBottom: 10 }}
                       >
-                        Choose one of the provider's available slots. They'll
-                        confirm when they accept your ticket.
+                        Pick one of the provider's available slots and adjust
+                        the From/To to the part you want. Required — they'll
+                        confirm when accepting your ticket.
                       </span>
                       <ProviderAvailabilityPicker
                         providerId={selectedProvider.id}
@@ -590,6 +587,11 @@ export function NewTicketPage() {
                         >
                           ✕ Clear selection
                         </button>
+                      )}
+                      {submitAttempted && needsRequestedTime && !hasRequestedTime && (
+                        <span className="field-error" style={{ marginTop: 8, display: "block" }}>
+                          Please pick a time within the provider's availability.
+                        </span>
                       )}
                     </div>
                   </>
@@ -617,7 +619,6 @@ export function NewTicketPage() {
                               description,
                               location,
                               urgency,
-                              note,
                               providerMode,
                             },
                           },
@@ -656,18 +657,6 @@ export function NewTicketPage() {
                 </div>
               )}
 
-              <div className="field">
-                <label className="field-label">
-                  Note for the provider{" "}
-                  <span className="muted new-ticket-optional">— optional</span>
-                </label>
-                <textarea
-                  className="textarea"
-                  placeholder="Anything they should know before they arrive?"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                />
-              </div>
             </div>
           </section>
 
@@ -681,9 +670,6 @@ export function NewTicketPage() {
               </Link>
             </div>
             <span className="grow" />
-            <button className="btn btn-secondary" type="button">
-              Save as draft
-            </button>
             <button
               className="btn btn-primary btn-lg"
               type="button"

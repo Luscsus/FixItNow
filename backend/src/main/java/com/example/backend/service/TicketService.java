@@ -44,12 +44,14 @@ public class TicketService {
     private final ChatService chatService;
     private final CalendarService calendarService;
     private final TicketStatusHistoryRepository statusHistoryRepository;
+    private final EmailService emailService;
 
     public TicketService(TicketRepository ticketRepository, UserRepository userRepository,
                          LocationRepository locationRepository, ProviderRepository providerRepository,
                          CloudinaryService cloudinaryService,
                          ChatRoomRepository chatRoomRepository, ChatService chatService, CalendarService calendarService,
-                         TicketStatusHistoryRepository statusHistoryRepository) {
+                         TicketStatusHistoryRepository statusHistoryRepository,
+                         EmailService emailService) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
         this.locationRepository = locationRepository;
@@ -59,6 +61,7 @@ public class TicketService {
         this.calendarService = calendarService;
         this.statusHistoryRepository = statusHistoryRepository;
         this.cloudinaryService = cloudinaryService;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -84,10 +87,16 @@ public class TicketService {
             Provider provider = providerRepository.findById(assignedProviderId)
                 .orElseThrow(() -> new UserNotFoundException("Provider not found: " + assignedProviderId));
             ticket.setAssignedServiceProvider(provider);
-        }
 
-        // Carry over requested schedule window if the customer suggested one
-        if (request.getRequestedStartAt() != null && request.getRequestedEndAt() != null) {
+            // A specific provider requires a concrete time inside their availability.
+            if (request.getRequestedStartAt() == null || request.getRequestedEndAt() == null) {
+                throw new ApiException("Please choose a time within the provider's availability.");
+            }
+            calendarService.validateRequestedSlot(
+                assignedProviderId,
+                request.getRequestedStartAt(),
+                request.getRequestedEndAt(),
+                null);
             ticket.setRequestedStartAt(request.getRequestedStartAt());
             ticket.setRequestedEndAt(request.getRequestedEndAt());
         }
@@ -98,6 +107,8 @@ public class TicketService {
         if (assignedProviderId != null) {
             ensureChatRoom(saved, assignedProviderId);
             saved = ticketRepository.save(saved);
+            // Hold the requested slot immediately so other customers see it as unavailable.
+            calendarService.syncBookedBlockForTicket(saved);
             // Opening greeting so the chat isn't empty when the provider opens it
             postSystemMessage(saved, "Ticket " + formatTicketCode(saved.getId())
                 + " · " + saved.getServiceType() + " · awaiting provider response.");
@@ -245,6 +256,42 @@ public class TicketService {
     }
 
     @Transactional
+    public TicketResponse issueInvoice(Long ticketId, java.math.BigDecimal amount, byte[] pdfBytes) {
+        Ticket ticket = getTicketOrThrow(ticketId);
+        if (ticket.getStatus() != TicketStatus.PENDING_PROVIDER_INVOICE) {
+            throw new InvalidTicketStatusTransitionException(
+                "Invoice can only be issued when ticket is in PENDING_PROVIDER_INVOICE status (current: " + ticket.getStatus() + ")");
+        }
+        ticket.setEstimatedCost(amount);
+        ticket.setStatus(TicketStatus.PENDING_PAYMENT);
+        Ticket saved = ticketRepository.save(ticket);
+        recordHistory(saved, TicketStatus.PENDING_PAYMENT);
+        calendarService.syncBookedBlockForTicket(saved);
+        postSystemMessage(saved, "Invoice issued · $" + amount.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString() + " · awaiting payment.");
+
+        // Email the invoice PDF to the customer
+        try {
+            User customer = saved.getUser();
+            String providerName = saved.getAssignedServiceProvider() != null
+                ? formatProviderName(saved.getAssignedServiceProvider())
+                : "Your provider";
+            emailService.sendInvoiceEmail(
+                customer.getEmail(),
+                customer.getFirstName() != null ? customer.getFirstName() : customer.getEmail(),
+                formatTicketCode(saved.getId()),
+                saved.getServiceType(),
+                providerName,
+                amount,
+                pdfBytes
+            );
+        } catch (RuntimeException ex) {
+            System.err.println("[ticket] invoice email failed for ticket " + ticketId + ": " + ex.getMessage());
+        }
+
+        return toResponse(saved);
+    }
+
+    @Transactional
     public void deleteTicket(Long ticketId, UUID userId) {
         Ticket ticket = getTicketOrThrow(ticketId);
         if (!ticket.getUser().getId().equals(userId)) {
@@ -345,6 +392,9 @@ public class TicketService {
         String providerName = ticket.getAssignedServiceProvider() != null
             ? formatProviderName(ticket.getAssignedServiceProvider())
             : null;
+        UUID providerId = ticket.getAssignedServiceProvider() != null
+            ? ticket.getAssignedServiceProvider().getId()
+            : null;
         String providerProfilePictureUrl = ticket.getAssignedServiceProvider() != null
             ? ticket.getAssignedServiceProvider().getProfilePictureUrl()
             : null;
@@ -368,6 +418,7 @@ public class TicketService {
             submittedByName,
             ticket.getChatRoomId()
         );
+        resp.setAssignedServiceProviderId(providerId);
         resp.setAssignedServiceProviderProfilePictureUrl(providerProfilePictureUrl);
         resp.setSubmittedByProfilePictureUrl(submittedByProfilePictureUrl);
         resp.setImageUrls(ticket.getImageUrls() != null ? ticket.getImageUrls() : List.of());

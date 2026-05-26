@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/context/auth';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -261,6 +261,8 @@ function TypingIndicator({ name }: { name: string }) {
 // ─── Main component ──────────────────────────────────────────────────────────
 
 export function ChatPage() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { accessToken, role, refreshSession } = useAuth();
   const currentUserQuery = useCurrentUser();
   const currentUserId = currentUserQuery.data?.id ?? '';
@@ -271,9 +273,6 @@ export function ChatPage() {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(searchParams.get('room'));
-
-  // Single merged message state — easier to update statuses in-place
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const [text, setText] = useState('');
@@ -288,8 +287,6 @@ export function ChatPage() {
   const attachInputRef = useRef<HTMLInputElement>(null);
   // Track which incoming messages we've already marked as DELIVERED/READ to avoid spam
   const ackedRef = useRef<Set<number>>(new Set());
-  // Prevent React Query focus-refetches from overwriting real-time WS messages
-  const seededRoomRef = useRef<string | null>(null);
 
   const isProvider = role === 'PROVIDER';
 
@@ -299,13 +296,6 @@ export function ChatPage() {
     queryFn: () => (isProvider ? listProviderTickets(accessToken) : listTickets(accessToken)),
     enabled: Boolean(accessToken),
   });
-
-  // Unread = messages from the other person in the SELECTED room not yet READ.
-  // We only know this for the currently-loaded room (we don't load all rooms' messages).
-  const hasUnreadInSelectedRoom = useMemo(() => {
-    if (!selectedRoomId || !currentUserId) return false;
-    return messages.some(m => m.senderId !== currentUserId && m.status !== 'READ');
-  }, [messages, selectedRoomId, currentUserId]);
 
   // Source of truth for inbox: ALL chat rooms this user participates in.
   // This catches rooms whose ticket data isn't in our tickets query
@@ -347,44 +337,60 @@ export function ChatPage() {
     enabled: Boolean(selectedRoomId && accessToken),
   });
 
-  useEffect(() => {
-    // When switching rooms, clear immediately so the previous room's messages
-    // don't flash. When data arrives for a new room, seed once and then let
-    // real-time WS updates take over — subsequent React Query refetches (e.g.
-    // window focus) must not overwrite messages that arrived via WebSocket.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!selectedRoomId) { setMessages([]); return; }
-    if (!messagesQuery.data) { setMessages([]); return; }
-    if (seededRoomRef.current === selectedRoomId) return;
-    seededRoomRef.current = selectedRoomId;
-    setMessages([...messagesQuery.data].reverse());
-  }, [messagesQuery.data, selectedRoomId]);
+  // Derive messages from the React Query cache — single source of truth.
+  // The REST endpoint returns DESC (newest first); we reverse to ASC for display.
+  // WS handlers below write into the same cache via setQueryData, so switching
+  // rooms always shows the right messages with no race condition.
+  const messages = useMemo<ChatMessage[]>(() => {
+    if (!messagesQuery.data) return [];
+    return [...messagesQuery.data].reverse();
+  }, [messagesQuery.data]);
+
+  // Unread = messages from the other person in the SELECTED room not yet READ.
+  // Declared AFTER `messages` so the closure captures it correctly.
+  const hasUnreadInSelectedRoom = useMemo(() => {
+    if (!selectedRoomId || !currentUserId) return false;
+    return messages.some(m => m.senderId !== currentUserId && m.status !== 'READ');
+  }, [messages, selectedRoomId, currentUserId]);
 
   // Reset acked set when switching rooms
   useEffect(() => {
     ackedRef.current.clear();
   }, [selectedRoomId]);
 
-  // WebSocket handlers
+  // WebSocket handlers — write directly to the React Query cache.
+  // The incoming message's chatRoomId tells us which room's cache to update,
+  // so this works correctly even if the user switched rooms mid-flight.
   const upsertMessage = useCallback((incoming: ChatMessage) => {
-    setMessages(prev => {
-      const idx = prev.findIndex(m => m.id === incoming.id);
-      if (idx >= 0) {
-        // Already have it — merge (in case status changed)
-        const next = [...prev];
-        next[idx] = { ...next[idx], ...incoming };
-        return next;
-      }
-      // New message — append in chronological order
-      return [...prev, incoming];
-    });
-  }, []);
+    queryClient.setQueryData<ChatMessage[]>(
+      ['chatMessages', incoming.chatRoomId],
+      (old) => {
+        if (!old) return [incoming];
+        const idx = old.findIndex(m => m.id === incoming.id);
+        if (idx >= 0) {
+          const next = [...old];
+          next[idx] = { ...next[idx], ...incoming };
+          return next;
+        }
+        // REST returns DESC (newest first), so prepend
+        return [incoming, ...old];
+      },
+    );
+  }, [queryClient]);
 
   const handleStatusUpdate = useCallback((incoming: ChatMessage) => {
-    setMessages(prev => prev.map(m =>
-      m.id === incoming.id ? { ...m, status: incoming.status, deliveredAt: incoming.deliveredAt, readAt: incoming.readAt } : m,
-    ));
-  }, []);
+    queryClient.setQueryData<ChatMessage[]>(
+      ['chatMessages', incoming.chatRoomId],
+      (old) => {
+        if (!old) return old;
+        return old.map(m =>
+          m.id === incoming.id
+            ? { ...m, status: incoming.status, deliveredAt: incoming.deliveredAt, readAt: incoming.readAt }
+            : m,
+        );
+      },
+    );
+  }, [queryClient]);
 
   const handleTypingEvent = useCallback((event: { userId: string; typing: boolean }) => {
     if (event.userId === currentUserId) return;
@@ -492,7 +498,6 @@ export function ChatPage() {
 
   const selectRoom = (roomId: string) => {
     if (roomId === selectedRoomId) return;
-    seededRoomRef.current = null;
     setSelectedRoomId(roomId);
     setSearchParams({ room: roomId });
     ackedRef.current.clear();
@@ -713,8 +718,15 @@ export function ChatPage() {
                   </div>
                 </div>
                 <span style={{ flex: 1 }} />
-                <button className="btn btn-ghost btn-sm" type="button">View profile</button>
-                <button className="btn btn-secondary btn-sm" type="button">Mute</button>
+                {otherIsProvider && otherParticipantId && (
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    type="button"
+                    onClick={() => navigate(`/providers/${otherParticipantId}`)}
+                  >
+                    Go to Profile
+                  </button>
+                )}
               </div>
             );
           })()}

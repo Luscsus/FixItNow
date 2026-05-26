@@ -41,6 +41,7 @@ public class TicketResponse {
     private BigDecimal estimatedCost;
     private LocalDateTime createdAt;
     private String assignedServiceProviderName;
+    private UUID assignedServiceProviderId;
     private String assignedServiceProviderProfilePictureUrl;
     private String submittedByName;
     private String submittedByProfilePictureUrl;

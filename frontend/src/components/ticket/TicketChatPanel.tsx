@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/context/auth';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { getChatRoom, getChatMessages } from '@/services/chatService';
@@ -170,7 +171,9 @@ function TypingIndicator({ name }: { name: string }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
-  const { accessToken, refreshSession } = useAuth();
+  const queryClient = useQueryClient();
+  const { accessToken, refreshSession, role } = useAuth();
+  const isProvider = role === 'PROVIDER';
   const currentUserQuery = useCurrentUser();
   const currentUserId = currentUserQuery.data?.id ?? '';
   const currentUserName = currentUserQuery.data
@@ -180,8 +183,12 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
   const chatRoomId = ticket.chatRoomId ?? null;
   const providerName = ticket.assignedServiceProviderName;
   const providerPic = ticket.assignedServiceProviderProfilePictureUrl ?? null;
-
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // The "other" person's display name depends on who is viewing:
+  // - Provider views → other is the customer (submittedByName)
+  // - Customer views → other is the provider (assignedServiceProviderName)
+  const otherName = isProvider
+    ? (ticket.submittedByName ?? 'Customer')
+    : (providerName ?? 'Provider');
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const [text, setText] = useState('');
   const [sendError, setSendError] = useState<string | null>(null);
@@ -214,38 +221,46 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
     enabled: Boolean(chatRoomId && accessToken),
   });
 
-  // Only seed from REST on the first successful load; subsequent refetches from
-  // React Query must not overwrite real-time messages that arrived via WebSocket.
-  const seededRef = useRef(false);
-  useEffect(() => {
-    if (messagesQuery.data && !seededRef.current) {
-      seededRef.current = true;
-      setMessages([...messagesQuery.data].reverse());
-    }
+  // Derive messages from the React Query cache — single source of truth.
+  // REST returns DESC (newest first); we reverse to ASC for display.
+  // WS handlers below write into the same cache via setQueryData, eliminating
+  // any race condition between REST seeding and live WS updates.
+  const messages = useMemo<ChatMessage[]>(() => {
+    if (!messagesQuery.data) return [];
+    return [...messagesQuery.data].reverse();
   }, [messagesQuery.data]);
 
-  // WebSocket handlers
+  // WebSocket handlers — write directly to the React Query cache.
   const upsertMessage = useCallback((incoming: ChatMessage) => {
-    setMessages(prev => {
-      const idx = prev.findIndex(m => m.id === incoming.id);
-      if (idx >= 0) {
-        const next = [...prev];
-        next[idx] = { ...next[idx], ...incoming };
-        return next;
-      }
-      return [...prev, incoming];
-    });
-  }, []);
+    queryClient.setQueryData<ChatMessage[]>(
+      ['chatMessages', incoming.chatRoomId],
+      (old) => {
+        if (!old) return [incoming];
+        const idx = old.findIndex(m => m.id === incoming.id);
+        if (idx >= 0) {
+          const next = [...old];
+          next[idx] = { ...next[idx], ...incoming };
+          return next;
+        }
+        // REST returns DESC (newest first), so prepend
+        return [incoming, ...old];
+      },
+    );
+  }, [queryClient]);
 
   const handleStatusUpdate = useCallback((incoming: ChatMessage) => {
-    setMessages(prev =>
-      prev.map(m =>
-        m.id === incoming.id
-          ? { ...m, status: incoming.status, deliveredAt: incoming.deliveredAt, readAt: incoming.readAt }
-          : m,
-      ),
+    queryClient.setQueryData<ChatMessage[]>(
+      ['chatMessages', incoming.chatRoomId],
+      (old) => {
+        if (!old) return old;
+        return old.map(m =>
+          m.id === incoming.id
+            ? { ...m, status: incoming.status, deliveredAt: incoming.deliveredAt, readAt: incoming.readAt }
+            : m,
+        );
+      },
     );
-  }, []);
+  }, [queryClient]);
 
   const handleTypingEvent = useCallback(
     (event: { userId: string; typing: boolean }) => {
@@ -453,9 +468,18 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
         </div>
         <div>
           <div className="row gap-8" style={{ gap: 8 }}>
-            <b style={{ fontSize: 14, letterSpacing: '-0.01em' }}>
-              {providerName ?? 'No provider yet'}
-            </b>
+            {providerName && ticket.assignedServiceProviderId ? (
+              <Link
+                to={`/providers/${ticket.assignedServiceProviderId}`}
+                style={{ fontSize: 14, letterSpacing: '-0.01em', fontWeight: 700, textDecoration: 'none', color: 'inherit' }}
+              >
+                {providerName}
+              </Link>
+            ) : (
+              <b style={{ fontSize: 14, letterSpacing: '-0.01em' }}>
+                {providerName ?? 'No provider yet'}
+              </b>
+            )}
             {providerName && wsConnected && (
               <span style={{ width: 6, height: 6, borderRadius: 3, background: 'var(--emerald-600)' }} />
             )}
@@ -558,13 +582,13 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
                 key={msg.id}
                 msg={msg}
                 isMine={msg.senderId === currentUserId}
-                senderName={msg.senderId === currentUserId ? currentUserName : (providerName ?? 'Provider')}
+                senderName={msg.senderId === currentUserId ? currentUserName : otherName}
               />
             ))}
           </div>
         ))}
 
-        {isOtherTyping && providerName && <TypingIndicator name={providerName} />}
+        {isOtherTyping && <TypingIndicator name={otherName} />}
       </div>
 
       {/* Hidden file inputs */}

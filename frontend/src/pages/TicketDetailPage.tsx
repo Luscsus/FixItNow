@@ -1,18 +1,32 @@
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTicketQuery } from "@/hooks/useTicketQuery";
 import { useAuth } from "@/context/auth";
 import { useUpdateTicketStatusMutation } from "@/hooks/useUpdateTicketStatusMutation";
-import type { Ticket, TicketPriority, TicketStatus, StatusHistoryEntry } from "@/domain/ticket";
+import type {
+  Ticket,
+  TicketPriority,
+  TicketStatus,
+  StatusHistoryEntry,
+} from "@/domain/ticket";
 import { TicketChatPanel } from "@/components/ticket/TicketChatPanel";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function fmt(d: Date): string {
-  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  return d.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
 }
 
 function fmtDate(d: Date): string {
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 function initials(name: string): string {
@@ -41,12 +55,12 @@ function priorityLabel(priority: TicketPriority | null) {
 // ─── Phase rail ───────────────────────────────────────────────────────────────
 
 const STEPS: { label: string; status: TicketStatus }[] = [
-  { label: "Pending Approval",         status: "PENDING_APPROVAL"         },
-  { label: "Approved",                 status: "APPROVED"                 },
-  { label: "In Transit",               status: "IN_TRANSIT"               },
+  { label: "Pending Approval", status: "PENDING_APPROVAL" },
+  { label: "Approved", status: "APPROVED" },
+  { label: "In Transit", status: "IN_TRANSIT" },
   { label: "Pending Provider Invoice", status: "PENDING_PROVIDER_INVOICE" },
-  { label: "Pending Payment",          status: "PENDING_PAYMENT"          },
-  { label: "Completed",                status: "COMPLETED"                },
+  { label: "Pending Payment", status: "PENDING_PAYMENT" },
+  { label: "Completed", status: "COMPLETED" },
 ];
 
 const STATUS_ORDER: TicketStatus[] = [
@@ -58,57 +72,99 @@ const STATUS_ORDER: TicketStatus[] = [
   "COMPLETED",
 ];
 
-const NEXT_STATUS: Partial<Record<TicketStatus, { status: TicketStatus; label: string }>> = {
-  APPROVED:                 { status: "IN_TRANSIT",               label: "Mark as In Transit →"               },
-  IN_TRANSIT:               { status: "PENDING_PROVIDER_INVOICE", label: "Mark as Pending Provider Invoice →" },
-  PENDING_PROVIDER_INVOICE: { status: "PENDING_PAYMENT",          label: "Mark as Pending Payment →"          },
+const NEXT_STATUS: Partial<
+  Record<TicketStatus, { status: TicketStatus; label: string }>
+> = {
+  APPROVED: { status: "IN_TRANSIT", label: "Mark as In Transit →" },
+  IN_TRANSIT: {
+    status: "PENDING_PROVIDER_INVOICE",
+    label: "Mark as Pending Provider Invoice →",
+  },
+  PENDING_PROVIDER_INVOICE: {
+    status: "PENDING_PAYMENT",
+    label: "Mark as Pending Payment →",
+  },
 };
 
-function stepState(stepStatus: TicketStatus, ticketStatus: TicketStatus): "done" | "current" | "pending" {
-  const stepIdx   = STATUS_ORDER.indexOf(stepStatus);
+function stepState(
+  stepStatus: TicketStatus,
+  ticketStatus: TicketStatus,
+): "done" | "current" | "pending" {
+  const stepIdx = STATUS_ORDER.indexOf(stepStatus);
   const ticketIdx = STATUS_ORDER.indexOf(ticketStatus);
-  if (ticketIdx > stepIdx)   return "done";
+  if (ticketIdx > stepIdx) return "done";
   if (ticketIdx === stepIdx) return "current";
   return "pending";
 }
 
-function statusPill(status: TicketStatus): { label: string; pillClass: string } {
+function statusPill(status: TicketStatus): {
+  label: string;
+  pillClass: string;
+} {
   switch (status) {
-    case "PENDING_APPROVAL":        return { label: "Awaiting provider",  pillClass: "pill-pending"    };
-    case "APPROVED":                return { label: "Accepted",           pillClass: "pill-assigned"   };
-    case "IN_TRANSIT":              return { label: "On site",            pillClass: "pill-enroute"    };
-    case "PENDING_PROVIDER_INVOICE":return { label: "Pending invoice",    pillClass: "pill-inprogress" };
-    case "PENDING_PAYMENT":         return { label: "Pending payment",    pillClass: "pill-inprogress" };
-    case "COMPLETED":               return { label: "Completed",          pillClass: "pill-resolved"   };
-    case "DECLINED":                return { label: "Declined",           pillClass: "pill-closed"     };
-    case "CANCELLED":               return { label: "Cancelled",          pillClass: "pill-closed"     };
-    default:                        return { label: status,               pillClass: "pill-pending"    };
+    case "PENDING_APPROVAL":
+      return { label: "Awaiting provider", pillClass: "pill-pending" };
+    case "APPROVED":
+      return { label: "Accepted", pillClass: "pill-assigned" };
+    case "IN_TRANSIT":
+      return { label: "On site", pillClass: "pill-enroute" };
+    case "PENDING_PROVIDER_INVOICE":
+      return { label: "Pending invoice", pillClass: "pill-inprogress" };
+    case "PENDING_PAYMENT":
+      return { label: "Pending payment", pillClass: "pill-inprogress" };
+    case "COMPLETED":
+      return { label: "Completed", pillClass: "pill-resolved" };
+    case "DECLINED":
+      return { label: "Declined", pillClass: "pill-closed" };
+    case "CANCELLED":
+      return { label: "Cancelled", pillClass: "pill-closed" };
+    default:
+      return { label: status, pillClass: "pill-pending" };
   }
 }
 
-function headlineText(ticket: Ticket, isProvider: boolean): { main: string; highlight: string | null } {
+function headlineText(
+  ticket: Ticket,
+  isProvider: boolean,
+): { main: string; highlight: string | null } {
   const name = ticket.assignedServiceProviderName;
   switch (ticket.status) {
     case "PENDING_APPROVAL":
       return isProvider
         ? { main: "A new ticket is waiting for acceptance.", highlight: null }
-        : { main: "Waiting for a provider to accept your ticket.", highlight: null };
+        : {
+            main: "Waiting for a provider to accept your ticket.",
+            highlight: null,
+          };
     case "APPROVED":
       return isProvider
-        ? { main: "You have accepted this ticket.", highlight: "Scheduling in progress." }
+        ? {
+            main: "You have accepted this ticket.",
+            highlight: "Scheduling in progress.",
+          }
         : {
-            main: name ? `${name} has accepted your ticket.` : "A provider has accepted your ticket.",
+            main: name
+              ? `${name} has accepted your ticket.`
+              : "A provider has accepted your ticket.",
             highlight: "Scheduling in progress.",
           };
     case "IN_TRANSIT":
       return isProvider
-        ? { main: "You're on your way.", highlight: "The customer is waiting for you." }
+        ? {
+            main: "You're on your way.",
+            highlight: "The customer is waiting for you.",
+          }
         : {
-            main: name ? `${name} is on the way.` : "Your provider is on the way.",
+            main: name
+              ? `${name} is on the way.`
+              : "Your provider is on the way.",
             highlight: null,
           };
     case "PENDING_PROVIDER_INVOICE":
-      return { main: "Work is complete.", highlight: "Waiting for the invoice." };
+      return {
+        main: "Work is complete.",
+        highlight: "Waiting for the invoice.",
+      };
     case "PENDING_PAYMENT":
       return { main: "Invoice received.", highlight: "Payment pending." };
     case "COMPLETED":
@@ -131,14 +187,14 @@ type LogEntry = {
 };
 
 const STATUS_EVENT_LABEL: Record<TicketStatus, string> = {
-  PENDING_APPROVAL:         "Ticket filed and awaiting provider.",
-  APPROVED:                 "Provider accepted — ticket approved.",
-  IN_TRANSIT:               "Provider marked as in transit.",
+  PENDING_APPROVAL: "Ticket filed and awaiting provider.",
+  APPROVED: "Provider accepted — ticket approved.",
+  IN_TRANSIT: "Provider marked as in transit.",
   PENDING_PROVIDER_INVOICE: "Work completed — awaiting invoice.",
-  PENDING_PAYMENT:          "Invoice received — payment pending.",
-  COMPLETED:                "Ticket resolved and closed.",
-  DECLINED:                 "Ticket was declined.",
-  CANCELLED:                "Ticket was cancelled.",
+  PENDING_PAYMENT: "Invoice received — payment pending.",
+  COMPLETED: "Ticket resolved and closed.",
+  DECLINED: "Ticket was declined.",
+  CANCELLED: "Ticket was cancelled.",
 };
 
 function buildActivityLog(ticket: Ticket): LogEntry[] {
@@ -168,7 +224,8 @@ function buildActivityLog(ticket: Ticket): LogEntry[] {
       text: (
         <>
           <b>{ticket.submittedByName ?? "You"}</b> filed{" "}
-          <b>FIX-{String(ticket.id).padStart(4, "0")}</b> — {ticket.serviceType}.
+          <b>FIX-{String(ticket.id).padStart(4, "0")}</b> — {ticket.serviceType}
+          .
         </>
       ),
     },
@@ -187,7 +244,11 @@ function PhaseRail({ ticketStatus }: { ticketStatus: TicketStatus }) {
             <span
               key={step.status}
               className={`steprail-bar${state === "done" ? " done" : state === "current" ? " current" : ""}`}
-              style={state === "pending" ? { background: "rgba(255,255,255,0.12)" } : undefined}
+              style={
+                state === "pending"
+                  ? { background: "rgba(255,255,255,0.12)" }
+                  : undefined
+              }
             />
           );
         })}
@@ -196,9 +257,11 @@ function PhaseRail({ ticketStatus }: { ticketStatus: TicketStatus }) {
         {STEPS.map((step) => {
           const state = stepState(step.status, ticketStatus);
           const color =
-            state === "done"    ? "var(--emerald-400)" :
-            state === "current" ? "var(--amber-400)"   :
-            "rgba(255,255,255,0.4)";
+            state === "done"
+              ? "var(--emerald-400)"
+              : state === "current"
+                ? "var(--amber-400)"
+                : "rgba(255,255,255,0.4)";
           return (
             <span key={step.status} style={{ color }}>
               {step.label}
@@ -211,6 +274,9 @@ function PhaseRail({ ticketStatus }: { ticketStatus: TicketStatus }) {
 }
 
 function MetaCard({ ticket }: { ticket: Ticket }) {
+  const providerPic = ticket.assignedServiceProviderProfilePictureUrl ?? null;
+  const submitterPic = ticket.submittedByProfilePictureUrl ?? null;
+
   const cells = [
     {
       label: "Provider",
@@ -224,33 +290,96 @@ function MetaCard({ ticket }: { ticket: Ticket }) {
               fontSize: 11,
               background: "var(--navy-900)",
               color: "var(--amber-500)",
+              ...(providerPic ? { padding: 0, overflow: "hidden" } : {}),
             }}
           >
-            {initials(ticket.assignedServiceProviderName)}
+            {providerPic ? (
+              <img
+                src={providerPic}
+                alt={ticket.assignedServiceProviderName}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  display: "block",
+                }}
+              />
+            ) : (
+              initials(ticket.assignedServiceProviderName)
+            )}
           </div>
-          <span style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em" }}>
+          <span
+            style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em" }}
+          >
             {ticket.assignedServiceProviderName}
           </span>
         </div>
       ) : (
-        <div style={{ marginTop: 8, fontSize: 14, color: "var(--text-muted)" }}>Unassigned</div>
+        <div style={{ marginTop: 8, fontSize: 14, color: "var(--text-muted)" }}>
+          Unassigned
+        </div>
       ),
       mini: null,
     },
     {
       label: "Location",
-      value: <div style={{ marginTop: 6, fontSize: 15, fontWeight: 500 }}>{ticket.location || "—"}</div>,
+      value: (
+        <div style={{ marginTop: 6, fontSize: 15, fontWeight: 500 }}>
+          {ticket.location || "—"}
+        </div>
+      ),
       mini: ticket.category.replace(/_/g, " "),
     },
     {
-      label: "Submitted",
+      label: "Submitted by",
       value: (
-        <div
-          className="mono"
-          style={{ marginTop: 6, fontSize: 14, letterSpacing: "0.02em" }}
-        >
-          {fmt(ticket.createdAt)}
-        </div>
+        <>
+          {ticket.submittedByName && (
+            <div className="row gap-8" style={{ marginTop: 8 }}>
+              <div
+                className="avatar"
+                style={{
+                  width: 28,
+                  height: 28,
+                  fontSize: 11,
+                  background: "var(--navy-900)",
+                  color: "var(--amber-500)",
+                  ...(submitterPic ? { padding: 0, overflow: "hidden" } : {}),
+                }}
+              >
+                {submitterPic ? (
+                  <img
+                    src={submitterPic}
+                    alt={ticket.submittedByName}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
+                ) : (
+                  initials(ticket.submittedByName)
+                )}
+              </div>
+              <span
+                style={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                {ticket.submittedByName}
+              </span>
+            </div>
+          )}
+          <div
+            className="mono"
+            style={{ marginTop: 6, fontSize: 14, letterSpacing: "0.02em" }}
+          >
+            {fmt(ticket.createdAt)}
+          </div>
+        </>
       ),
       mini: fmtDate(ticket.createdAt),
     },
@@ -261,7 +390,9 @@ function MetaCard({ ticket }: { ticket: Ticket }) {
           className="mono"
           style={{ marginTop: 6, fontSize: 14, letterSpacing: "0.02em" }}
         >
-          {ticket.estimatedCost != null ? `$${ticket.estimatedCost.toFixed(2)}` : "—"}
+          {ticket.estimatedCost != null
+            ? `$${ticket.estimatedCost.toFixed(2)}`
+            : "—"}
         </div>
       ),
       mini: ticket.estimatedCost != null ? "estimated cost" : "not yet quoted",
@@ -303,7 +434,13 @@ function MetaCard({ ticket }: { ticket: Ticket }) {
           </div>
           {cell.value}
           {cell.mini && (
-            <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 4 }}>
+            <div
+              style={{
+                fontSize: 11.5,
+                color: "var(--text-muted)",
+                marginTop: 4,
+              }}
+            >
               {cell.mini}
             </div>
           )}
@@ -324,7 +461,8 @@ function ActivityLog({ entries }: { entries: LogEntry[] }) {
             gridTemplateColumns: "100px 1fr",
             gap: 16,
             padding: "18px 0",
-            borderBottom: i < entries.length - 1 ? "1px solid var(--border)" : "none",
+            borderBottom:
+              i < entries.length - 1 ? "1px solid var(--border)" : "none",
           }}
         >
           <div
@@ -338,12 +476,422 @@ function ActivityLog({ entries }: { entries: LogEntry[] }) {
             }}
           >
             <div>{entry.date}</div>
-            <div style={{ color: "var(--text-muted)", opacity: 0.7 }}>{entry.time}</div>
+            <div style={{ color: "var(--text-muted)", opacity: 0.7 }}>
+              {entry.time}
+            </div>
           </div>
           <div style={{ fontSize: 14.5, lineHeight: 1.55 }}>{entry.text}</div>
         </div>
       ))}
     </div>
+  );
+}
+
+function ChatPlaceholder({ ticket }: { ticket: Ticket }) {
+  const providerName = ticket.assignedServiceProviderName;
+  const providerPic = ticket.assignedServiceProviderProfilePictureUrl ?? null;
+  const providerInitials = providerName ? initials(providerName) : "?";
+
+  return (
+    <div
+      style={{
+        position: "sticky",
+        top: 90,
+        background: "var(--card)",
+        border: "1px solid var(--border)",
+        borderRadius: 16,
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        height: "calc(100vh - 110px)",
+        maxHeight: 680,
+        boxShadow: "var(--shadow-sm)",
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          padding: "16px 18px",
+          borderBottom: "1px solid var(--border)",
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+        }}
+      >
+        <div
+          className="avatar"
+          style={{
+            width: 40,
+            height: 40,
+            fontSize: 14,
+            background: providerName ? "var(--navy-900)" : "var(--slate-200)",
+            color: providerName ? "var(--amber-500)" : "var(--slate-500)",
+            ...(providerPic ? { padding: 0, overflow: "hidden" } : {}),
+          }}
+        >
+          {providerPic ? (
+            <img
+              src={providerPic}
+              alt={providerName ?? "Provider"}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                borderRadius: "50%",
+              }}
+            />
+          ) : (
+            providerInitials
+          )}
+        </div>
+        <div>
+          <div className="row gap-8" style={{ gap: 8 }}>
+            <b style={{ fontSize: 14, letterSpacing: "-0.01em" }}>
+              {providerName ?? "No provider yet"}
+            </b>
+            {providerName && (
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  background: "var(--emerald-600)",
+                }}
+              />
+            )}
+          </div>
+          <div
+            className="mono muted"
+            style={{
+              fontSize: 10.5,
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
+            }}
+          >
+            {providerName ? "Provider · Chat" : "Awaiting assignment"}
+          </div>
+        </div>
+        <span className="grow" />
+        <span
+          className="mono"
+          style={{
+            fontSize: 10.5,
+            color: "var(--text-muted)",
+            background: "var(--slate-100)",
+            padding: "3px 8px",
+            borderRadius: 6,
+            letterSpacing: "0.05em",
+            textTransform: "uppercase",
+          }}
+        >
+          Coming soon
+        </span>
+      </div>
+
+      {/* Messages */}
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: 18,
+          display: "flex",
+          flexDirection: "column",
+          gap: 14,
+        }}
+      >
+        {!providerName && (
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              textAlign: "center",
+              color: "var(--text-muted)",
+              gap: 8,
+              padding: "24px 16px",
+            }}
+          >
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                background: "var(--slate-100)",
+                display: "grid",
+                placeItems: "center",
+                fontSize: 22,
+                marginBottom: 4,
+              }}
+            >
+              💬
+            </div>
+            <div
+              style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}
+            >
+              No chat yet
+            </div>
+            <div style={{ fontSize: 13 }}>
+              Messaging will be available once a provider is assigned.
+            </div>
+          </div>
+        )}
+
+        {providerName && (
+          <>
+            <div
+              className="mono muted"
+              style={{ textAlign: "center", fontSize: 10.5, margin: "4px 0" }}
+            >
+              Chat history · placeholder
+            </div>
+            {PLACEHOLDER_MESSAGES.map((msg, i) => (
+              <div
+                key={i}
+                style={{
+                  maxWidth: "86%",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                  alignSelf: msg.mine ? "flex-end" : "flex-start",
+                  alignItems: msg.mine ? "flex-end" : "flex-start",
+                }}
+              >
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 12,
+                    borderBottomRightRadius: msg.mine ? 4 : 12,
+                    borderBottomLeftRadius: msg.mine ? 12 : 4,
+                    background: msg.mine
+                      ? "var(--navy-700)"
+                      : "var(--slate-100)",
+                    color: msg.mine ? "#fff" : "var(--text)",
+                    fontSize: 14,
+                    lineHeight: 1.45,
+                  }}
+                >
+                  {msg.text}
+                </div>
+                <div
+                  className="mono muted"
+                  style={{ fontSize: 10.5, letterSpacing: "0.04em" }}
+                >
+                  {msg.mine ? "You" : providerName} · {msg.time}
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+
+      {/* Compose — disabled placeholder */}
+      <div
+        style={{
+          borderTop: "1px solid var(--border)",
+          padding: "12px 14px",
+          display: "flex",
+          gap: 8,
+          alignItems: "center",
+          opacity: providerName ? 0.5 : 0.35,
+          pointerEvents: "none",
+        }}
+      >
+        <div
+          style={{
+            flex: 1,
+            background: "var(--slate-100)",
+            borderRadius: 10,
+            padding: "10px 14px",
+            fontSize: 14,
+            color: "var(--text-muted)",
+          }}
+        >
+          Messaging coming soon…
+        </div>
+        <button
+          className="btn btn-primary btn-sm"
+          disabled
+          style={{ opacity: 0.5 }}
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Image gallery + lightbox ─────────────────────────────────────────────────
+
+function ImageGallery({ urls }: { urls: string[] }) {
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (lightboxIdx === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxIdx(null);
+      if (e.key === "ArrowRight")
+        setLightboxIdx((i) =>
+          i !== null ? Math.min(i + 1, urls.length - 1) : null,
+        );
+      if (e.key === "ArrowLeft")
+        setLightboxIdx((i) => (i !== null ? Math.max(i - 1, 0) : null));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightboxIdx, urls.length]);
+
+  const navBtn: React.CSSProperties = {
+    position: "absolute",
+    top: "50%",
+    transform: "translateY(-50%)",
+    background: "rgba(255,255,255,0.12)",
+    border: "none",
+    color: "#fff",
+    borderRadius: 8,
+    width: 44,
+    height: 44,
+    fontSize: 20,
+    cursor: "pointer",
+    display: "grid",
+    placeItems: "center",
+    backdropFilter: "blur(4px)",
+  };
+
+  return (
+    <>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
+          gap: 10,
+        }}
+      >
+        {urls.map((url, i) => (
+          <button
+            key={i}
+            onClick={() => setLightboxIdx(i)}
+            style={{
+              border: "1px solid var(--border)",
+              padding: 0,
+              borderRadius: 10,
+              overflow: "hidden",
+              aspectRatio: "1",
+              cursor: "zoom-in",
+              background: "var(--slate-100)",
+              transition: "opacity 0.15s",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.82")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+          >
+            <img
+              src={url}
+              alt={`Photo ${i + 1}`}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                display: "block",
+              }}
+            />
+          </button>
+        ))}
+      </div>
+
+      {lightboxIdx !== null && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Image viewer"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.9)",
+            zIndex: 1000,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+          onClick={() => setLightboxIdx(null)}
+        >
+          <img
+            src={urls[lightboxIdx]}
+            alt={`Photo ${lightboxIdx + 1}`}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: "min(90vw, 1100px)",
+              maxHeight: "80vh",
+              objectFit: "contain",
+              borderRadius: 10,
+              boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
+              userSelect: "none",
+            }}
+          />
+
+          <div
+            style={{
+              marginTop: 14,
+              color: "rgba(255,255,255,0.5)",
+              fontSize: 12,
+              fontFamily: "var(--font-mono)",
+              letterSpacing: "0.08em",
+            }}
+          >
+            {lightboxIdx + 1} / {urls.length}
+          </div>
+
+          {lightboxIdx > 0 && (
+            <button
+              style={{ ...navBtn, left: 20 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIdx(lightboxIdx - 1);
+              }}
+              aria-label="Previous image"
+            >
+              ‹
+            </button>
+          )}
+          {lightboxIdx < urls.length - 1 && (
+            <button
+              style={{ ...navBtn, right: 20 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIdx(lightboxIdx + 1);
+              }}
+              aria-label="Next image"
+            >
+              ›
+            </button>
+          )}
+
+          <button
+            onClick={() => setLightboxIdx(null)}
+            aria-label="Close"
+            style={{
+              position: "absolute",
+              top: 18,
+              right: 22,
+              background: "rgba(255,255,255,0.1)",
+              border: "none",
+              color: "#fff",
+              borderRadius: 8,
+              width: 36,
+              height: 36,
+              fontSize: 18,
+              cursor: "pointer",
+              display: "grid",
+              placeItems: "center",
+              backdropFilter: "blur(4px)",
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -360,7 +908,13 @@ export function TicketDetailPage() {
 
   if (isLoading) {
     return (
-      <div style={{ padding: "80px 0", textAlign: "center", color: "var(--text-muted)" }}>
+      <div
+        style={{
+          padding: "80px 0",
+          textAlign: "center",
+          color: "var(--text-muted)",
+        }}
+      >
         Loading ticket…
       </div>
     );
@@ -368,9 +922,18 @@ export function TicketDetailPage() {
 
   if (isError || !ticket) {
     return (
-      <div style={{ padding: "80px 0", textAlign: "center", color: "var(--text-muted)" }}>
+      <div
+        style={{
+          padding: "80px 0",
+          textAlign: "center",
+          color: "var(--text-muted)",
+        }}
+      >
         Ticket not found.{" "}
-        <Link to="/dashboard/user" style={{ color: "var(--navy-700)", fontWeight: 600 }}>
+        <Link
+          to="/dashboard/user"
+          style={{ color: "var(--navy-700)", fontWeight: 600 }}
+        >
           Back to dashboard
         </Link>
       </div>
@@ -382,7 +945,8 @@ export function TicketDetailPage() {
   const isProvider = role === "PROVIDER";
   const headline = headlineText(ticket, isProvider);
   const activityEntries = buildActivityLog(ticket);
-  const isTerminal = ticket.status === "DECLINED" || ticket.status === "CANCELLED";
+  const isTerminal =
+    ticket.status === "DECLINED" || ticket.status === "CANCELLED";
   const nextStatus = isProvider ? NEXT_STATUS[ticket.status] : undefined;
 
   return (
@@ -424,7 +988,10 @@ export function TicketDetailPage() {
 
         <div className="container" style={{ position: "relative" }}>
           {/* Breadcrumb + live badge */}
-          <div className="row" style={{ marginBottom: 6, gap: 16, flexWrap: "wrap" }}>
+          <div
+            className="row"
+            style={{ marginBottom: 6, gap: 16, flexWrap: "wrap" }}
+          >
             <Link
               to="/dashboard/user"
               className="mono"
@@ -440,7 +1007,10 @@ export function TicketDetailPage() {
             >
               ← Dashboard
             </Link>
-            <span className="mono" style={{ color: "rgba(255,255,255,0.4)", fontSize: 11.5 }}>
+            <span
+              className="mono"
+              style={{ color: "rgba(255,255,255,0.4)", fontSize: 11.5 }}
+            >
               /
             </span>
             <span
@@ -498,15 +1068,20 @@ export function TicketDetailPage() {
           {/* Urgency + status pill + category */}
           <div
             className="row"
-            style={{ gap: 14, alignItems: "baseline", flexWrap: "wrap", marginTop: 4 }}
+            style={{
+              gap: 14,
+              alignItems: "baseline",
+              flexWrap: "wrap",
+              marginTop: 4,
+            }}
           >
-            <span className={priorityBadgeClass(ticket.priority)} style={{ height: 24, fontSize: 11, padding: "4px 9px" }}>
+            <span
+              className={priorityBadgeClass(ticket.priority)}
+              style={{ height: 24, fontSize: 11, padding: "4px 9px" }}
+            >
               {priorityLabel(ticket.priority)}
             </span>
-            <span
-              className={`pill ${pill.pillClass}`}
-              style={{ fontSize: 12 }}
-            >
+            <span className={`pill ${pill.pillClass}`} style={{ fontSize: 12 }}>
               <span className="dot" />
               {pill.label}
             </span>
@@ -538,7 +1113,9 @@ export function TicketDetailPage() {
           >
             {headline.main}{" "}
             {headline.highlight && (
-              <span style={{ color: "var(--amber-500)" }}>{headline.highlight}</span>
+              <span style={{ color: "var(--amber-500)" }}>
+                {headline.highlight}
+              </span>
             )}
           </h1>
 
@@ -556,7 +1133,9 @@ export function TicketDetailPage() {
                       ? "rgba(185,28,28,0.25)"
                       : "rgba(100,116,139,0.25)",
                   color:
-                    ticket.status === "DECLINED" ? "#FCA5A5" : "rgba(255,255,255,0.6)",
+                    ticket.status === "DECLINED"
+                      ? "#FCA5A5"
+                      : "rgba(255,255,255,0.6)",
                   fontSize: 13,
                   padding: "6px 14px",
                 }}
@@ -565,10 +1144,14 @@ export function TicketDetailPage() {
                   className="dot"
                   style={{
                     background:
-                      ticket.status === "DECLINED" ? "#FCA5A5" : "rgba(255,255,255,0.4)",
+                      ticket.status === "DECLINED"
+                        ? "#FCA5A5"
+                        : "rgba(255,255,255,0.4)",
                   }}
                 />
-                {ticket.status === "DECLINED" ? "Ticket declined" : "Ticket cancelled"}
+                {ticket.status === "DECLINED"
+                  ? "Ticket declined"
+                  : "Ticket cancelled"}
               </span>
             </div>
           )}
@@ -636,7 +1219,8 @@ export function TicketDetailPage() {
                       Requested start
                     </div>
                     <div className="mono" style={{ fontSize: 14 }}>
-                      {fmtDate(ticket.requestedStartAt)} · {fmt(ticket.requestedStartAt)}
+                      {fmtDate(ticket.requestedStartAt)} ·{" "}
+                      {fmt(ticket.requestedStartAt)}
                     </div>
                   </div>
                 )}
@@ -656,7 +1240,8 @@ export function TicketDetailPage() {
                       Requested end
                     </div>
                     <div className="mono" style={{ fontSize: 14 }}>
-                      {fmtDate(ticket.requestedEndAt)} · {fmt(ticket.requestedEndAt)}
+                      {fmtDate(ticket.requestedEndAt)} ·{" "}
+                      {fmt(ticket.requestedEndAt)}
                     </div>
                   </div>
                 )}
@@ -664,9 +1249,28 @@ export function TicketDetailPage() {
             )}
           </div>
 
+          {/* Photos */}
+          {ticket.imageUrls && ticket.imageUrls.length > 0 && (
+            <>
+              <div className="panel-title">
+                <span className="num">02</span>
+                <span className="label">Photos</span>
+                <span className="rule" />
+                <span className="mono muted" style={{ fontSize: 11 }}>
+                  {ticket.imageUrls.length} attached
+                </span>
+              </div>
+              <div className="card card-pad" style={{ marginBottom: 32 }}>
+                <ImageGallery urls={ticket.imageUrls} />
+              </div>
+            </>
+          )}
+
           {/* Activity log */}
           <div className="panel-title">
-            <span className="num">02</span>
+            <span className="num">
+              {ticket.imageUrls && ticket.imageUrls.length > 0 ? "03" : "02"}
+            </span>
             <span className="label">Activity</span>
             <span className="rule" />
             <span className="mono muted" style={{ fontSize: 11 }}>
@@ -676,7 +1280,10 @@ export function TicketDetailPage() {
           <ActivityLog entries={activityEntries} />
 
           {/* Actions */}
-          <div className="row" style={{ marginTop: 28, gap: 12, flexWrap: "wrap" }}>
+          <div
+            className="row"
+            style={{ marginTop: 28, gap: 12, flexWrap: "wrap" }}
+          >
             <button
               className="btn btn-secondary"
               onClick={() => navigate("/dashboard/user")}
@@ -688,7 +1295,12 @@ export function TicketDetailPage() {
               <button
                 className="btn btn-primary"
                 disabled={updateMut.isPending}
-                onClick={() => updateMut.mutate({ ticketId: ticket.id, status: nextStatus.status })}
+                onClick={() =>
+                  updateMut.mutate({
+                    ticketId: ticket.id,
+                    status: nextStatus.status,
+                  })
+                }
               >
                 {updateMut.isPending ? "Updating…" : nextStatus.label}
               </button>

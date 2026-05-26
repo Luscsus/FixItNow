@@ -2,6 +2,7 @@ package com.example.backend.web.controller;
 
 import com.example.backend.dto.ChatMessageResponse;
 import com.example.backend.dto.ChatRoomResponse;
+import com.example.backend.dto.ChatRoomSummaryResponse;
 import com.example.backend.security.UserPrincipal;
 import com.example.backend.service.ChatService;
 import jakarta.validation.constraints.Max;
@@ -32,8 +33,8 @@ public class ChatController {
 
     @GetMapping("/rooms")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<UUID>> getUserRooms(@AuthenticationPrincipal UserPrincipal userDetails) {
-        return ResponseEntity.ok(chatService.getUserChatRooms(userDetails.getUser().getId()));
+    public ResponseEntity<List<ChatRoomSummaryResponse>> getUserRooms(@AuthenticationPrincipal UserPrincipal userDetails) {
+        return ResponseEntity.ok(chatService.getUserChatRoomSummaries(userDetails.getUser().getId()));
     }
 
     @GetMapping("/{chatRoomId}")

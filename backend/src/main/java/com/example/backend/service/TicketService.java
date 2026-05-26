@@ -345,8 +345,14 @@ public class TicketService {
         String providerName = ticket.getAssignedServiceProvider() != null
             ? formatProviderName(ticket.getAssignedServiceProvider())
             : null;
+        String providerProfilePictureUrl = ticket.getAssignedServiceProvider() != null
+            ? ticket.getAssignedServiceProvider().getProfilePictureUrl()
+            : null;
         String submittedByName = ticket.getUser() != null
             ? formatProviderName(ticket.getUser())
+            : null;
+        String submittedByProfilePictureUrl = ticket.getUser() != null
+            ? ticket.getUser().getProfilePictureUrl()
             : null;
         TicketResponse resp = new TicketResponse(
             ticket.getId(),
@@ -362,6 +368,8 @@ public class TicketService {
             submittedByName,
             ticket.getChatRoomId()
         );
+        resp.setAssignedServiceProviderProfilePictureUrl(providerProfilePictureUrl);
+        resp.setSubmittedByProfilePictureUrl(submittedByProfilePictureUrl);
         resp.setImageUrls(ticket.getImageUrls() != null ? ticket.getImageUrls() : List.of());
         resp.setRequestedStartAt(ticket.getRequestedStartAt());
         resp.setRequestedEndAt(ticket.getRequestedEndAt());

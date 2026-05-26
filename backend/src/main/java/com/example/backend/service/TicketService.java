@@ -345,6 +345,9 @@ public class TicketService {
         String providerName = ticket.getAssignedServiceProvider() != null
             ? formatProviderName(ticket.getAssignedServiceProvider())
             : null;
+        UUID providerId = ticket.getAssignedServiceProvider() != null
+            ? ticket.getAssignedServiceProvider().getId()
+            : null;
         String providerProfilePictureUrl = ticket.getAssignedServiceProvider() != null
             ? ticket.getAssignedServiceProvider().getProfilePictureUrl()
             : null;
@@ -368,6 +371,7 @@ public class TicketService {
             submittedByName,
             ticket.getChatRoomId()
         );
+        resp.setAssignedServiceProviderId(providerId);
         resp.setAssignedServiceProviderProfilePictureUrl(providerProfilePictureUrl);
         resp.setSubmittedByProfilePictureUrl(submittedByProfilePictureUrl);
         resp.setImageUrls(ticket.getImageUrls() != null ? ticket.getImageUrls() : List.of());

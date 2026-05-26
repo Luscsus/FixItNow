@@ -13,6 +13,7 @@ export function mapTicket(dto: TicketResponseDto): Ticket {
     estimatedCost: dto.estimatedCost,
     createdAt: new Date(dto.createdAt),
     assignedServiceProviderName: dto.assignedServiceProviderName ?? null,
+    assignedServiceProviderId: dto.assignedServiceProviderId ?? null,
     assignedServiceProviderProfilePictureUrl: dto.assignedServiceProviderProfilePictureUrl ?? null,
     submittedByName: dto.submittedByName ?? null,
     submittedByProfilePictureUrl: dto.submittedByProfilePictureUrl ?? null,

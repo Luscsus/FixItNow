@@ -43,6 +43,7 @@ export type TicketResponseDto = {
   estimatedCost: number | null;
   createdAt: string;
   assignedServiceProviderName: string | null;
+  assignedServiceProviderId?: string | null;
   assignedServiceProviderProfilePictureUrl?: string | null;
   submittedByName: string | null;
   submittedByProfilePictureUrl?: string | null;

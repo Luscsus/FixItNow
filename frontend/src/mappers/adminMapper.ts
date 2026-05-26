@@ -8,8 +8,14 @@ export function mapProvider(dto: ProviderResponseDto): Provider {
     firstName: dto.firstName,
     lastName: dto.lastName,
     phoneNumber: dto.phoneNumber,
+    profilePictureUrl: dto.profilePictureUrl ?? null,
     status: dto.status as ProviderStatus,
     emailVerified: dto.emailVerified,
+    locationStreetName: dto.locationStreetName,
+    locationStreetNumber: dto.locationStreetNumber,
+    locationCity: dto.locationCity,
+    locationPostalCode: dto.locationPostalCode,
+    locationCountry: dto.locationCountry,
     locationLat: dto.locationLat,
     locationLon: dto.locationLon,
     pricePerHour: dto.pricePerHour,
@@ -20,6 +26,7 @@ export function mapProvider(dto: ProviderResponseDto): Provider {
     rejectionReason: dto.rejectionReason,
     approvedAt: dto.approvedAt ? new Date(dto.approvedAt) : null,
     createdAt: new Date(dto.createdAt),
+    notificationPreferences: dto.notificationPreferences ?? {},
   };
 }
 

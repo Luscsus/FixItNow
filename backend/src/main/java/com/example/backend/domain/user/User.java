@@ -4,11 +4,15 @@ import com.example.backend.domain.location.Location;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Entity
@@ -62,9 +66,17 @@ public class User {
     @Column(length = 100)
     private String twoFactorSecret;
 
+    @Column(name = "profile_picture_url", length = 1024)
+    private String profilePictureUrl;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "location_id")
     private Location location;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "notification_preferences", nullable = false, columnDefinition = "jsonb")
+    @Builder.Default
+    private Map<String, Boolean> notificationPreferences = new HashMap<>();
 
     @CreatedDate
     @Column(nullable = false, updatable = false)

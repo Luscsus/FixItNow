@@ -40,6 +40,7 @@ export function TwoFactorVerifyCard({
   const { notify } = useToast();
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTempToken(initialTempToken);
   }, [initialTempToken]);
 

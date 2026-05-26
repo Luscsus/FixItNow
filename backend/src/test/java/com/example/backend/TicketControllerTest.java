@@ -3,6 +3,7 @@ package com.example.backend;
 import com.example.backend.web.controller.TicketController;
 import com.example.backend.domain.ticket.TicketPriority;
 import com.example.backend.domain.ticket.TicketStatus;
+import com.example.backend.domain.user.ServiceCategory;
 import com.example.backend.domain.user.User;
 import com.example.backend.dto.CreateTicketRequest;
 import com.example.backend.dto.TicketResponse;
@@ -76,6 +77,7 @@ class TicketControllerTest {
 
         CreateTicketRequest request = new CreateTicketRequest();
         request.setServiceType("pušča pipa");
+        request.setCategory(ServiceCategory.PLUMBING);
         request.setDescription("Pipa pušča v kuhinji");
         request.setLocation("Ljubljana");
         request.setLatitude(46.0569);
@@ -85,12 +87,14 @@ class TicketControllerTest {
         TicketResponse response = new TicketResponse(
             1L,
             request.getServiceType(),
+            ServiceCategory.PLUMBING,
             request.getDescription(),
             request.getLocation(),
             TicketStatus.PENDING_APPROVAL,
             TicketPriority.CRITICAL,
             new BigDecimal("49.99"),
             LocalDateTime.now(),
+            null,
             null,
             null
         );
@@ -116,6 +120,7 @@ class TicketControllerTest {
         TicketResponse response = new TicketResponse(
             2L,
             "elektrika",
+            ServiceCategory.ELECTRICAL,
             "Stikalo ne deluje",
             "Maribor",
             TicketStatus.IN_TRANSIT,
@@ -123,6 +128,7 @@ class TicketControllerTest {
             null,
             LocalDateTime.now(),
             "Elektro Servis",
+            null,
             null
         );
         when(ticketService.getUserTickets(any())).thenReturn(List.of(response));
@@ -140,12 +146,14 @@ class TicketControllerTest {
         TicketResponse response = new TicketResponse(
             3L,
             "vodovod",
+            ServiceCategory.PLUMBING,
             "Nujno popravilo",
             "Celje",
             TicketStatus.PENDING_APPROVAL,
             TicketPriority.HIGH,
             null,
             LocalDateTime.now(),
+            null,
             null,
             null
         );
@@ -164,12 +172,14 @@ class TicketControllerTest {
         TicketResponse response = new TicketResponse(
             4L,
             "ključavnica",
+            ServiceCategory.LOCKSMITH,
             "Zamenjava ključavnice",
             "Kranj",
             TicketStatus.IN_TRANSIT,
             TicketPriority.MEDIUM,
             null,
             LocalDateTime.now(),
+            null,
             null,
             null
         );
@@ -188,12 +198,14 @@ class TicketControllerTest {
         TicketResponse response = new TicketResponse(
             5L,
             "streha",
+            ServiceCategory.ROOFING,
             "Zamenjava strešne kritine",
             "Novo mesto",
             TicketStatus.PENDING_APPROVAL,
             TicketPriority.HIGH,
             null,
             LocalDateTime.now(),
+            null,
             null,
             null
         );

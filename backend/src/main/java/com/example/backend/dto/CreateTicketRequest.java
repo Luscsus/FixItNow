@@ -1,10 +1,15 @@
 package com.example.backend.dto;
 
 import com.example.backend.domain.ticket.TicketPriority;
+import com.example.backend.domain.user.ServiceCategory;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Getter
@@ -13,6 +18,9 @@ public class CreateTicketRequest {
 
     @NotBlank
     private String serviceType;
+
+    @NotNull
+    private ServiceCategory category;
 
     @NotBlank
     private String description;
@@ -28,18 +36,14 @@ public class CreateTicketRequest {
 
     private UUID assignedProviderId;
 
-    public CreateTicketRequest() {
-    }
+    private LocalDateTime requestedStartAt;
 
-    public CreateTicketRequest(String serviceType, String description, String location, Double latitude,
-                               Double longitude, TicketPriority priority, UUID assignedProviderId) {
-        this.serviceType = serviceType;
-        this.description = description;
-        this.location = location;
-        this.latitude = latitude;
-        this.longitude = longitude;
-        this.priority = priority;
-        this.assignedProviderId = assignedProviderId;
+    private LocalDateTime requestedEndAt;
+
+    @Size(max = 10, message = "A ticket may have at most 10 images")
+    private List<String> imageUrls;
+
+    public CreateTicketRequest() {
     }
 }
 

@@ -32,60 +32,56 @@ export async function requestJson<T>(
     headers.set('Content-Type', 'application/json')
   }
 
-  try {
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    })
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  })
 
-    if (!response.ok) {
-      // Handle 403 Forbidden - try to refresh token
-      if (response.status === 403 && authRefreshHandler && !path.includes('/auth/')) {
-        // Prevent multiple simultaneous refresh attempts
-        if (!isRefreshing) {
-          isRefreshing = true
-          refreshPromise = authRefreshHandler().finally(() => {
-            isRefreshing = false
-            refreshPromise = null
-          })
-        }
-
-        if (refreshPromise) {
-          try {
-            const newToken = await refreshPromise
-            // Retry the original request after token refresh with the new token
-            const retryHeaders = new Headers(options.headers)
-
-            // Update the Authorization header with the new token if available
-            if (newToken) {
-              retryHeaders.set('Authorization', `Bearer ${newToken}`)
-            }
-
-            const retryResponse = await fetch(url, {
-              ...options,
-              headers: retryHeaders,
-            })
-
-            if (!retryResponse.ok) {
-              const body = await retryResponse.text()
-              throw new ApiError(retryResponse.status, body)
-            }
-
-            return retryResponse.json() as Promise<T>
-          } catch (error) {
-            // If refresh fails, throw the original error
-            const body = await response.text()
-            throw new ApiError(response.status, body)
-          }
-        }
+  if (!response.ok) {
+    // Handle 403 Forbidden - try to refresh token
+    if (response.status === 403 && authRefreshHandler && !path.includes('/auth/')) {
+      // Prevent multiple simultaneous refresh attempts
+      if (!isRefreshing) {
+        isRefreshing = true
+        refreshPromise = authRefreshHandler().finally(() => {
+          isRefreshing = false
+          refreshPromise = null
+        })
       }
 
-      const body = await response.text()
-      throw new ApiError(response.status, body)
+      if (refreshPromise) {
+        try {
+          const newToken = await refreshPromise
+          // Retry the original request after token refresh with the new token
+          const retryHeaders = new Headers(options.headers)
+
+          // Update the Authorization header with the new token if available
+          if (newToken) {
+            retryHeaders.set('Authorization', `Bearer ${newToken}`)
+          }
+
+          const retryResponse = await fetch(url, {
+            ...options,
+            headers: retryHeaders,
+          })
+
+          if (!retryResponse.ok) {
+            const body = await retryResponse.text()
+            throw new ApiError(retryResponse.status, body)
+          }
+
+          return retryResponse.json() as Promise<T>
+        } catch {
+          // If refresh fails, throw the original error
+          const body = await response.text()
+          throw new ApiError(response.status, body)
+        }
+      }
     }
 
-    return response.json() as Promise<T>
-  } catch (error) {
-    throw error
+    const body = await response.text()
+    throw new ApiError(response.status, body)
   }
+
+  return response.json() as Promise<T>
 }

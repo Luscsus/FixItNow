@@ -19,7 +19,7 @@ type ConfirmEmailCardProps = {
 };
 
 export function ConfirmEmailCard({ initialToken }: ConfirmEmailCardProps) {
-  const [token, setToken] = useState("");
+  const [token, setToken] = useState(initialToken ?? "");
   const [email, setEmail] = useState("");
   const [errors, setErrors] = useState<Partial<Record<"token" | "email", string>>>({});
   const [globalError, setGlobalError] = useState("");
@@ -52,17 +52,13 @@ export function ConfirmEmailCard({ initialToken }: ConfirmEmailCardProps) {
   };
 
   useEffect(() => {
-    if (!initialToken) return;
-    if (!token.trim()) setToken(initialToken);
-  }, [initialToken, token]);
-
-  useEffect(() => {
     const trimmed = token.trim();
     if (!initialToken || !trimmed) return;
     if (trimmed !== initialToken.trim()) return;
     if (autoConfirmedToken.current === trimmed) return;
     autoConfirmedToken.current = trimmed;
     void confirmWithToken(trimmed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialToken, token]);
 
   const handleResend = async () => {

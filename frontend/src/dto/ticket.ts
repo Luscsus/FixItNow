@@ -10,23 +10,62 @@ export type TicketStatusDto =
   | "COMPLETED"
   | "CANCELLED";
 
+export type ServiceCategoryDto =
+  | "PLUMBING"
+  | "ELECTRICAL"
+  | "CARPENTRY"
+  | "PAINTING"
+  | "CLEANING"
+  | "GARDENING"
+  | "MOVING"
+  | "APPLIANCE_REPAIR"
+  | "HVAC"
+  | "ROOFING"
+  | "LOCKSMITH"
+  | "PEST_CONTROL"
+  | "TUTORING"
+  | "IT_SUPPORT"
+  | "OTHER";
+
+export type StatusHistoryEntryDto = {
+  status: TicketStatusDto;
+  changedAt: string;
+};
+
 export type TicketResponseDto = {
   id: number;
   serviceType: string;
+  category: ServiceCategoryDto;
   description: string;
   location: string;
   status: TicketStatusDto;
-  priority: TicketPriorityDto;
+  priority: TicketPriorityDto | null;
   estimatedCost: number | null;
   createdAt: string;
   assignedServiceProviderName: string | null;
+  assignedServiceProviderProfilePictureUrl?: string | null;
   submittedByName: string | null;
+  submittedByProfilePictureUrl?: string | null;
+  chatRoomId?: string | null;
+  requestedStartAt: string | null;
+  requestedEndAt: string | null;
+  statusHistory?: StatusHistoryEntryDto[] | null;
+  imageUrls?: string[];
+};
+
+export type OpenTicketSummaryDto = {
+  serviceType: string;
+  category: ServiceCategoryDto;
 };
 
 export type CreateTicketRequestDto = {
   serviceType: string;
+  category: ServiceCategoryDto;
   description: string;
   location: string;
   priority: TicketPriorityDto;
   assignedProviderId?: string | null;
+  requestedStartAt?: string | null;
+  requestedEndAt?: string | null;
+  imageUrls?: string[];
 };

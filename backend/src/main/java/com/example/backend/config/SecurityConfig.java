@@ -44,10 +44,13 @@ public class SecurityConfig {
         "/api/v1/auth/logout",
         "/api/v1/auth/2fa/verify",
         "/api/v1/providers/search",
+        "/api/v1/providers/categories",
+        "/api/tickets/public/open",
         "/actuator/health",
         "/swagger-ui/**",
         "/swagger-ui.html",
-        "/v3/api-docs/**"
+        "/v3/api-docs/**",
+        "/ws/**"
     };
 
     @Bean
@@ -57,6 +60,8 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/providers/*/calendar").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/providers/*").permitAll()
                 .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                 .anyRequest().authenticated()
             )

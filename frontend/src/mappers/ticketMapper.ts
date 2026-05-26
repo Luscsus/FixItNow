@@ -1,10 +1,11 @@
 import type { TicketResponseDto } from "@/dto/ticket";
-import type { Ticket } from "@/domain/ticket";
+import type { Ticket, StatusHistoryEntry } from "@/domain/ticket";
 
 export function mapTicket(dto: TicketResponseDto): Ticket {
   return {
     id: dto.id,
     serviceType: dto.serviceType,
+    category: dto.category,
     description: dto.description,
     location: dto.location,
     status: dto.status,
@@ -12,7 +13,19 @@ export function mapTicket(dto: TicketResponseDto): Ticket {
     estimatedCost: dto.estimatedCost,
     createdAt: new Date(dto.createdAt),
     assignedServiceProviderName: dto.assignedServiceProviderName ?? null,
+    assignedServiceProviderProfilePictureUrl: dto.assignedServiceProviderProfilePictureUrl ?? null,
     submittedByName: dto.submittedByName ?? null,
+    submittedByProfilePictureUrl: dto.submittedByProfilePictureUrl ?? null,
+    chatRoomId: dto.chatRoomId ?? null,
+    requestedStartAt: dto.requestedStartAt ? new Date(dto.requestedStartAt) : null,
+    requestedEndAt: dto.requestedEndAt ? new Date(dto.requestedEndAt) : null,
+    statusHistory: dto.statusHistory
+      ? dto.statusHistory.map((h): StatusHistoryEntry => ({
+          status: h.status,
+          changedAt: new Date(h.changedAt),
+        }))
+      : null,
+    imageUrls: dto.imageUrls ?? [],
   };
 }
 

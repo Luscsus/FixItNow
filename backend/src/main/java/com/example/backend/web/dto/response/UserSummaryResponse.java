@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Data
@@ -20,7 +22,9 @@ public class UserSummaryResponse {
     private UserRole role;
     private UserStatus status;
     private boolean emailVerified;
+    private String profilePictureUrl;
     private LocalDateTime createdAt;
+    private Map<String, Boolean> notificationPreferences;
 
     public static UserSummaryResponse from(User u) {
         return UserSummaryResponse.builder()
@@ -31,7 +35,9 @@ public class UserSummaryResponse {
             .role(u.getRole())
             .status(u.getStatus())
             .emailVerified(u.isEmailVerified())
+            .profilePictureUrl(u.getProfilePictureUrl())
             .createdAt(u.getCreatedAt())
+            .notificationPreferences(u.getNotificationPreferences() != null ? u.getNotificationPreferences() : new HashMap<>())
             .build();
     }
 }

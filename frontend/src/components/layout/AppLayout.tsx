@@ -1,18 +1,26 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "@/context/auth";
+import type { UserRole } from "@/domain/auth";
 
-const NAV_LINKS = [
-  { label: "How it works",    href: "/#how"  },
-  { label: "Find a provider", href: "/browse" },
-  { label: "Pricing",         href: "#"       },
-  { label: "For providers",   href: "#"       },
-] as const;
+function dashboardHref(role: UserRole | null, isAuthenticated: boolean): string {
+  if (!isAuthenticated) return "/login";
+  if (role === "PROVIDER") return "/dashboard/provider";
+  if (role === "ADMIN") return "/dashboard/admin";
+  return "/dashboard/user";
+}
 
 export function AppLayout() {
-  const { isAuthenticated, clearSession } = useAuth();
+  const { isAuthenticated, clearSession, role } = useAuth();
+
+  const NAV_LINKS = [
+    { label: "How it works",    href: "/#how"  },
+    { label: "Find a provider", href: "/browse" },
+    { label: "Pricing",         href: "#"       },
+    { label: "Dashboard",       href: dashboardHref(role, isAuthenticated) },
+  ];
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-canvas)", color: "var(--text)" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-canvas)", color: "var(--text)" }}>
       {/* Marketing top bar */}
       <header style={{
         position: "sticky", top: 0, zIndex: 30,
@@ -73,6 +81,12 @@ export function AppLayout() {
           )}
           {isAuthenticated && (
             <>
+              <NavLink
+                to="/chat"
+                style={{ padding: "8px 12px", borderRadius: 8, fontSize: 13.5, fontWeight: 500, color: "var(--text-muted)", textDecoration: "none" }}
+              >
+                Inbox
+              </NavLink>
               <NavLink
                 to="/profile"
                 style={{ padding: "8px 12px", borderRadius: 8, fontSize: 13.5, fontWeight: 500, color: "var(--text-muted)", textDecoration: "none" }}

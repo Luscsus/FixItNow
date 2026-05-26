@@ -19,12 +19,6 @@ import java.util.Set;
 @SuperBuilder
 public class Provider extends User {
 
-    @Column(name = "location_lat", precision = 10, scale = 7)
-    private BigDecimal locationLat;
-
-    @Column(name = "location_lon", precision = 10, scale = 7)
-    private BigDecimal locationLon;
-
     @Column(name = "price_per_hour", precision = 10, scale = 2)
     private BigDecimal pricePerHour;
 

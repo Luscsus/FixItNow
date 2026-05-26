@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useMemo,
   useState,
@@ -37,6 +38,12 @@ type AuthContextValue = {
   setSession: (session: AuthSession) => void;
   setTempToken: (tempToken: string) => void;
   clearSession: () => void;
+  /**
+   * Exchange the stored refresh token for a fresh access token. Returns the new
+   * access token on success, or null if no refresh token is stored or the refresh
+   * call fails. Updates the context state as a side-effect.
+   */
+  refreshSession: () => Promise<string | null>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -76,51 +83,40 @@ function persistSession(state: AuthState) {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>(() => readStoredSession());
 
-  // Set up token refresh handler when component mounts
-  useEffect(() => {
-    const handleTokenRefresh = async (): Promise<string | null> => {
-      if (!state.refreshToken) {
-        // Clear session if no refresh token available
-        const nextState: AuthState = {
-          accessToken: "",
-          refreshToken: "",
-          tempToken: "",
-          role: null,
-        };
-        setState(nextState);
-        persistSession(nextState);
-        return null;
-      }
-
-      try {
-        const newSession = await refreshTokenApi({ refreshToken: state.refreshToken });
-        const nextState: AuthState = {
-          accessToken: newSession.accessToken,
-          refreshToken: newSession.refreshToken,
-          tempToken: "",
-          role: newSession.role as UserRole,
-        };
-        setState(nextState);
-        persistSession(nextState);
-        return newSession.accessToken;
-      } catch (error) {
-        // If refresh fails, clear the session
-        console.error("Token refresh failed:", error);
-        const nextState: AuthState = {
-          accessToken: "",
-          refreshToken: "",
-          tempToken: "",
-          role: null,
-        };
-        setState(nextState);
-        persistSession(nextState);
-        return null;
-      }
-    };
-
-    // Set up refresh handler that returns the new token
-    setAuthRefreshHandler(handleTokenRefresh);
+  // Shared refresh implementation, used both by the httpClient interceptor (on 403)
+  // and exposed via the context for callers that need a fresh token on demand
+  // (e.g. the WebSocket hook before opening a connection).
+  const refreshSession = useCallback(async (): Promise<string | null> => {
+    if (!state.refreshToken) {
+      const nextState: AuthState = { accessToken: "", refreshToken: "", tempToken: "", role: null };
+      setState(nextState);
+      persistSession(nextState);
+      return null;
+    }
+    try {
+      const newSession = await refreshTokenApi({ refreshToken: state.refreshToken });
+      const nextState: AuthState = {
+        accessToken: newSession.accessToken,
+        refreshToken: newSession.refreshToken,
+        tempToken: "",
+        role: newSession.role as UserRole,
+      };
+      setState(nextState);
+      persistSession(nextState);
+      return newSession.accessToken;
+    } catch (error) {
+      console.error("Token refresh failed:", error);
+      const nextState: AuthState = { accessToken: "", refreshToken: "", tempToken: "", role: null };
+      setState(nextState);
+      persistSession(nextState);
+      return null;
+    }
   }, [state.refreshToken]);
+
+  // Register the same function with the httpClient for 403-retry behaviour
+  useEffect(() => {
+    setAuthRefreshHandler(refreshSession);
+  }, [refreshSession]);
 
   const value = useMemo<AuthContextValue>(() => {
     const setSession = (session: AuthSession) => {
@@ -164,12 +160,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession,
       setTempToken,
       clearSession,
+      refreshSession,
     };
-  }, [state]);
+  }, [state, refreshSession]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {

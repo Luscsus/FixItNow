@@ -3,6 +3,7 @@ import type { ProviderDto } from "@/services/providerService";
 import { CATEGORY_LABEL, avatarColor, initials } from "@/components/browse/browseConstants";
 import { SaveProviderButton } from "@/components/browse/SaveProviderButton";
 import { WeekSchedule } from "@/components/provider-account/WeekSchedule";
+import { ReviewsSection } from "@/components/reviews/ReviewsSection";
 
 interface VisitorProfileProps {
   provider: ProviderDto | undefined;
@@ -154,6 +155,13 @@ export function VisitorProfile({ provider }: Readonly<VisitorProfileProps>) {
           </div>
 
           <WeekSchedule providerId={provider.id} editable={false} />
+
+          <div style={{ marginTop: 32 }}>
+            <ReviewsSection
+              providerId={provider.id}
+              sectionNumber={provider.bio ? "03" : "02"}
+            />
+          </div>
         </div>
 
         <aside>

@@ -154,14 +154,32 @@ export function RegisterUserPage() {
                   <path d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h2 className="h1">Account created!</h2>
-              <p className="body muted">Check your email to confirm your address, then sign in.</p>
+              <h2 className="h1">You're in!</h2>
+              <p className="body muted" style={{ maxWidth: 300 }}>
+                Your account is ready. Sign in to get started.
+              </p>
               <Link to="/login" className="btn btn-primary btn-full" style={{ marginTop: 8 }}>
-                Go to sign in →
+                Sign in now →
               </Link>
-              <Link to="/confirm-email" style={{ fontSize: 13, color: "var(--navy-700)", textDecoration: "none" }}>
-                I have a confirmation token
-              </Link>
+              <div style={{
+                marginTop: 4,
+                padding: "10px 14px",
+                borderRadius: 10,
+                background: "var(--amber-50, #fffbeb)",
+                border: "1px solid var(--amber-200, #fde68a)",
+                fontSize: 12.5,
+                color: "var(--amber-800, #92400e)",
+                lineHeight: 1.5,
+                maxWidth: 300,
+                textAlign: "left",
+              }}>
+                <strong>Optional:</strong> a verification email was sent to <strong>{form.email}</strong>.
+                Confirm it anytime to get a{" "}
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ verticalAlign: "middle" }}>
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {" "}verified badge on your profile.
+              </div>
             </div>
           ) : (
             <>

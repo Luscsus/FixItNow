@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAllProvidersQuery } from "@/hooks/useAllProvidersQuery";
 import { usePublicOpenTicketsQuery } from "@/hooks/usePublicOpenTicketsQuery";
@@ -97,14 +97,13 @@ export function UserLanding() {
       .slice(0, 10),
   [activeCategories, categoryCountMap]);
 
-  useEffect(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-        () => {},
-      );
-    }
-  }, []);
+  const requestLocation = () => {
+    if (!("geolocation" in navigator)) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+      () => {},
+    );
+  };
 
   const toggleCategory = (key: string) => {
     setSmartMatchActive(false);
@@ -276,7 +275,24 @@ export function UserLanding() {
                         {coords ? (
                           <b>GPS location</b>
                         ) : (
-                          <span style={{ color: "var(--text-muted)" }}>No location</span>
+                          <button
+                            type="button"
+                            onClick={requestLocation}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              padding: 0,
+                              font: "inherit",
+                              fontSize: "inherit",
+                              color: "var(--navy-600, #1e40af)",
+                              cursor: "pointer",
+                              textDecoration: "underline",
+                              textDecorationStyle: "dotted",
+                              textUnderlineOffset: 2,
+                            }}
+                          >
+                            Use my location
+                          </button>
                         )}
                       </span>
 

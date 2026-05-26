@@ -5,9 +5,65 @@ interface UserHeroProps {
   initials: string;
   email: string | undefined;
   profilePictureUrl?: string | null;
+  emailVerified?: boolean;
 }
 
-export function UserHero({ fullName, initials, email, profilePictureUrl }: UserHeroProps) {
+function VerifiedBadge() {
+  return (
+    <span
+      title="Email verified"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        padding: "2px 8px",
+        borderRadius: 99,
+        background: "rgba(22,163,74,0.18)",
+        color: "#4ade80",
+        fontSize: 11.5,
+        fontWeight: 600,
+        letterSpacing: "0.02em",
+        verticalAlign: "middle",
+      }}
+    >
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" style={{ flexShrink: 0 }}>
+        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      Verified
+    </span>
+  );
+}
+
+function UnverifiedNudge() {
+  return (
+    <Link
+      to="/confirm-email"
+      title="Verify your email to get a verified badge"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        padding: "2px 8px",
+        borderRadius: 99,
+        background: "rgba(245,158,11,0.18)",
+        color: "#fcd34d",
+        fontSize: 11.5,
+        fontWeight: 600,
+        letterSpacing: "0.02em",
+        verticalAlign: "middle",
+        textDecoration: "none",
+      }}
+    >
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}>
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 8v4m0 4h.01" />
+      </svg>
+      Verify email
+    </Link>
+  );
+}
+
+export function UserHero({ fullName, initials, email, profilePictureUrl, emailVerified }: UserHeroProps) {
   return (
     <section className="acct-hero">
       <div className="acct-hero-grid" />
@@ -31,7 +87,11 @@ export function UserHero({ fullName, initials, email, profilePictureUrl }: UserH
             )}
           </div>
           <div>
-            <h1>{fullName}</h1>
+            <h1 style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              {fullName}
+              {emailVerified === true && <VerifiedBadge />}
+              {emailVerified === false && <UnverifiedNudge />}
+            </h1>
             <div className="sub">
               {email && <span className="mono">{email}</span>}
               {email && <span className="acct-dot-sep" />}

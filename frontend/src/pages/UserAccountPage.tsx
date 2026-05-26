@@ -22,10 +22,11 @@ export function UserAccountPage() {
   const fullName         = [firstName, lastName].filter(Boolean).join(" ") || "Account";
   const initials         = [firstName[0], lastName[0]].filter(Boolean).join("").toUpperCase() || userInfo.initials || "?";
   const profilePictureUrl = profile?.profilePictureUrl ?? null;
+  const emailVerified    = profile?.emailVerified;
 
   return (
     <div>
-      <UserHero fullName={fullName} initials={initials} email={email} profilePictureUrl={profilePictureUrl} />
+      <UserHero fullName={fullName} initials={initials} email={email} profilePictureUrl={profilePictureUrl} emailVerified={emailVerified} />
 
       <main className="container acct-body">
         <div>

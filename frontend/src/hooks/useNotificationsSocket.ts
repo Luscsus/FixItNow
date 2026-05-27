@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { env } from '@/config/env';
 import { isTokenExpired } from '@/lib/jwt';
 import { NOTIFICATIONS_QUERY_KEY } from '@/hooks/useNotifications';
+import type { AppNotification } from '@/domain/notification';
 
 const TOKEN_REFRESH_THRESHOLD_MS = 60_000;
 
@@ -40,8 +41,17 @@ export function useNotificationsSocket({ userId, accessToken, refreshSession }: 
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,
       onConnect: () => {
-        client.subscribe(`/topic/notifications/${userId}`, () => {
+        client.subscribe(`/topic/notifications/${userId}`, (frame) => {
           queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
+          try {
+            const n = JSON.parse(frame.body) as AppNotification;
+            if (n.type === 'TICKET_STATUS_CHANGE' && n.ticketId != null) {
+              queryClient.invalidateQueries({ queryKey: ['tickets', n.ticketId] });
+            } else if (n.type === 'NEW_MESSAGE' && n.chatRoomId != null) {
+              queryClient.invalidateQueries({ queryKey: ['chatMessages', n.chatRoomId] });
+              queryClient.invalidateQueries({ queryKey: ['chatRoomsList'] });
+            }
+          } catch { /* ignore malformed frames */ }
         });
       },
       onStompError: (frame) => {

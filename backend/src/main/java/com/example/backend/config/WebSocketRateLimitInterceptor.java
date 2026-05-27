@@ -31,7 +31,11 @@ public class WebSocketRateLimitInterceptor implements ChannelInterceptor {
             return message;
         }
         String destination = accessor.getDestination();
-        if (destination == null || !destination.startsWith("/app/chat")) {
+        // Only rate-limit actual messages. Typing indicators (/app/chat.typing) and
+        // read receipts (/app/chat.status) are high-frequency by design — counting
+        // them here trips the limit on normal typing and throws, which Spring turns
+        // into a STOMP ERROR that drops the whole connection.
+        if (!"/app/chat.send".equals(destination)) {
             return message;
         }
         UUID userId = extractUserId(accessor);

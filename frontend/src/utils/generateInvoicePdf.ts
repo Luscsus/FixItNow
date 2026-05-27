@@ -96,12 +96,13 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Blob> {
   doc.setFont('helvetica', 'bold'); doc.setFontSize(22); ink(doc, TEXT);
   doc.text(data.ticketCode, mar, y);
 
+  const dateBlockX = W - mar - 150;
   doc.setFont('helvetica', 'normal'); doc.setFontSize(10); ink(doc, SLATE);
-  doc.text('Issued',   W - mar, y - 14, { align: 'right' });
-  doc.text('Due',      W - mar, y + 4,  { align: 'right' });
+  doc.text('Issued:', dateBlockX, y - 14);
+  doc.text('Due:',    dateBlockX, y + 4);
   doc.setFont('helvetica', 'bold'); ink(doc, TEXT);
-  doc.text(date,    W - mar - 44, y - 14);
-  doc.text(dueDate, W - mar - 44, y + 4);
+  doc.text(date,    W - mar, y - 14, { align: 'right' });
+  doc.text(dueDate, W - mar, y + 4,  { align: 'right' });
 
   y += 16;
   draw(doc, BORDER); doc.setLineWidth(0.5);

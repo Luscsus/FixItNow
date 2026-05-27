@@ -27,11 +27,16 @@ export function BrowseProvidersPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const routerLocation = useLocation();
-  const routerState = routerLocation.state as { formState?: unknown } | null;
+  const routerState = routerLocation.state as { formState?: { category?: string } } | null;
   const selectionMode = routerState?.formState != null;
 
   /* ── Search state ── */
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(() => searchParams.getAll("categories"));
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(() => {
+    const fromUrl = searchParams.getAll("categories");
+    if (fromUrl.length > 0) return fromUrl;
+    const cat = routerState?.formState?.category;
+    return cat ? [cat] : [];
+  });
   const [radiusKm, setRadiusKm] = useState(() => Number(searchParams.get("radiusKm") ?? "25"));
   const [minPrice, setMinPrice] = useState(() => searchParams.get("minPrice") ?? "");
   const [maxPrice, setMaxPrice] = useState(() => searchParams.get("maxPrice") ?? "");

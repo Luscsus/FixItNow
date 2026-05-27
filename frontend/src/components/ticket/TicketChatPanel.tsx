@@ -182,13 +182,26 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
 
   const chatRoomId = ticket.chatRoomId ?? null;
   const providerName = ticket.assignedServiceProviderName;
-  const providerPic = ticket.assignedServiceProviderProfilePictureUrl ?? null;
-  // The "other" person's display name depends on who is viewing:
-  // - Provider views → other is the customer (submittedByName)
-  // - Customer views → other is the provider (assignedServiceProviderName)
+  // The "other" person depends on who is viewing:
+  //   - Provider views  → other is the customer
+  //   - Customer views  → other is the provider
   const otherName = isProvider
     ? (ticket.submittedByName ?? 'Customer')
     : (providerName ?? 'Provider');
+  const otherPic = isProvider
+    ? (ticket.submittedByProfilePictureUrl ?? null)
+    : (ticket.assignedServiceProviderProfilePictureUrl ?? null);
+  // The provider profile route only exists for providers, so only the customer
+  // (looking at a provider) gets a clickable name in the header.
+  const otherProfileHref =
+    !isProvider && ticket.assignedServiceProviderId
+      ? `/providers/${ticket.assignedServiceProviderId}`
+      : null;
+  const otherRoleLabel = isProvider ? 'Customer · Chat' : 'Provider · Chat';
+  // True when the header should show a "person assigned" state. For the customer
+  // view this means a provider exists; for the provider view it's always true
+  // (the customer is always present — they submitted the ticket).
+  const hasOther = isProvider ? Boolean(ticket.submittedByName) : Boolean(providerName);
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const [text, setText] = useState('');
   const [sendError, setSendError] = useState<string | null>(null);
@@ -451,41 +464,41 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
             width: 40,
             height: 40,
             fontSize: 14,
-            background: providerName ? 'var(--navy-900)' : 'var(--slate-200)',
-            color: providerName ? 'var(--amber-500)' : 'var(--slate-500)',
-            ...(providerPic ? { padding: 0, overflow: 'hidden' } : {}),
+            background: hasOther ? 'var(--navy-900)' : 'var(--slate-200)',
+            color: hasOther ? 'var(--amber-500)' : 'var(--slate-500)',
+            ...(otherPic ? { padding: 0, overflow: 'hidden' } : {}),
           }}
         >
-          {providerPic ? (
+          {otherPic ? (
             <img
-              src={providerPic}
-              alt={providerName ?? 'Provider'}
+              src={otherPic}
+              alt={otherName}
               style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
             />
           ) : (
-            providerName ? getInitials(providerName) : '?'
+            hasOther ? getInitials(otherName) : '?'
           )}
         </div>
         <div>
           <div className="row gap-8" style={{ gap: 8 }}>
-            {providerName && ticket.assignedServiceProviderId ? (
+            {hasOther && otherProfileHref ? (
               <Link
-                to={`/providers/${ticket.assignedServiceProviderId}`}
+                to={otherProfileHref}
                 style={{ fontSize: 14, letterSpacing: '-0.01em', fontWeight: 700, textDecoration: 'none', color: 'inherit' }}
               >
-                {providerName}
+                {otherName}
               </Link>
             ) : (
               <b style={{ fontSize: 14, letterSpacing: '-0.01em' }}>
-                {providerName ?? 'No provider yet'}
+                {hasOther ? otherName : (isProvider ? 'Awaiting customer' : 'No provider yet')}
               </b>
             )}
-            {providerName && wsConnected && (
+            {hasOther && wsConnected && (
               <span style={{ width: 6, height: 6, borderRadius: 3, background: 'var(--emerald-600)' }} />
             )}
           </div>
           <div className="mono muted" style={{ fontSize: 10.5, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            {providerName ? 'Provider · Chat' : 'Awaiting assignment'}
+            {hasOther ? otherRoleLabel : 'Awaiting assignment'}
           </div>
         </div>
         <span className="grow" />

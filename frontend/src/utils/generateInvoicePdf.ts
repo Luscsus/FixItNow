@@ -1,6 +1,17 @@
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
 
+export type InvoiceBankDetails = {
+  /** Display name of the account holder (the provider). */
+  accountHolder: string;
+  /** IBAN, may be formatted with spaces — we normalize internally. */
+  iban: string;
+  /** BIC / SWIFT (uppercase). */
+  bic: string;
+  /** Free-text bank name for display. */
+  bankName: string;
+};
+
 export type InvoiceData = {
   ticketCode: string;       // e.g. "FIX-0001"
   serviceType: string;
@@ -11,16 +22,30 @@ export type InvoiceData = {
   customerName: string;
   amount: number;
   issuedAt?: Date;
+  /**
+   * Provider's real bank details. When omitted (e.g., a preview before the
+   * provider has set them, or legacy data) we fall back to the mock account
+   * so the PDF still renders something meaningful.
+   */
+  bank?: InvoiceBankDetails;
 };
 
-// ── Mock bank details (displayed on every invoice) ───────────────────────────
-const BANK = {
-  name:      'FixItNow Finance d.o.o.',
-  iban:      'SI56 6100 0001 2345 6789',
-  ibanRaw:   'SI5661000001234567',
-  bic:       'FXNNSI22',
-  bankName:  'Nova Ljubljanska Banka d.d.',
+// ── Mock bank fallback ────────────────────────────────────────────────────────
+// Only used when the caller doesn't pass real bank details (preview / legacy).
+const MOCK_BANK: InvoiceBankDetails = {
+  accountHolder: 'FixItNow Finance d.o.o.',
+  iban:          'SI56 6100 0001 2345 6789',
+  bic:           'FXNNSI22',
+  bankName:      'Nova Ljubljanska Banka d.d.',
 };
+
+function normalizeIban(raw: string): string {
+  return raw.replace(/\s+/g, '').toUpperCase();
+}
+
+function formatIban(raw: string): string {
+  return normalizeIban(raw).replace(/(.{4})/g, '$1 ').trim();
+}
 
 // ── Colour palette ────────────────────────────────────────────────────────────
 const NAVY   = [11, 30, 63]    as const;
@@ -36,15 +61,15 @@ function draw(doc: jsPDF, c: readonly [number,number,number]) { doc.setDrawColor
 function ink (doc: jsPDF, c: readonly [number,number,number]) { doc.setTextColor(c[0],c[1],c[2]); }
 
 // ── Build SEPA EPC QR payload ─────────────────────────────────────────────────
-function sepaPayload(data: InvoiceData): string {
+function sepaPayload(data: InvoiceData, bank: InvoiceBankDetails): string {
   return [
     'BCD',
     '002',
     '1',
     'SCT',
-    BANK.bic,
-    BANK.name,
-    BANK.ibanRaw,
+    bank.bic,
+    bank.accountHolder,
+    normalizeIban(bank.iban),
     `EUR${data.amount.toFixed(2)}`,
     'CHAR',
     data.ticketCode,
@@ -65,8 +90,12 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Blob> {
   const dueDate = new Date((data.issuedAt ?? new Date()).getTime() + 14 * 86_400_000)
     .toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
+  // Resolve which bank info to render: real (passed by the provider's app)
+  // or the mock fallback used for previews / legacy customer downloads.
+  const bank: InvoiceBankDetails = data.bank ?? MOCK_BANK;
+
   // Pre-generate QR code as PNG data-URL
-  const qrDataUrl = await QRCode.toDataURL(sepaPayload(data), {
+  const qrDataUrl = await QRCode.toDataURL(sepaPayload(data, bank), {
     width: 140, margin: 1, color: { dark: '#0B1E3F', light: '#FFFFFF' },
   });
 
@@ -189,10 +218,10 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Blob> {
   doc.roundedRect(mar, y, payBoxW, 148, 4, 4, 'FD');
 
   const rows: [string, string][] = [
-    ['Bank',      BANK.bankName],
-    ['Account',   BANK.name],
-    ['IBAN',      BANK.iban],
-    ['BIC/SWIFT', BANK.bic],
+    ['Bank',      bank.bankName],
+    ['Account',   bank.accountHolder],
+    ['IBAN',      formatIban(bank.iban)],
+    ['BIC/SWIFT', bank.bic],
     ['Reference', data.ticketCode],
     ['Amount',    `€ ${data.amount.toFixed(2)}`],
     ['Due date',  dueDate],

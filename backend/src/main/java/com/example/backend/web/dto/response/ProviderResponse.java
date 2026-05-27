@@ -41,6 +41,12 @@ public class ProviderResponse {
     private LocalDateTime approvedAt;
     private LocalDateTime createdAt;
     private Map<String, Boolean> notificationPreferences;
+    // Payout / bank details — only included in this DTO because it's served to
+    // the provider themselves (or to admins). NOT included in public DTOs.
+    private String bankAccountHolder;
+    private String bankIban;
+    private String bankBic;
+    private String bankName;
 
     public static ProviderResponse from(Provider p) {
         return ProviderResponse.builder()
@@ -68,6 +74,10 @@ public class ProviderResponse {
             .approvedAt(p.getApprovedAt())
             .createdAt(p.getCreatedAt())
             .notificationPreferences(p.getNotificationPreferences() != null ? p.getNotificationPreferences() : new HashMap<>())
+            .bankAccountHolder(p.getBankAccountHolder())
+            .bankIban(p.getBankIban())
+            .bankBic(p.getBankBic())
+            .bankName(p.getBankName())
             .build();
     }
 }

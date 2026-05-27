@@ -61,7 +61,9 @@ export function VisitorProfile({ provider }: Readonly<VisitorProfileProps>) {
             <div>
               <h1>
                 {provider.firstName} {provider.lastName}
-                <span className="verified-md">✓ Verified</span>
+                {provider.emailVerified && (
+                  <span className="verified-md">✓ Verified</span>
+                )}
                 <span style={{ marginLeft: 12, display: "inline-flex", verticalAlign: "middle" }}>
                   <SaveProviderButton providerId={provider.id} variant="full" />
                 </span>

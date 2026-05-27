@@ -44,7 +44,12 @@ export function UserAccountPage() {
           </div>
 
           {activeTab === "Overview" && (
-            <OverviewTab firstName={firstName} lastName={lastName} email={email} />
+            <OverviewTab
+              firstName={firstName}
+              lastName={lastName}
+              email={email}
+              emailVerified={emailVerified}
+            />
           )}
           {activeTab === "Tickets" && <TicketsTab />}
           {activeTab === "Saved providers" && <SavedProvidersTab />}

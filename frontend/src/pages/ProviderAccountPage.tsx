@@ -14,6 +14,7 @@ import { CompletedJobsCard } from "@/components/provider-account/CompletedJobsCa
 import { PayoutsCard } from "@/components/provider-account/PayoutsCard";
 import { NotificationsCard } from "@/components/provider-account/NotificationsCard";
 import { ReviewsSection } from "@/components/reviews/ReviewsSection";
+import { Link } from "react-router-dom";
 
 const TABS = ["Overview", "Schedule", "Jobs", "Reviews"] as const;
 type Tab = (typeof TABS)[number];
@@ -56,6 +57,15 @@ export function ProviderAccountPage() {
     totalEarned:      completedTickets.some((t) => t.estimatedCost != null) ? totalEarned : null,
   };
 
+  // Provider is missing payout details if ANY of the four required bank fields
+  // is empty. Until they fill these in they can't accept work.
+  const bankInfoMissing =
+    !!ownProfile &&
+    (!ownProfile.bankAccountHolder?.trim()
+      || !ownProfile.bankIban?.trim()
+      || !ownProfile.bankBic?.trim()
+      || !ownProfile.bankName?.trim());
+
   return (
     <div>
       <ProviderHero
@@ -66,7 +76,41 @@ export function ProviderAccountPage() {
         online={online}
         setOnline={setOnline}
         stats={stats}
+        emailVerified={ownProfile?.emailVerified}
       />
+
+      {bankInfoMissing && (
+        <div className="container" style={{ marginTop: 16 }}>
+          <div
+            role="alert"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              padding: "14px 18px",
+              borderRadius: 12,
+              background: "var(--amber-50, #fffbeb)",
+              border: "1px solid var(--amber-300, #fcd34d)",
+              color: "var(--amber-900, #78350f)",
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>Set your payout details to start accepting jobs</div>
+              <div style={{ fontSize: 13, marginTop: 2, lineHeight: 1.45 }}>
+                Customers need somewhere to send payment. Add your IBAN, BIC and bank name to your profile.
+              </div>
+            </div>
+            <Link to="/profile/edit" className="btn btn-primary btn-sm" style={{ flexShrink: 0 }}>
+              Add now →
+            </Link>
+          </div>
+        </div>
+      )}
 
       <main className="container pro-body">
         <div>

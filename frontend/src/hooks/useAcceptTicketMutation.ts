@@ -10,7 +10,8 @@ export function useAcceptTicketMutation() {
   return useMutation({
     mutationFn: (ticketId: number) => acceptTicket(ticketId, accessToken),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tickets"] });
+      queryClient.invalidateQueries({ queryKey: ["tickets", "open"] });
+      queryClient.invalidateQueries({ queryKey: ["tickets", "provider"] });
     },
   });
 }

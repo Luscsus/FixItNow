@@ -25,6 +25,12 @@ export type ProviderResponseDto = {
   approvedAt: string | null
   createdAt: string
   notificationPreferences?: Record<string, boolean> | null
+  // Payout / bank fields — only present when the provider is fetching their
+  // own profile (or an admin is viewing). Public DTOs do not include these.
+  bankAccountHolder?: string | null
+  bankIban?: string | null
+  bankBic?: string | null
+  bankName?: string | null
 }
 
 export type DeclineProviderRequestDto = {

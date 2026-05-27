@@ -33,6 +33,8 @@ public class ProviderSearchResult {
     private String profilePictureUrl;
     private UserStatus status;
     private LocalDateTime createdAt;
+    /** Whether the provider has confirmed their email. Used to render a verified badge. */
+    private boolean emailVerified;
 
     /** Populated only when the search included a location filter. */
     private Double distanceKm;
@@ -57,6 +59,7 @@ public class ProviderSearchResult {
             .profilePictureUrl(p.getProfilePictureUrl())
             .status(p.getStatus())
             .createdAt(p.getCreatedAt())
+            .emailVerified(p.isEmailVerified())
             .distanceKm(distanceKm)
             .build();
     }

@@ -57,4 +57,21 @@ public class UpdateProviderProfileRequest {
 
     @Size(max = 2000)
     private String bio;
+
+    // ─── Payout / bank details (optional on save, but required to accept jobs) ──
+    // We allow saving the profile with empty bank fields so providers can edit
+    // other things without being forced to fill bank info every time. The
+    // acceptTicket() service check is what actually enforces presence.
+
+    @Size(max = 200)
+    private String bankAccountHolder;
+
+    @Size(max = 50)
+    private String bankIban;
+
+    @Size(max = 20)
+    private String bankBic;
+
+    @Size(max = 200)
+    private String bankName;
 }

@@ -4,9 +4,17 @@ interface PersonalInfoCardProps {
   firstName: string;
   lastName: string;
   email: string | undefined;
+  emailVerified?: boolean;
 }
 
-export function PersonalInfoCard({ firstName, lastName, email }: PersonalInfoCardProps) {
+const PILL_BASE: React.CSSProperties = {
+  fontSize: 10,
+  padding: "2px 6px",
+  borderRadius: 4,
+  letterSpacing: "0.06em",
+};
+
+export function PersonalInfoCard({ firstName, lastName, email, emailVerified }: PersonalInfoCardProps) {
   return (
     <>
       <div className="panel-title">
@@ -28,10 +36,34 @@ export function PersonalInfoCard({ firstName, lastName, email }: PersonalInfoCar
           </div>
           <div>
             <div className="mono muted" style={{ fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase" }}>Email</div>
-            <div style={{ fontSize: 15, marginTop: 6, display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ fontSize: 15, marginTop: 6, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               {email || <span className="muted">—</span>}
-              {email && (
-                <span className="mono" style={{ fontSize: 10, color: "var(--emerald-700)", background: "var(--emerald-100)", padding: "2px 6px", borderRadius: 4, letterSpacing: "0.06em" }}>VERIFIED</span>
+              {email && emailVerified === true && (
+                <span
+                  className="mono"
+                  style={{
+                    ...PILL_BASE,
+                    color: "var(--emerald-700)",
+                    background: "var(--emerald-100)",
+                  }}
+                >
+                  VERIFIED
+                </span>
+              )}
+              {email && emailVerified === false && (
+                <Link
+                  to="/confirm-email"
+                  className="mono"
+                  title="Verify your email to get a verified badge"
+                  style={{
+                    ...PILL_BASE,
+                    color: "var(--amber-800, #92400e)",
+                    background: "var(--amber-100, #fef3c7)",
+                    textDecoration: "none",
+                  }}
+                >
+                  NOT VERIFIED
+                </Link>
               )}
             </div>
           </div>

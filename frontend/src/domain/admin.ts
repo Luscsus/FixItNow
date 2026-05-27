@@ -64,4 +64,9 @@ export type Provider = {
   approvedAt: Date | null
   createdAt: Date
   notificationPreferences: Record<string, boolean>
+  // Payout / bank — only populated when fetching own provider profile.
+  bankAccountHolder: string | null
+  bankIban: string | null
+  bankBic: string | null
+  bankName: string | null
 }

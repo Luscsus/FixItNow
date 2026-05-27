@@ -6,12 +6,18 @@ interface OverviewTabProps {
   firstName: string;
   lastName: string;
   email: string | undefined;
+  emailVerified?: boolean;
 }
 
-export function OverviewTab({ firstName, lastName, email }: OverviewTabProps) {
+export function OverviewTab({ firstName, lastName, email, emailVerified }: OverviewTabProps) {
   return (
     <>
-      <PersonalInfoCard firstName={firstName} lastName={lastName} email={email} />
+      <PersonalInfoCard
+        firstName={firstName}
+        lastName={lastName}
+        email={email}
+        emailVerified={emailVerified}
+      />
       <RecentTicketsCard />
       <BuildingsLocationsCard />
     </>

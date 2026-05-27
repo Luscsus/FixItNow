@@ -140,6 +140,12 @@ public class TicketService {
             );
         }
 
+        // Block transition to APPROVED if the assigned provider hasn't set up
+        // payout details. Same gate as acceptOpenTicket / confirmTicket.
+        if (newStatus == TicketStatus.APPROVED && ticket.getAssignedServiceProvider() != null) {
+            ensureProviderCanAcceptWork(ticket.getAssignedServiceProvider());
+        }
+
         ticket.setStatus(newStatus);
         Ticket saved = ticketRepository.save(ticket);
         recordHistory(saved, newStatus);
@@ -225,6 +231,7 @@ public class TicketService {
             throw new InvalidTicketStatusTransitionException(
                 "Ticket " + ticketId + " is not awaiting confirmation (status: " + ticket.getStatus() + ")");
         }
+        ensureProviderCanAcceptWork(ticket.getAssignedServiceProvider());
         ticket.setStatus(TicketStatus.APPROVED);
         if (ticket.getRequestedStartAt() != null && ticket.getRequestedEndAt() != null) {
             ticket.setScheduledStartAt(ticket.getRequestedStartAt());
@@ -252,6 +259,7 @@ public class TicketService {
         }
         Provider provider = providerRepository.findById(providerId)
             .orElseThrow(() -> new UserNotFoundException("Provider not found: " + providerId));
+        ensureProviderCanAcceptWork(provider);
         ticket.setAssignedServiceProvider(provider);
         ticket.setStatus(TicketStatus.APPROVED);
         ensureChatRoom(ticket, provider.getId());
@@ -460,6 +468,32 @@ public class TicketService {
     private Ticket getTicketOrThrow(Long ticketId) {
         return ticketRepository.findById(ticketId)
             .orElseThrow(() -> new TicketNotFoundException("Ticket not found: " + ticketId));
+    }
+
+    /**
+     * Provider can't take on a job until they've set their payout details, or
+     * the customer would have no way to pay them. Called from every code path
+     * that transitions a ticket to APPROVED. Accepts a {@code User} reference
+     * because that's how the ticket holds its assigned provider — we instanceof
+     * + cast inside.
+     */
+    private void ensureProviderCanAcceptWork(User assigned) {
+        if (!(assigned instanceof Provider provider)) {
+            throw new ApiException("Assigned account is not a provider.");
+        }
+        if (isBlank(provider.getBankAccountHolder())
+                || isBlank(provider.getBankIban())
+                || isBlank(provider.getBankBic())
+                || isBlank(provider.getBankName())) {
+            throw new ApiException(
+                "Add your payout details (bank info) before accepting work. "
+                + "You can set them on your profile."
+            );
+        }
+    }
+
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
     }
 
     private boolean isValidStatusTransition(TicketStatus current, TicketStatus next) {

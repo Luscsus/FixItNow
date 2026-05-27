@@ -1,5 +1,6 @@
-import type { ProviderResponseDto } from "@/dto/admin";
-import type { Provider, ProviderStatus, ServiceCategory } from "@/domain/admin";
+import type { ProviderResponseDto, UserSummaryResponseDto } from "@/dto/admin";
+import type { AdminUser, Provider, ProviderStatus, ServiceCategory, UserStatus } from "@/domain/admin";
+import type { UserRole } from "@/domain/auth";
 
 export function mapProvider(dto: ProviderResponseDto): Provider {
   return {
@@ -32,4 +33,22 @@ export function mapProvider(dto: ProviderResponseDto): Provider {
 
 export function mapProviders(dtos: ProviderResponseDto[]): Provider[] {
   return dtos.map(mapProvider);
+}
+
+export function mapUser(dto: UserSummaryResponseDto): AdminUser {
+  return {
+    id: dto.id,
+    email: dto.email,
+    firstName: dto.firstName,
+    lastName: dto.lastName,
+    role: dto.role as UserRole,
+    status: dto.status as UserStatus,
+    emailVerified: dto.emailVerified,
+    profilePictureUrl: dto.profilePictureUrl ?? null,
+    createdAt: new Date(dto.createdAt),
+  };
+}
+
+export function mapUsers(dtos: UserSummaryResponseDto[]): AdminUser[] {
+  return dtos.map(mapUser);
 }

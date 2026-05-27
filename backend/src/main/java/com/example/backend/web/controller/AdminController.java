@@ -1,7 +1,11 @@
 package com.example.backend.web.controller;
 
+import com.example.backend.dto.TicketResponse;
 import com.example.backend.security.UserPrincipal;
 import com.example.backend.service.AdminService;
+import com.example.backend.service.TicketService;
+import com.example.backend.web.dto.request.AdminUpdateTicketRequest;
+import com.example.backend.web.dto.request.ChangeUserRoleRequest;
 import com.example.backend.web.dto.request.DeclineProviderRequest;
 import com.example.backend.web.dto.response.MessageResponse;
 import com.example.backend.web.dto.response.ProviderResponse;
@@ -26,6 +30,7 @@ import java.util.UUID;
 public class AdminController {
 
     private final AdminService adminService;
+    private final TicketService ticketService;
 
     @Operation(summary = "List providers pending approval")
     @GetMapping("/providers/pending")
@@ -86,5 +91,37 @@ public class AdminController {
     @DeleteMapping("/users/{id}")
     public ResponseEntity<MessageResponse> deleteUser(@PathVariable UUID id) {
         return ResponseEntity.ok(adminService.deleteUser(id));
+    }
+
+    @Operation(summary = "Change a user's role", description = "Only CUSTOMER and ADMIN roles are supported. Provider conversions are not allowed.")
+    @PutMapping("/users/{id}/role")
+    public ResponseEntity<MessageResponse> changeUserRole(
+        @PathVariable UUID id,
+        @Valid @RequestBody ChangeUserRoleRequest request,
+        @AuthenticationPrincipal UserPrincipal admin
+    ) {
+        return ResponseEntity.ok(adminService.changeUserRole(id, request.getRole(), admin.getUser().getId()));
+    }
+
+    @Operation(summary = "List all tickets (across all customers and providers)")
+    @GetMapping("/tickets")
+    public ResponseEntity<List<TicketResponse>> listAllTickets() {
+        return ResponseEntity.ok(ticketService.getAllTickets());
+    }
+
+    @Operation(summary = "Update a ticket's status and/or priority", description = "Status changes bypass the normal lifecycle state machine.")
+    @PutMapping("/tickets/{id}")
+    public ResponseEntity<TicketResponse> updateTicket(
+        @PathVariable Long id,
+        @Valid @RequestBody AdminUpdateTicketRequest request
+    ) {
+        return ResponseEntity.ok(ticketService.adminUpdateTicket(id, request.getStatus(), request.getPriority()));
+    }
+
+    @Operation(summary = "Delete a ticket")
+    @DeleteMapping("/tickets/{id}")
+    public ResponseEntity<MessageResponse> deleteTicket(@PathVariable Long id) {
+        ticketService.adminDeleteTicket(id);
+        return ResponseEntity.ok(new MessageResponse("Ticket deleted."));
     }
 }

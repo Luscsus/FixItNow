@@ -68,7 +68,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(LockedException.class)
     public ResponseEntity<ErrorResponse> handleLocked(LockedException ex) {
-        return buildResponse(HttpStatus.FORBIDDEN, "Account is locked.");
+        return buildResponse(HttpStatus.FORBIDDEN, "Your account has been suspended. Please contact support.");
     }
 
     @ExceptionHandler(Exception.class)

@@ -46,6 +46,7 @@ export type TicketResponseDto = {
   assignedServiceProviderId?: string | null;
   assignedServiceProviderProfilePictureUrl?: string | null;
   submittedByName: string | null;
+  submittedById?: string | null;
   submittedByProfilePictureUrl?: string | null;
   chatRoomId?: string | null;
   requestedStartAt: string | null;

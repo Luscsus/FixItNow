@@ -1,3 +1,5 @@
+import type { TicketStatusDto, TicketPriorityDto } from "@/dto/ticket"
+
 export type ProviderResponseDto = {
   id: string
   email: string
@@ -27,4 +29,26 @@ export type ProviderResponseDto = {
 
 export type DeclineProviderRequestDto = {
   reason: string
+}
+
+export type UserSummaryResponseDto = {
+  id: string
+  email: string
+  firstName: string
+  lastName: string
+  role: string
+  status: string
+  emailVerified: boolean
+  profilePictureUrl?: string | null
+  createdAt: string
+  notificationPreferences?: Record<string, boolean> | null
+}
+
+export type ChangeUserRoleRequestDto = {
+  role: "CUSTOMER" | "ADMIN"
+}
+
+export type AdminUpdateTicketRequestDto = {
+  status?: TicketStatusDto | null
+  priority?: TicketPriorityDto | null
 }

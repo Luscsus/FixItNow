@@ -308,6 +308,56 @@ public class TicketService {
         if (!ticket.getUser().getId().equals(userId)) {
             throw new ApiException("You are not authorized to delete this ticket.");
         }
+        deleteTicketInternal(ticket);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TicketResponse> getAllTickets() {
+        return ticketRepository.findAll()
+            .stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
+    @Transactional
+    public TicketResponse adminUpdateTicket(Long ticketId, TicketStatus newStatus, TicketPriority newPriority) {
+        Ticket ticket = getTicketOrThrow(ticketId);
+
+        if (newPriority != null) {
+            ticket.setPriority(newPriority);
+        }
+
+        TicketStatus currentStatus = ticket.getStatus();
+        boolean statusChanged = newStatus != null && newStatus != currentStatus;
+        if (newStatus != null) {
+            // Admin override — bypass the normal state-machine validation.
+            ticket.setStatus(newStatus);
+        }
+
+        Ticket saved = ticketRepository.save(ticket);
+
+        if (statusChanged) {
+            recordHistory(saved, newStatus);
+            calendarService.syncBookedBlockForTicket(saved);
+            String chatBody = statusChangeMessage(saved, currentStatus, newStatus);
+            if (chatBody != null) {
+                postSystemMessage(saved, chatBody);
+            }
+            String notifBody = notificationBodyForStatus(newStatus);
+            if (notifBody != null) {
+                notifyCustomerOfStatusChange(saved, notifBody);
+            }
+        }
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public void adminDeleteTicket(Long ticketId) {
+        Ticket ticket = getTicketOrThrow(ticketId);
+        deleteTicketInternal(ticket);
+    }
+
+    private void deleteTicketInternal(Ticket ticket) {
         if (ticket.getImageUrls() != null) {
             ticket.getImageUrls().forEach(cloudinaryService::deleteImage);
         }
@@ -464,6 +514,7 @@ public class TicketService {
         );
         resp.setAssignedServiceProviderId(providerId);
         resp.setAssignedServiceProviderProfilePictureUrl(providerProfilePictureUrl);
+        resp.setSubmittedById(ticket.getUser() != null ? ticket.getUser().getId() : null);
         resp.setSubmittedByProfilePictureUrl(submittedByProfilePictureUrl);
         resp.setImageUrls(ticket.getImageUrls() != null ? ticket.getImageUrls() : List.of());
         resp.setRequestedStartAt(ticket.getRequestedStartAt());

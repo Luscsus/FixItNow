@@ -4,6 +4,7 @@ import com.example.backend.common.exception.ApiException;
 import com.example.backend.common.exception.ResourceNotFoundException;
 import com.example.backend.domain.user.Provider;
 import com.example.backend.domain.user.User;
+import com.example.backend.domain.user.UserRole;
 import com.example.backend.domain.user.UserStatus;
 import com.example.backend.repository.ProviderRepository;
 import com.example.backend.repository.RefreshTokenRepository;
@@ -133,5 +134,27 @@ public class AdminServiceImpl implements AdminService {
         refreshTokenRepository.revokeAllByUser(user);
         log.info("User {} marked as deleted", user.getEmail());
         return new MessageResponse("User deleted.");
+    }
+
+    @Override
+    public MessageResponse changeUserRole(UUID userId, UserRole newRole, UUID adminId) {
+        if (userId.equals(adminId)) {
+            throw new ApiException("You cannot change your own role.");
+        }
+        if (newRole != UserRole.CUSTOMER && newRole != UserRole.ADMIN) {
+            throw new ApiException("Only CUSTOMER and ADMIN roles can be assigned here.");
+        }
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+        if (user.getRole() == UserRole.PROVIDER) {
+            throw new ApiException("Provider role changes aren't supported here.");
+        }
+
+        user.setRole(newRole);
+        userRepository.save(user);
+        // Role lives in the JWT — revoke refresh tokens so the change takes effect on next login.
+        refreshTokenRepository.revokeAllByUser(user);
+        log.info("User {} role changed to {} by admin {}", user.getEmail(), newRole, adminId);
+        return new MessageResponse("User role updated. The user must sign in again for it to take effect.");
     }
 }

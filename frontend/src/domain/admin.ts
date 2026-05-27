@@ -15,6 +15,8 @@ export type ServiceCategory =
   | "IT_SUPPORT"
   | "OTHER"
 
+import type { UserRole } from "@/domain/auth"
+
 export type ProviderStatus =
   | "PENDING_VERIFICATION"
   | "PENDING_APPROVAL"
@@ -22,6 +24,20 @@ export type ProviderStatus =
   | "ACTIVE"
   | "SUSPENDED"
   | "DELETED"
+
+export type UserStatus = ProviderStatus
+
+export type AdminUser = {
+  id: string
+  email: string
+  firstName: string
+  lastName: string
+  role: UserRole
+  status: UserStatus
+  emailVerified: boolean
+  profilePictureUrl: string | null
+  createdAt: Date
+}
 
 export type Provider = {
   id: string

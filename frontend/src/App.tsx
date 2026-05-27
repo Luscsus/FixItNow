@@ -2,9 +2,12 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { ScrollToTop } from "@/components/routing/ScrollToTop";
 
 import { AppLayout } from "@/components/layout/AppLayout";
+import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AdminRoute } from "@/components/routing/AdminRoute";
 import { ProtectedRoute } from "@/components/routing/ProtectedRoute";
-import { AdminDashboardPage } from "@/pages/AdminDashboardPage";
+import { AdminProvidersPage } from "@/pages/AdminProvidersPage";
+import { AdminUsersPage } from "@/pages/AdminUsersPage";
+import { AdminTicketsPage } from "@/pages/AdminTicketsPage";
 import { ConfirmEmailPage } from "@/pages/ConfirmEmailPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { LoginPage } from "@/pages/LoginPage";
@@ -39,9 +42,14 @@ function App() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/two-factor" element={<TwoFactorVerifyPage />} />
 
-      {/* Admin dashboard (full-screen, no AppLayout, ADMIN role required) */}
+      {/* Admin console (full-screen, no AppLayout, ADMIN role required) */}
       <Route element={<AdminRoute />}>
-        <Route path="/dashboard/admin" element={<AdminDashboardPage />} />
+        <Route element={<AdminLayout />}>
+          <Route path="/dashboard/admin" element={<Navigate to="/dashboard/admin/providers" replace />} />
+          <Route path="/dashboard/admin/providers" element={<AdminProvidersPage />} />
+          <Route path="/dashboard/admin/users" element={<AdminUsersPage />} />
+          <Route path="/dashboard/admin/tickets" element={<AdminTicketsPage />} />
+        </Route>
       </Route>
 
       {/* Marketing pages with navbar */}

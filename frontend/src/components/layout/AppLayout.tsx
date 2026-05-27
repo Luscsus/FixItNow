@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Navigate, Outlet, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/context/auth";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -60,6 +60,11 @@ export function AppLayout() {
     setDropdownOpen(false);
     clearSession();
     navigate("/");
+  }
+
+  // Admins live entirely in the admin console — keep them out of the public app shell.
+  if (isAuthenticated && role === "ADMIN") {
+    return <Navigate to="/dashboard/admin/providers" replace />;
   }
 
   return (

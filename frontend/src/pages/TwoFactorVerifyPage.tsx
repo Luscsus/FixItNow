@@ -10,7 +10,11 @@ export function TwoFactorVerifyPage() {
 
   const handleAuthenticated = (session: AuthSession) => {
     setSession(session);
-    navigate("/profile");
+    if (session.role === "ADMIN") {
+      navigate("/dashboard/admin/providers");
+    } else {
+      navigate("/profile");
+    }
   };
 
   return (

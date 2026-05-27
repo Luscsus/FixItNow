@@ -1,5 +1,6 @@
 package com.example.backend.service;
 
+import com.example.backend.domain.user.UserRole;
 import com.example.backend.web.dto.request.DeclineProviderRequest;
 import com.example.backend.web.dto.response.MessageResponse;
 import com.example.backend.web.dto.response.ProviderResponse;
@@ -27,4 +28,6 @@ public interface AdminService {
     MessageResponse reactivateUser(UUID userId);
 
     MessageResponse deleteUser(UUID userId);
+
+    MessageResponse changeUserRole(UUID userId, UserRole newRole, UUID adminId);
 }

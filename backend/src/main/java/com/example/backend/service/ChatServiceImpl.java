@@ -30,6 +30,7 @@ public class ChatServiceImpl implements ChatService {
     private final ChatRoomRepository chatRoomRepository;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final NotificationService notificationService;
 
     @Override
     public ChatMessageResponse saveMessage(ChatMessageRequest request) {
@@ -44,7 +45,30 @@ public class ChatServiceImpl implements ChatService {
         message.setTimestamp(LocalDateTime.now());
 
         ChatMessage saved = chatRepository.save(message);
+        notifyRecipientOfNewMessage(saved);
         return toResponse(saved);
+    }
+
+    /**
+     * Raise an in-app notification for the message recipient. SYSTEM messages
+     * (ticket lifecycle posts) are skipped, and any failure is swallowed so a
+     * notification problem never breaks message delivery.
+     */
+    private void notifyRecipientOfNewMessage(ChatMessage message) {
+        if (message.getType() == MessageType.SYSTEM) return;
+        try {
+            String senderName = userRepository.findById(message.getSenderId())
+                .map(this::formatUserName)
+                .orElse("New message");
+            Long ticketId = chatRoomRepository.findById(message.getChatRoomId())
+                .map(ChatRoom::getTicketId)
+                .orElse(null);
+            notificationService.notifyNewMessage(
+                message.getRecipientId(), message.getChatRoomId(), ticketId, senderName);
+        } catch (RuntimeException ex) {
+            System.err.println("[chat] new-message notification failed for room "
+                + message.getChatRoomId() + ": " + ex.getMessage());
+        }
     }
 
     @Override
@@ -83,6 +107,15 @@ public class ChatServiceImpl implements ChatService {
         message.setStatus(status);
 
         ChatMessage saved = chatRepository.save(message);
+        if (status == MessageStatus.READ) {
+            // Recipient has read the conversation — clear its grouped unread notification.
+            try {
+                notificationService.markChatRoomRead(userId, chatRoomId);
+            } catch (RuntimeException ex) {
+                System.err.println("[chat] clearing message notification failed for room "
+                    + chatRoomId + ": " + ex.getMessage());
+            }
+        }
         return toResponse(saved);
     }
 

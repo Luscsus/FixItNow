@@ -2,6 +2,7 @@ import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/context/auth";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 import type { UserRole } from "@/domain/auth";
 
 function dashboardHref(role: UserRole | null, isAuthenticated: boolean): string {
@@ -13,15 +14,6 @@ function dashboardHref(role: UserRole | null, isAuthenticated: boolean): string 
 
 const NAV_DOT_INACTIVE = "#94A3B8"; // slate-400
 const NAV_DOT_ACTIVE   = "#F59E0B"; // amber-500 (app accent)
-
-function BellIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </svg>
-  );
-}
 
 function PlusIcon() {
   return (
@@ -144,20 +136,7 @@ export function AppLayout() {
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
 
             {/* Notification bell */}
-            <button
-              title="Notifications"
-              style={{
-                display: "inline-flex", alignItems: "center", justifyContent: "center",
-                width: 36, height: 36, borderRadius: 8,
-                background: "transparent", border: "none",
-                color: "var(--text-muted)", cursor: "pointer",
-                transition: "background 0.12s, color 0.12s",
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(15,23,42,0.06)"; (e.currentTarget as HTMLElement).style.color = "var(--text)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "var(--text-muted)"; }}
-            >
-              <BellIcon />
-            </button>
+            {isAuthenticated && <NotificationBell />}
 
             {/* New ticket button — CUSTOMER only */}
             {isAuthenticated && role === "CUSTOMER" && (

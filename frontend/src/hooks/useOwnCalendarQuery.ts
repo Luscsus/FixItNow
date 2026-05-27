@@ -10,12 +10,12 @@ import { useAuth } from "@/context/auth";
 
 const KEY = "ownCalendar";
 
-export function useOwnCalendarQuery(from: string, to: string) {
+export function useOwnCalendarQuery(from: string, to: string, enabled = true) {
   const { accessToken } = useAuth();
   return useQuery({
     queryKey: [KEY, from, to, accessToken],
     queryFn: () => getOwnCalendar(from, to, accessToken),
-    enabled: Boolean(accessToken),
+    enabled: Boolean(accessToken) && enabled,
   });
 }
 

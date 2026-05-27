@@ -91,12 +91,6 @@ export function ProviderLanding() {
       <section className="hero-wrap" style={{ padding: "10px 0 64px", position: "relative", overflow: "hidden" }}>
         {/* Ambient art — different angle than user side */}
         <div style={{
-          position: "absolute", top: -120, left: -120,
-          width: 620, height: 620, pointerEvents: "none",
-          background: "radial-gradient(circle at 50% 50%, rgba(5,150,105,0.14), transparent 55%)",
-          borderRadius: "50%",
-        }} />
-        <div style={{
           position: "absolute", bottom: -160, right: -120,
           width: 540, height: 540, pointerEvents: "none",
           background: "radial-gradient(circle at 50% 50%, rgba(245,158,11,0.12), transparent 55%)",

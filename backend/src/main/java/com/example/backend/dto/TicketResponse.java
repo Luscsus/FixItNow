@@ -44,6 +44,7 @@ public class TicketResponse {
     private UUID assignedServiceProviderId;
     private String assignedServiceProviderProfilePictureUrl;
     private String submittedByName;
+    private UUID submittedById;
     private String submittedByProfilePictureUrl;
     private UUID chatRoomId;
     private LocalDateTime requestedStartAt;

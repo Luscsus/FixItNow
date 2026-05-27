@@ -275,6 +275,15 @@ export function ChatPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(searchParams.get('room'));
 
+  // Deep-link support: when the `room` query param changes (e.g. opening a chat
+  // from a notification while already on this page), sync it into the selection.
+  useEffect(() => {
+    const room = searchParams.get('room');
+    if (room && room !== selectedRoomId) {
+      setSelectedRoomId(room);
+    }
+  }, [searchParams, selectedRoomId]);
+
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const [text, setText] = useState('');
   const [search, setSearch] = useState('');
@@ -432,7 +441,7 @@ export function ChatPage() {
 
   // Build inbox: iterate ALL rooms from /api/chat/rooms, enrich each with ticket
   // data when present. This way no conversation ever silently disappears.
-  const conversations: Conversation[] = useMemo(() => {
+  const allConversations: Conversation[] = useMemo(() => {
     const rooms: ChatRoomSummary[] = roomsQuery.data ?? [];
 
     // Index tickets by their chatRoomId for O(1) lookup
@@ -441,7 +450,7 @@ export function ChatPage() {
       if (t.chatRoomId) ticketByRoom.set(t.chatRoomId, t);
     }
 
-    const list: Conversation[] = rooms.map(room => {
+    return rooms.map(room => {
       const ticket = ticketByRoom.get(room.id);
       if (ticket) {
         return {
@@ -468,8 +477,12 @@ export function ChatPage() {
         otherProfilePictureUrl: room.otherParticipantProfilePictureUrl,
       };
     });
+  }, [roomsQuery.data, ticketsQuery.data, isProvider]);
 
-    return list
+  // Filtered list for the sidebar — separate from allConversations so that
+  // selectedConv lookup is never blocked by an active search/tab filter.
+  const conversations: Conversation[] = useMemo(() => {
+    return allConversations
       .filter(c => {
         if (!search) return true;
         const q = search.toLowerCase();
@@ -480,9 +493,12 @@ export function ChatPage() {
         if (tab === 'unread') return c.roomId === selectedRoomId && hasUnreadInSelectedRoom;
         return true;
       });
-  }, [roomsQuery.data, ticketsQuery.data, isProvider, search, tab, selectedRoomId, hasUnreadInSelectedRoom]);
+  }, [allConversations, search, tab, selectedRoomId, hasUnreadInSelectedRoom]);
 
-  const selectedConv = conversations.find(c => c.roomId === selectedRoomId) ?? null;
+  // Always look up the selected conversation from the unfiltered list so that
+  // navigating to a room via a notification works regardless of the active tab
+  // or search filter.
+  const selectedConv = allConversations.find(c => c.roomId === selectedRoomId) ?? null;
 
   // Last message for inbox preview (current room only — keeping it simple)
   const lastMsgForRoom = useMemo(() => {
@@ -908,6 +924,10 @@ export function ChatPage() {
             </div>
           </div>
         </section>
+      ) : selectedRoomId && roomsQuery.isLoading ? (
+        <div className="chat-empty">
+          <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Loading conversation…</div>
+        </div>
       ) : (
         <div className="chat-empty">
           <div className="chat-empty-icon">

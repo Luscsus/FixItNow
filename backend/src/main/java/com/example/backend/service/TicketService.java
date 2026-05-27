@@ -45,13 +45,14 @@ public class TicketService {
     private final CalendarService calendarService;
     private final TicketStatusHistoryRepository statusHistoryRepository;
     private final EmailService emailService;
+    private final NotificationService notificationService;
 
     public TicketService(TicketRepository ticketRepository, UserRepository userRepository,
                          LocationRepository locationRepository, ProviderRepository providerRepository,
                          CloudinaryService cloudinaryService,
                          ChatRoomRepository chatRoomRepository, ChatService chatService, CalendarService calendarService,
                          TicketStatusHistoryRepository statusHistoryRepository,
-                         EmailService emailService) {
+                         EmailService emailService, NotificationService notificationService) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
         this.locationRepository = locationRepository;
@@ -62,6 +63,7 @@ public class TicketService {
         this.statusHistoryRepository = statusHistoryRepository;
         this.cloudinaryService = cloudinaryService;
         this.emailService = emailService;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -143,9 +145,13 @@ public class TicketService {
         recordHistory(saved, newStatus);
         calendarService.syncBookedBlockForTicket(saved);
         if (currentStatus != newStatus) {
-            String body = statusChangeMessage(saved, currentStatus, newStatus);
-            if (body != null) {
-                postSystemMessage(saved, body);
+            String chatBody = statusChangeMessage(saved, currentStatus, newStatus);
+            if (chatBody != null) {
+                postSystemMessage(saved, chatBody);
+            }
+            String notifBody = notificationBodyForStatus(newStatus);
+            if (notifBody != null) {
+                notifyCustomerOfStatusChange(saved, notifBody);
             }
         }
         return toResponse(saved);
@@ -227,6 +233,7 @@ public class TicketService {
         Ticket saved = ticketRepository.save(ticket);
         recordHistory(saved, TicketStatus.APPROVED);
         calendarService.syncBookedBlockForTicket(saved);
+        notifyCustomerOfStatusChange(saved, notificationBodyForStatus(TicketStatus.APPROVED));
         return toResponse(saved);
     }
 
@@ -250,8 +257,10 @@ public class TicketService {
         ensureChatRoom(ticket, provider.getId());
         Ticket saved = ticketRepository.save(ticket);
         recordHistory(saved, TicketStatus.APPROVED);
-        postSystemMessage(saved, formatProviderName(provider)
-            + " accepted ticket " + formatTicketCode(saved.getId()));
+        String acceptedMsg = formatProviderName(provider)
+            + " accepted ticket " + formatTicketCode(saved.getId());
+        postSystemMessage(saved, acceptedMsg);
+        notifyCustomerOfStatusChange(saved, notificationBodyForStatus(TicketStatus.APPROVED));
         return toResponse(saved);
     }
 
@@ -267,7 +276,9 @@ public class TicketService {
         Ticket saved = ticketRepository.save(ticket);
         recordHistory(saved, TicketStatus.PENDING_PAYMENT);
         calendarService.syncBookedBlockForTicket(saved);
-        postSystemMessage(saved, "Invoice issued · $" + amount.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString() + " · awaiting payment.");
+        String invoiceMsg = "Invoice issued · $" + amount.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString() + " · awaiting payment.";
+        postSystemMessage(saved, invoiceMsg);
+        notifyCustomerOfStatusChange(saved, notificationBodyForStatus(TicketStatus.PENDING_PAYMENT));
 
         // Email the invoice PDF to the customer
         try {
@@ -297,6 +308,56 @@ public class TicketService {
         if (!ticket.getUser().getId().equals(userId)) {
             throw new ApiException("You are not authorized to delete this ticket.");
         }
+        deleteTicketInternal(ticket);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TicketResponse> getAllTickets() {
+        return ticketRepository.findAll()
+            .stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
+    @Transactional
+    public TicketResponse adminUpdateTicket(Long ticketId, TicketStatus newStatus, TicketPriority newPriority) {
+        Ticket ticket = getTicketOrThrow(ticketId);
+
+        if (newPriority != null) {
+            ticket.setPriority(newPriority);
+        }
+
+        TicketStatus currentStatus = ticket.getStatus();
+        boolean statusChanged = newStatus != null && newStatus != currentStatus;
+        if (newStatus != null) {
+            // Admin override — bypass the normal state-machine validation.
+            ticket.setStatus(newStatus);
+        }
+
+        Ticket saved = ticketRepository.save(ticket);
+
+        if (statusChanged) {
+            recordHistory(saved, newStatus);
+            calendarService.syncBookedBlockForTicket(saved);
+            String chatBody = statusChangeMessage(saved, currentStatus, newStatus);
+            if (chatBody != null) {
+                postSystemMessage(saved, chatBody);
+            }
+            String notifBody = notificationBodyForStatus(newStatus);
+            if (notifBody != null) {
+                notifyCustomerOfStatusChange(saved, notifBody);
+            }
+        }
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public void adminDeleteTicket(Long ticketId) {
+        Ticket ticket = getTicketOrThrow(ticketId);
+        deleteTicketInternal(ticket);
+    }
+
+    private void deleteTicketInternal(Ticket ticket) {
         if (ticket.getImageUrls() != null) {
             ticket.getImageUrls().forEach(cloudinaryService::deleteImage);
         }
@@ -348,6 +409,25 @@ public class TicketService {
         }
     }
 
+    /**
+     * Raise an in-app notification for the customer about a ticket lifecycle change.
+     * Status changes are always provider-initiated (the status endpoints are PROVIDER-only),
+     * so the recipient is the ticket's customer. Failures are swallowed so the ticket op survives.
+     */
+    private void notifyCustomerOfStatusChange(Ticket ticket, String body) {
+        if (ticket.getUser() == null || body == null) return;
+        try {
+            notificationService.notifyTicketStatusChange(
+                ticket.getId(),
+                ticket.getUser().getId(),
+                "Ticket " + formatTicketCode(ticket.getId()),
+                body
+            );
+        } catch (RuntimeException ex) {
+            System.err.println("[ticket] notification failed for ticket " + ticket.getId() + ": " + ex.getMessage());
+        }
+    }
+
     /** Human-readable message for ticket lifecycle transitions, or null for transitions we don't surface. */
     private String statusChangeMessage(Ticket ticket, TicketStatus from, TicketStatus to) {
         String code = formatTicketCode(ticket.getId());
@@ -360,6 +440,20 @@ public class TicketService {
             case CANCELLED                -> "Ticket " + code + " was cancelled.";
             case DECLINED                 -> "Ticket " + code + " was declined.";
             case PENDING_APPROVAL         -> null; // no message — initial state
+        };
+    }
+
+    /** Notification body for ticket status changes — mirrors the STATUS_EVENT_LABEL map in the frontend UI. */
+    private String notificationBodyForStatus(TicketStatus to) {
+        return switch (to) {
+            case APPROVED                 -> "Provider accepted — ticket approved.";
+            case IN_TRANSIT               -> "Provider marked as in transit.";
+            case PENDING_PROVIDER_INVOICE -> "Work completed — awaiting invoice.";
+            case PENDING_PAYMENT          -> "Invoice received — payment pending.";
+            case COMPLETED                -> "Ticket resolved and closed.";
+            case CANCELLED                -> "Ticket was cancelled.";
+            case DECLINED                 -> "Ticket was declined.";
+            case PENDING_APPROVAL         -> null;
         };
     }
 
@@ -420,6 +514,7 @@ public class TicketService {
         );
         resp.setAssignedServiceProviderId(providerId);
         resp.setAssignedServiceProviderProfilePictureUrl(providerProfilePictureUrl);
+        resp.setSubmittedById(ticket.getUser() != null ? ticket.getUser().getId() : null);
         resp.setSubmittedByProfilePictureUrl(submittedByProfilePictureUrl);
         resp.setImageUrls(ticket.getImageUrls() != null ? ticket.getImageUrls() : List.of());
         resp.setRequestedStartAt(ticket.getRequestedStartAt());

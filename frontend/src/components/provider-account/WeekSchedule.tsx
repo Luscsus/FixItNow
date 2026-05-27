@@ -138,7 +138,7 @@ export function WeekSchedule({ providerId, editable }: WeekScheduleProps) {
   const fromIso = useMemo(() => formatIsoLocal(weekStart), [weekStart]);
   const toIso   = useMemo(() => formatIsoLocal(weekEnd),   [weekEnd]);
 
-  const ownQuery    = useOwnCalendarQuery(fromIso, toIso);
+  const ownQuery    = useOwnCalendarQuery(fromIso, toIso, editable);
   const publicQuery = useProviderCalendarQuery(editable ? undefined : providerId, fromIso, toIso);
 
   const blocks: AnyBlock[] = useMemo(

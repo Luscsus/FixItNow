@@ -79,7 +79,6 @@ export function AppLayout() {
         borderBottom: "1px solid rgba(15, 23, 42, 0.08)",
       }}>
         <div className="app-header-inner" style={{
-        <div style={{
           maxWidth: 1280, margin: "0 auto",
           padding: "0 32px",
           height: 60,
@@ -102,7 +101,6 @@ export function AppLayout() {
 
           {/* Nav links */}
           <nav className="app-header-navlinks" style={{ display: "flex", gap: 2 }}>
-          <nav style={{ display: "flex", gap: 2 }}>
             {navLinks.map(({ label, href }) => (
               <NavLink key={label} to={href}>
                 {({ isActive }) => (
@@ -296,7 +294,6 @@ export function AppLayout() {
 
       <MobileNav />
       <InstallPrompt />
-      <Outlet />
     </div>
   );
 }

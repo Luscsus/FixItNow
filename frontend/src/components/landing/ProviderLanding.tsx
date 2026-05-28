@@ -353,7 +353,6 @@ export function ProviderLanding() {
         <div className="proof-grid-bg" />
         <div className="container" style={{ position: "relative", zIndex: 1 }}>
           <div className="proof-band-inner" style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 80, alignItems: "center" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 80, alignItems: "center" }}>
             <div>
               <span className="live-pulse" style={{ marginBottom: 14 }}>Provider economics · Last 90 days</span>
               <div className="proof-num" style={{ marginTop: 14 }}>

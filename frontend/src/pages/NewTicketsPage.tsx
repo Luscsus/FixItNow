@@ -662,7 +662,6 @@ export function NewTicketPage() {
           </section>
 
           <div className="row new-ticket-actions" style={{ marginTop: 24, gap: 12 }}>
-          <div className="row" style={{ marginTop: 24, gap: 12 }}>
             <div className="row gap-12">
               <Link to="/dashboard/user" className="btn btn-ghost">
                 Back to Dashboard

@@ -123,8 +123,6 @@ export function NotificationBell() {
   return (
     <div ref={ref} style={{ position: "relative" }}>
       {/* Bell button */}
-  return (
-    <div ref={ref} style={{ position: "relative" }}>
       <button
         title="Notifications"
         onClick={() => setOpen((o) => !o)}
@@ -179,7 +177,6 @@ export function NotificationBell() {
 
       {/* Desktop: absolute dropdown */}
       {!isMobile && open && (
-      {open && (
         <div style={{
           position: "absolute", top: "calc(100% + 8px)", right: 0,
           width: 340, maxWidth: "calc(100vw - 32px)",
@@ -201,7 +198,6 @@ export function NotificationBell() {
               <button
                 onClick={() => markAllRead.mutate()}
                 disabled={markAllRead.isPending}
-                style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, color: "var(--navy-700)", padding: 0 }}
                 style={{
                   background: "transparent", border: "none", cursor: "pointer",
                   fontSize: 12, fontWeight: 500, color: "var(--navy-700)",

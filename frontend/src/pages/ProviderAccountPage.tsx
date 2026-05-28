@@ -141,7 +141,6 @@ export function ProviderAccountPage() {
             <div className="week-sched-wrap">
               <WeekSchedule providerId={ownProfile.id} editable />
             </div>
-            <WeekSchedule providerId={ownProfile.id} editable />
           )}
 
           {activeTab === "Jobs" && <CompletedJobsCard />}

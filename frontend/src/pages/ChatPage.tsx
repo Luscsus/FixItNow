@@ -647,7 +647,6 @@ export function ChatPage() {
 
   return (
     <div className={`chat-shell${selectedRoomId ? ' chat-shell--thread-open' : ''}`}>
-    <div className="chat-shell">
 
       {/* ── Inbox sidebar ── */}
       <aside className="inbox">

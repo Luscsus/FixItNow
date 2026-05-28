@@ -15,17 +15,6 @@ if (import.meta.env.PROD) {
   registerSW({ immediate: true });
 }
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <ToastProvider>
-            <App />
-          </ToastProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
 const googleClientId: string = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
 
 const tree = (

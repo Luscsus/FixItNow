@@ -308,7 +308,6 @@ export function ProviderDashboardPage() {
           </div>
         ) : (
           <div className="dash-card-grid">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 48 }}>
             {inboundTickets.map((ticket) => (
               <RequestCard
                 key={ticket.id}
@@ -337,7 +336,6 @@ export function ProviderDashboardPage() {
               <span className="mono muted" style={{ fontSize: 11 }}>{activeJobs.length} IN PROGRESS</span>
             </div>
             <div className="dash-card-grid">
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 48 }}>
               {activeJobs.map((ticket) => (
                 <ActiveJobCard key={ticket.id} ticket={ticket} />
               ))}
@@ -364,7 +362,6 @@ export function ProviderDashboardPage() {
           </div>
         ) : (
           <div className="dash-card-grid">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 48 }}>
             {openTickets.map((ticket) => (
               <RequestCard
                 key={ticket.id}

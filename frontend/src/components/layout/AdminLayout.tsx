@@ -24,7 +24,6 @@ export function AdminLayout() {
         fontWeight: 700,
       }}>
         <div className="admin-strip-inner" style={{ maxWidth: 1280, margin: "0 auto", padding: "0 32px", display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 32px", display: "flex", alignItems: "center", gap: 14 }}>
           <span style={{ width: 6, height: 6, borderRadius: 3, background: "var(--navy-900)", display: "inline-block" }} />
           <span>Admin console</span>
           <span style={{ flex: 1 }} />
@@ -50,7 +49,6 @@ export function AdminLayout() {
         borderBottom: "1px solid var(--border)",
       }}>
         <div className="admin-topbar-inner" style={{
-        <div style={{
           maxWidth: 1280, margin: "0 auto", padding: "14px 32px",
           display: "flex", alignItems: "center", gap: 28,
         }}>
@@ -62,7 +60,6 @@ export function AdminLayout() {
             / Admin
           </span>
           <nav className="admin-tabs" style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: 12 }}>
-          <nav style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: 12 }}>
             {TABS.map((tab) => (
               <NavLink
                 key={tab.to}

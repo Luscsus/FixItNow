@@ -1419,10 +1419,6 @@ input, textarea, select { font: inherit; color: inherit; }
 .trade-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-/* ─── Trade chips (provider form) ─── */
-.trade-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
   gap: 6px;
 }
 .trade-chip {

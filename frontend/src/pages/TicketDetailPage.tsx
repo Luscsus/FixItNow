@@ -1,8 +1,5 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useTicketQuery } from "@/hooks/useTicketQuery";
-import { useAuth } from "@/context/auth";
-import { useUpdateTicketStatusMutation } from "@/hooks/useUpdateTicketStatusMutation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTicketQuery } from "@/hooks/useTicketQuery";
 import { useAuth } from "@/context/auth";
@@ -614,7 +611,6 @@ export function TicketDetailPage() {
   const navigate = useNavigate();
   const ticketId = id ? parseInt(id, 10) : NaN;
   const { role } = useAuth();
-  const updateMut = useUpdateTicketStatusMutation();
   const queryClient = useQueryClient();
   const updateMut = useUpdateTicketStatusMutation();
   const acceptMut = useAcceptTicketMutation();

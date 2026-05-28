@@ -64,6 +64,7 @@ export function TicketsTab() {
         </div>
       ) : (
         <div className="user-tickets-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 32 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 32 }}>
           {filtered.map((ticket) => (
             <TicketCard key={ticket.id} ticket={ticket} />
           ))}

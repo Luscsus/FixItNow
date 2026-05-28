@@ -1247,6 +1247,7 @@ input, textarea, select { font: inherit; color: inherit; }
   .tab-label-full  { display: none; }
   .tab-label-short { display: inline; }
 }
+.panel-title .rule { flex: 1; height: 1px; background: var(--border); }
 
 /* ─── Role chooser cards (register page) ─── */
 .choose-card {
@@ -1418,6 +1419,10 @@ input, textarea, select { font: inherit; color: inherit; }
 .trade-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+/* ─── Trade chips (provider form) ─── */
+.trade-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 6px;
 }
 .trade-chip {
@@ -3359,6 +3364,7 @@ input, textarea, select { font: inherit; color: inherit; }
 
 /* Conversation */
 .conv { flex: 1; display: flex; flex-direction: column; min-height: 0; background: var(--slate-50); overflow: hidden; }
+.conv { display: flex; flex-direction: column; min-height: 0; background: var(--slate-50); overflow: hidden; }
 .conv-head { padding: 16px 28px; border-bottom: 1px solid var(--border); background: var(--card); display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
 .conv-name h2 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.015em; }
 .conv-name .sub { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 4px; }

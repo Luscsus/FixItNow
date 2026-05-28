@@ -342,6 +342,7 @@ export function RegisterProviderPage() {
                   </div>
                   <div className="col" style={{ gap: 16 }}>
                     <div className="row form-row" style={{ gap: 12, alignItems: "flex-start" }}>
+                    <div className="row" style={{ gap: 12, alignItems: "flex-start" }}>
                       <div className="field grow">
                         <label className="field-label" htmlFor="prov-first">First name</label>
                         <div className={`input-wrap${errors.firstName ? " error" : ""}`}>
@@ -412,6 +413,7 @@ export function RegisterProviderPage() {
                   </p>
 
                   <div className="row form-row" style={{ gap: 12, alignItems: "flex-start", marginTop: 12 }}>
+                  <div className="row" style={{ gap: 12, alignItems: "flex-start", marginTop: 12 }}>
                     <div className="field" style={{ flex: 3 }}>
                       <label className="field-label" htmlFor="prov-street">Street name</label>
                       <div className={`input-wrap${errors.locationStreetName ? " error" : ""}`}>
@@ -442,6 +444,7 @@ export function RegisterProviderPage() {
                   </div>
 
                   <div className="row form-row" style={{ gap: 12, alignItems: "flex-start", marginTop: 8 }}>
+                  <div className="row" style={{ gap: 12, alignItems: "flex-start", marginTop: 8 }}>
                     <div className="field" style={{ flex: 1, minWidth: 0 }}>
                       <label className="field-label" htmlFor="prov-postal">Postal code</label>
                       <div className={`input-wrap${errors.locationPostalCode ? " error" : ""}`}>
@@ -473,6 +476,7 @@ export function RegisterProviderPage() {
                   </div>
 
                   <div className="row form-row" style={{ gap: 12, alignItems: "flex-start", marginTop: 8 }}>
+                  <div className="row" style={{ gap: 12, alignItems: "flex-start", marginTop: 8 }}>
                     <div className="field" style={{ flex: 1 }}>
                       <label className="field-label" htmlFor="prov-country">Country</label>
                       <div className={`input-wrap${errors.locationCountry ? " error" : ""}`}>
@@ -523,6 +527,7 @@ export function RegisterProviderPage() {
                     <span className="rule" />
                   </div>
                   <div className="row form-row" style={{ gap: 12, alignItems: "flex-start" }}>
+                  <div className="row" style={{ gap: 12, alignItems: "flex-start" }}>
                     <div className="field grow">
                       <label className="field-label" htmlFor="prov-years">Years of experience</label>
                       <div className={`input-wrap${errors.yearsOfExperience ? " error" : ""}`}>

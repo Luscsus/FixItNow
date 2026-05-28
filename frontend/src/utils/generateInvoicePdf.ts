@@ -6,10 +6,24 @@ export type InvoiceBankDetails = {
   accountHolder: string;
   /** IBAN, may be formatted with spaces — we normalize internally. */
   iban: string;
-  /** BIC / SWIFT (uppercase). */
-  bic: string;
   /** Free-text bank name for display. */
   bankName: string;
+  /**
+   * BIC / SWIFT. Optional — the SEPA EPC QR spec (BCD v002) lets you omit it
+   * for transfers within the EEA, and we don't collect it from providers.
+   */
+  bic?: string;
+  /**
+   * Recipient street + number (e.g. "Slovenska 1"). Used to populate the UPN
+   * QR "Ulica prejemnika" line, which Slovenian bank tariff engines need to
+   * classify the counterparty. Omitted from EPC QR (no equivalent field).
+   */
+  street?: string;
+  /**
+   * Recipient post code + city (e.g. "2000 Maribor"). Used as UPN QR
+   * "Kraj prejemnika".
+   */
+  city?: string;
 };
 
 export type InvoiceData = {
@@ -60,21 +74,143 @@ function fill(doc: jsPDF, c: readonly [number,number,number]) { doc.setFillColor
 function draw(doc: jsPDF, c: readonly [number,number,number]) { doc.setDrawColor(c[0],c[1],c[2]); }
 function ink (doc: jsPDF, c: readonly [number,number,number]) { doc.setTextColor(c[0],c[1],c[2]); }
 
-// ── Build SEPA EPC QR payload ─────────────────────────────────────────────────
+// ── Build SEPA EPC QR payload (EPC069-12, BCD v002) ─────────────────────────
+//
+// The on-wire layout is fixed-position, line-delimited (LF). Every line below
+// is mandatory by *position* even when empty:
+//
+//   1  Service tag           "BCD"           (mandatory)
+//   2  Version               "002"           (mandatory)
+//   3  Charset               "1" (UTF-8)     (mandatory)
+//   4  Identification        "SCT"           (mandatory)
+//   5  BIC                                   (optional in v002 for EEA — may be empty)
+//   6  Beneficiary name      max 70 chars    (mandatory)
+//   7  IBAN                  max 34 chars    (mandatory, no spaces)
+//   8  Amount                "EUR" + decimal (optional; 0.01–999999999.99 with dot)
+//   9  Purpose               4-letter ISO    (optional; we leave empty)
+//  10  Structured ref        ISO 11649 RFxx  (optional; mutually exclusive with #11)
+//  11  Unstructured ref      max 140 chars   (optional; we use this)
+//  12  B2O info              max 70 chars    (optional; omitted)
+//
+// Bugs in the previous payload (all rejected by conformant scanners):
+//   • "CHAR" on line 9 — that's not a valid ISO 20022 purpose code, it was a
+//     confusion with the ChargeBearer field from SEPA payment messages.
+//   • ticketCode placed on line 10 (structured) was not in RF-creditor-reference
+//     format, and lines 10 and 11 are mutually exclusive.
+//   • Non-ASCII chars in the beneficiary name (e.g. "Labaš") fail the SEPA
+//     character set check on many bank readers.
+function sanitizeForSepa(s: string, max: number): string {
+  // Strip diacritics (š → s, č → c, ž → z, etc.), drop anything outside the
+  // SEPA basic Latin set, then truncate to the field's max length.
+  const stripped = s
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^A-Za-z0-9/\-?:().,'+\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return stripped.slice(0, max);
+}
+
 function sepaPayload(data: InvoiceData, bank: InvoiceBankDetails): string {
+  const name = sanitizeForSepa(bank.accountHolder, 70);
+  // Combine the ticket code + service type as a single unstructured remittance.
+  const remittance = sanitizeForSepa(`${data.ticketCode} ${data.serviceType}`, 140);
+  // BCD requires 0.01 ≤ amount ≤ 999999999.99 with a dot decimal separator.
+  const amountLine = data.amount > 0 ? `EUR${data.amount.toFixed(2)}` : '';
+
   return [
-    'BCD',
-    '002',
-    '1',
-    'SCT',
-    bank.bic,
-    bank.accountHolder,
-    normalizeIban(bank.iban),
-    `EUR${data.amount.toFixed(2)}`,
-    'CHAR',
-    data.ticketCode,
-    data.serviceType,
+    'BCD',                          // 1  Service tag
+    '002',                          // 2  Version
+    '1',                            // 3  Charset (UTF-8)
+    'SCT',                          // 4  Identification
+    bank.bic ?? '',                 // 5  BIC (may be empty in v002)
+    name,                           // 6  Name (mandatory)
+    normalizeIban(bank.iban),       // 7  IBAN (mandatory, no spaces)
+    amountLine,                     // 8  Amount
+    '',                             // 9  Purpose (empty)
+    '',                             // 10 Structured ref (empty; we use unstructured)
+    remittance,                     // 11 Unstructured remittance
   ].join('\n');
+}
+
+// ── Build UPN QR payload (Slovenian Banks Association standard) ────────────
+//
+// Slovenian mobile banking apps (NLB Klik, Mobilna banka Go!, A Banka, etc.)
+// default to UPN QR for domestic payments and often reject EPC QR. The format
+// is 20 lines (LF-separated), with the last line a 3-digit "control sum" that
+// equals the byte length of lines 1–19 (content + separators) per the ZBS
+// technical standard.
+//
+// We keep payer fields empty (lines 2–8) — the payer's app fills those in.
+// We populate recipient IBAN/name and amount; ticket code + service type go
+// into the "namen plačila" field. ASCII only (we sanitize diacritics) so the
+// QR encodes losslessly under either UTF-8 or ISO-8859-2.
+function upnQrPayload(data: InvoiceData, bank: InvoiceBankDetails): string {
+  const recipientName   = sanitizeForSepa(bank.accountHolder, 33);
+  const recipientStreet = sanitizeForSepa(bank.street ?? '', 33);
+  const recipientCity   = sanitizeForSepa(bank.city ?? '', 33);
+  const purpose         = sanitizeForSepa(`${data.ticketCode} ${data.serviceType}`, 42);
+
+  // Recipient reference = `SI99` (model only — non-structured, no free text).
+  // NLB tolerates an empty reference; OTP rejects empty with "incorrect
+  // recipient reference". `SI99` is the official "no reference" marker per
+  // ZBS spec and satisfies OTP's validator without needing free-text content
+  // or a mod-11 check digit (the latter would be needed for `SI00`).
+  const recipientRef = 'SI99';
+
+  // Amount in cents as an 11-digit zero-padded string ("00000005000" = €50.00).
+  const cents = Math.max(0, Math.round(data.amount * 100));
+  const amount = String(cents).padStart(11, '0');
+
+  // Lines 1–19. Empty lines for fields we don't populate.
+  //
+  // Field choices that matter for the bank's tariff engine:
+  //   • Koda namena = "SCVE" (Purchase of services). More precise than the
+  //     broader GDSV; OTP banka in particular maps SCVE onto its standard
+  //     services-payment tariff, whereas GDSV/OTHR can fall back to
+  //     "compensation payment → undetermined tariff" on personal accounts.
+  //   • Rok plačila = empty. A future due date is interpreted by some apps
+  //     as a "scheduled / standing order", which has a different tariff
+  //     bracket (often undefined on personal accounts). Leaving it empty
+  //     marks the payment as immediate, which is what we actually want.
+  //   • Referenca prejemnika = "SI99". NLB tolerates an empty reference, but
+  //     OTP banka rejects empty with "incorrect recipient reference". SI99 is
+  //     the official "no reference / non-structured" marker per ZBS spec —
+  //     no free text needed, no mod-11 check digit (unlike SI00).
+  const lines = [
+    'UPNQR',                        //  1  Tag
+    '',                             //  2  Plačnik IBAN
+    '',                             //  3  Polog
+    '',                             //  4  Dvig
+    '',                             //  5  Plačnik referenca
+    '',                             //  6  Plačnik ime
+    '',                             //  7  Plačnik ulica
+    '',                             //  8  Plačnik kraj
+    amount,                         //  9  Znesek (11 digits)
+    '',                             // 10  Datum plačila
+    '',                             // 11  Nujno (empty = regular priority)
+    'SCVE',                         // 12  Koda namena (Purchase of services)
+    purpose,                        // 13  Namen plačila (≤42)
+    '',                             // 14  Rok plačila (empty = immediate)
+    normalizeIban(bank.iban),       // 15  Prejemnik IBAN (no spaces)
+    recipientRef,                   // 16  Prejemnik referenca (SI99 + code)
+    recipientName,                  // 17  Prejemnik ime
+    recipientStreet,                // 18  Prejemnik ulica
+    recipientCity,                  // 19  Prejemnik kraj
+  ];
+
+  const head = lines.join('\n');
+  // Control sum: byte length of everything in lines 1–19 (content + the 18
+  // LF separators between them), zero-padded to 3 digits.
+  const checksum = String(head.length).padStart(3, '0');
+  return `${head}\n${checksum}`;
+}
+
+function pickQrPayload(data: InvoiceData, bank: InvoiceBankDetails): string {
+  // Slovenian IBANs → UPN QR (what every domestic bank app expects).
+  // Everything else → EPC QR (the EU-wide standard).
+  const iban = normalizeIban(bank.iban);
+  return iban.startsWith('SI') ? upnQrPayload(data, bank) : sepaPayload(data, bank);
 }
 
 // ── Main export (async because QRCode.toDataURL is async) ─────────────────────
@@ -95,7 +231,9 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Blob> {
   const bank: InvoiceBankDetails = data.bank ?? MOCK_BANK;
 
   // Pre-generate QR code as PNG data-URL
-  const qrDataUrl = await QRCode.toDataURL(sepaPayload(data, bank), {
+  // Pick the right payment-QR dialect based on the recipient IBAN's country.
+  // SI* → UPN QR (Slovenian standard); everything else → EPC QR (EU standard).
+  const qrDataUrl = await QRCode.toDataURL(pickQrPayload(data, bank), {
     width: 140, margin: 1, color: { dark: '#0B1E3F', light: '#FFFFFF' },
   });
 
@@ -217,11 +355,12 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Blob> {
   fill(doc, BG); draw(doc, BORDER); doc.setLineWidth(0.5);
   doc.roundedRect(mar, y, payBoxW, 148, 4, 4, 'FD');
 
+  // BIC is rendered only when set — we no longer require providers to enter it.
   const rows: [string, string][] = [
     ['Bank',      bank.bankName],
     ['Account',   bank.accountHolder],
     ['IBAN',      formatIban(bank.iban)],
-    ['BIC/SWIFT', bank.bic],
+    ...(bank.bic ? ([['BIC/SWIFT', bank.bic]] as [string, string][]) : []),
     ['Reference', data.ticketCode],
     ['Amount',    `€ ${data.amount.toFixed(2)}`],
     ['Due date',  dueDate],
@@ -251,9 +390,12 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Blob> {
   doc.text('SCAN TO PAY', qrX + qrBoxW / 2, y + 138, { align: 'center' });
   doc.setCharSpace(0);
 
-  // SEPA label
+  // Caption matches the actual QR dialect we chose above.
+  const qrCaption = normalizeIban(bank.iban).startsWith('SI')
+    ? 'UPN QR · Slovenian payment'
+    : 'EPC SEPA Credit Transfer';
   doc.setFont('helvetica', 'normal'); doc.setFontSize(7); ink(doc, SLATE);
-  doc.text('EPC SEPA Credit Transfer', qrX + qrBoxW / 2, y + 148, { align: 'center' });
+  doc.text(qrCaption, qrX + qrBoxW / 2, y + 148, { align: 'center' });
 
   // ── Paid stamp (green) — only if context says completed ───────────────────────
   // (left here as reference — callers can pass isPaid if needed)

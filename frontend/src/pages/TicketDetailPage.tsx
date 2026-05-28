@@ -3,6 +3,12 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTicketQuery } from "@/hooks/useTicketQuery";
 import { useAuth } from "@/context/auth";
 import { useUpdateTicketStatusMutation } from "@/hooks/useUpdateTicketStatusMutation";
+import { useQueryClient } from "@tanstack/react-query";
+import { useTicketQuery } from "@/hooks/useTicketQuery";
+import { useAuth } from "@/context/auth";
+import { useUpdateTicketStatusMutation } from "@/hooks/useUpdateTicketStatusMutation";
+import { useAcceptTicketMutation } from "@/hooks/useAcceptTicketMutation";
+import { useConfirmTicketMutation, useDeclineTicketMutation } from "@/hooks/useConfirmTicketMutation";
 import { TicketChatPanel } from "@/components/ticket/TicketChatPanel";
 import { IssueInvoicePanel } from "@/components/ticket/IssueInvoicePanel";
 import { generateInvoicePdf } from "@/utils/generateInvoicePdf";
@@ -609,6 +615,11 @@ export function TicketDetailPage() {
   const ticketId = id ? parseInt(id, 10) : NaN;
   const { role } = useAuth();
   const updateMut = useUpdateTicketStatusMutation();
+  const queryClient = useQueryClient();
+  const updateMut = useUpdateTicketStatusMutation();
+  const acceptMut = useAcceptTicketMutation();
+  const confirmMut = useConfirmTicketMutation();
+  const declineMut = useDeclineTicketMutation();
 
   const { data: ticket, isLoading, isError } = useTicketQuery(ticketId);
 
@@ -868,6 +879,7 @@ export function TicketDetailPage() {
       {/* ── Body ── */}
       <main
         className="container ticket-detail-body"
+        className="container"
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 360px",
@@ -1031,10 +1043,61 @@ export function TicketDetailPage() {
             <button
               className="btn btn-secondary"
               onClick={() => navigate("/dashboard/user")}
+              onClick={() => navigate(isProvider ? "/dashboard/provider" : "/dashboard/user")}
             >
               ← Back to dashboard
             </button>
             <span className="grow" />
+            {isProvider && ticket.status === "PENDING_APPROVAL" && (() => {
+              const isUnassigned = !ticket.assignedServiceProviderId;
+              const anyPending = acceptMut.isPending || confirmMut.isPending || declineMut.isPending;
+              const refreshTicket = () =>
+                queryClient.invalidateQueries({ queryKey: ["tickets", ticketId] });
+
+              const handleAccept = () => {
+                if (isUnassigned) {
+                  acceptMut.mutate(ticket.id, { onSuccess: refreshTicket });
+                } else if (ticket.requestedStartAt) {
+                  confirmMut.mutate(ticket.id, { onSuccess: refreshTicket });
+                } else {
+                  updateMut.mutate({ ticketId: ticket.id, status: "APPROVED" });
+                }
+              };
+
+              const acceptLabel = isUnassigned
+                ? "Accept & assign →"
+                : ticket.requestedStartAt
+                  ? "Confirm & schedule →"
+                  : "Accept →";
+
+              return (
+                <>
+                  {!isUnassigned && (
+                    <button
+                      className="btn btn-secondary"
+                      disabled={anyPending}
+                      onClick={() =>
+                        declineMut.mutate(ticket.id, {
+                          onSuccess: () => {
+                            refreshTicket();
+                            navigate("/dashboard/provider");
+                          },
+                        })
+                      }
+                    >
+                      {declineMut.isPending ? "Declining…" : "Decline"}
+                    </button>
+                  )}
+                  <button
+                    className="btn btn-primary"
+                    disabled={anyPending}
+                    onClick={handleAccept}
+                  >
+                    {anyPending ? "Updating…" : acceptLabel}
+                  </button>
+                </>
+              );
+            })()}
             {nextStatus && (
               <button
                 className="btn btn-primary"

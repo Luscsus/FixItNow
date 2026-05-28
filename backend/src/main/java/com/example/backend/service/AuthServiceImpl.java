@@ -20,6 +20,9 @@ import com.example.backend.web.dto.response.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -29,6 +32,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.web.client.RestTemplate;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -47,6 +55,7 @@ public class AuthServiceImpl implements AuthService {
     private final EmailService emailService;
     private final TwoFactorService twoFactorService;
     private final AuthenticationManager authenticationManager;
+    private final RestTemplate restTemplate;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -275,6 +284,72 @@ public class AuthServiceImpl implements AuthService {
         refreshTokenRepository.save(refreshToken);
 
         return buildAuthResponse(refreshToken.getUser());
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public AuthResponse googleLogin(GoogleLoginRequest request) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(request.getAccessToken());
+        Map<String, Object> userInfo;
+        try {
+            userInfo = restTemplate.exchange(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                Map.class
+            ).getBody();
+        } catch (Exception e) {
+            throw new ApiException("Failed to verify Google token.");
+        }
+
+        if (userInfo == null || !Boolean.TRUE.equals(userInfo.get("email_verified"))) {
+            throw new ApiException("Google account email is not verified.");
+        }
+
+        String googleId = (String) userInfo.get("sub");
+        String email = ((String) userInfo.get("email")).toLowerCase();
+        String firstName = (String) userInfo.getOrDefault("given_name", "");
+        String lastName = (String) userInfo.getOrDefault("family_name", "");
+        String pictureUrl = (String) userInfo.get("picture");
+
+        User user = userRepository.findByGoogleId(googleId)
+            .orElseGet(() -> userRepository.findByEmail(email)
+                .map(existing -> {
+                    existing.setGoogleId(googleId);
+                    if (pictureUrl != null && existing.getProfilePictureUrl() == null) {
+                        existing.setProfilePictureUrl(pictureUrl);
+                    }
+                    return userRepository.save(existing);
+                })
+                .orElseGet(() -> {
+                    User newUser = User.builder()
+                        .email(email)
+                        .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                        .firstName(firstName.isBlank() ? "User" : firstName)
+                        .lastName(lastName.isBlank() ? "" : lastName)
+                        .googleId(googleId)
+                        .profilePictureUrl(pictureUrl)
+                        .role(UserRole.CUSTOMER)
+                        .status(UserStatus.ACTIVE)
+                        .emailVerified(true)
+                        .build();
+                    return userRepository.save(newUser);
+                })
+            );
+
+        if (user.getStatus() == UserStatus.PENDING_APPROVAL) {
+            throw new ApiException("Your provider application is still pending approval by an administrator.");
+        }
+        if (user.getStatus() == UserStatus.REJECTED) {
+            throw new ApiException("Your provider application has been declined.");
+        }
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new ApiException("Account is not active. Status: " + user.getStatus());
+        }
+
+        log.info("Google login: {}", email);
+        return buildAuthResponse(user);
     }
 
     @Override

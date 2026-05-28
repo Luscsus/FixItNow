@@ -59,6 +59,9 @@ export function ProviderAccountPage() {
 
   // Provider is missing payout details if ANY of the four required bank fields
   // is empty. Until they fill these in they can't accept work.
+  // Provider is missing payout details if any required bank field is empty.
+  // Until they fill these in they can't accept work. (BIC/SWIFT was dropped —
+  // not needed for SEPA transfers within the EEA.)
   const bankInfoMissing =
     !!ownProfile &&
     (!ownProfile.bankAccountHolder?.trim()
@@ -138,6 +141,7 @@ export function ProviderAccountPage() {
             <div className="week-sched-wrap">
               <WeekSchedule providerId={ownProfile.id} editable />
             </div>
+            <WeekSchedule providerId={ownProfile.id} editable />
           )}
 
           {activeTab === "Jobs" && <CompletedJobsCard />}

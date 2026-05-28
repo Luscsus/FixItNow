@@ -345,6 +345,7 @@ export function BrowseProvidersPage() {
         </div>
 
         <div className="browse-searchbar-wrap" style={{ position: "relative", zIndex: 10 }}>
+        <div style={{ position: "relative", zIndex: 10 }}>
         <SearchBar
           barRef={barRef}
           selectedCategories={selectedCategories}
@@ -402,6 +403,8 @@ export function BrowseProvidersPage() {
               )}
             </button>
           )}
+        {/* Map toggle button */}
+        <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
           <button
             type="button"
             onClick={() => setMapOpen((v) => !v)}
@@ -451,6 +454,7 @@ export function BrowseProvidersPage() {
               position: "relative",
               zIndex: 1,
               height: isMobile ? 280 : 440,
+              height: 440,
               borderRadius: 12,
               overflow: "hidden",
               border: "1px solid var(--border)",
@@ -492,6 +496,10 @@ export function BrowseProvidersPage() {
           style={{
             display: "grid",
             gridTemplateColumns: isMobile ? "1fr" : "232px 1fr",
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "232px 1fr",
             gap: 32,
             alignItems: "flex-start",
           }}
@@ -518,6 +526,25 @@ export function BrowseProvidersPage() {
               onReset={handleReset}
             />
           )}
+          <FilterSidebar
+            selectedCategories={selectedCategories}
+            toggleCategory={toggleCategory}
+            radiusKm={radiusKm}
+            setRadiusKm={setRadiusKm}
+            minPrice={minPrice}
+            setMinPrice={setMinPrice}
+            maxPrice={maxPrice}
+            setMaxPrice={setMaxPrice}
+            minExp={minExp}
+            setMinExp={setMinExp}
+            setPage={setPage}
+            coords={coords}
+            locationEnabled={locationEnabled}
+            setLocationEnabled={handleLocationToggle}
+            categories={activeCategories}
+            categoryCountMap={categoryCountMap}
+            onReset={handleReset}
+          />
 
           <ResultsSection
             resultsRef={resultsRef}

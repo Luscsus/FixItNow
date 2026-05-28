@@ -647,6 +647,7 @@ export function ChatPage() {
 
   return (
     <div className={`chat-shell${selectedRoomId ? ' chat-shell--thread-open' : ''}`}>
+    <div className="chat-shell">
 
       {/* ── Inbox sidebar ── */}
       <aside className="inbox">
@@ -878,6 +879,8 @@ export function ChatPage() {
               <textarea
                 placeholder={isMobile ? "Type a message…" : "Type a message… (Enter to send, Shift + Enter for newline)"}
                 rows={isMobile ? 1 : 2}
+                placeholder="Type a message… (Enter to send, Shift + Enter for newline)"
+                rows={2}
                 value={text}
                 onChange={e => handleTextChange(e.target.value)}
                 onKeyDown={handleKeyDown}

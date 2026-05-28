@@ -543,6 +543,22 @@ export function EditProviderProfileForm() {
             </div>
             {errors.bankName && <span className="field-error">{errors.bankName}</span>}
           </div>
+          {errors.bankIban && <span className="field-error">{errors.bankIban}</span>}
+        </div>
+
+        <div className="field" style={{ marginTop: 12 }}>
+          <label className="field-label" htmlFor="p-bank-name">Bank name</label>
+          <div className={`input-wrap${errors.bankName ? " error" : ""}`}>
+            <input
+              id="p-bank-name"
+              className="input"
+              placeholder="Nova Ljubljanska Banka"
+              value={form.bankName}
+              onChange={setField("bankName")}
+              autoComplete="off"
+            />
+          </div>
+          {errors.bankName && <span className="field-error">{errors.bankName}</span>}
         </div>
       </div>
 

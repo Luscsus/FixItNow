@@ -46,6 +46,7 @@ export function UserAccountPage() {
               >
                 <span className="tab-label-full">{tab}</span>
                 <span className="tab-label-short">{TABS_SHORT[tab]}</span>
+                {tab}
               </button>
             ))}
           </div>

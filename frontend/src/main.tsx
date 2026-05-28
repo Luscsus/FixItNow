@@ -1,3 +1,4 @@
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -25,5 +26,28 @@ createRoot(document.getElementById("root")!).render(
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
+const googleClientId: string = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
+
+const tree = (
+  <QueryClientProvider client={queryClient}>
+    <BrowserRouter>
+      <AuthProvider>
+        <ToastProvider>
+          <App />
+        </ToastProvider>
+      </AuthProvider>
+    </BrowserRouter>
+  </QueryClientProvider>
+);
+
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    {googleClientId ? (
+      <GoogleOAuthProvider clientId={googleClientId}>
+        {tree}
+      </GoogleOAuthProvider>
+    ) : (
+      tree
+    )}
   </StrictMode>,
 );

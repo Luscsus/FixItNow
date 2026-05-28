@@ -66,6 +66,9 @@ public class User {
     @Column(length = 100)
     private String twoFactorSecret;
 
+    @Column(name = "google_id", unique = true, length = 255)
+    private String googleId;
+
     @Column(name = "profile_picture_url", length = 1024)
     private String profilePictureUrl;
 

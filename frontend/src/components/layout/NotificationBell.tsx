@@ -123,6 +123,8 @@ export function NotificationBell() {
   return (
     <div ref={ref} style={{ position: "relative" }}>
       {/* Bell button */}
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
       <button
         title="Notifications"
         onClick={() => setOpen((o) => !o)}
@@ -177,6 +179,7 @@ export function NotificationBell() {
 
       {/* Desktop: absolute dropdown */}
       {!isMobile && open && (
+      {open && (
         <div style={{
           position: "absolute", top: "calc(100% + 8px)", right: 0,
           width: 340, maxWidth: "calc(100vw - 32px)",
@@ -187,6 +190,7 @@ export function NotificationBell() {
           overflow: "hidden",
           zIndex: 50,
         }}>
+          {/* Header */}
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
             padding: "12px 16px",
@@ -198,12 +202,55 @@ export function NotificationBell() {
                 onClick={() => markAllRead.mutate()}
                 disabled={markAllRead.isPending}
                 style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, color: "var(--navy-700)", padding: 0 }}
+                style={{
+                  background: "transparent", border: "none", cursor: "pointer",
+                  fontSize: 12, fontWeight: 500, color: "var(--navy-700)",
+                  padding: 0,
+                }}
               >
                 Mark all read
               </button>
             )}
           </div>
           {notifList}
+
+          {/* List */}
+          <div style={{ maxHeight: 380, overflowY: "auto" }}>
+            {isLoading ? (
+              <div style={{ padding: "24px 16px", textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>
+                Loading…
+              </div>
+            ) : notifications.length === 0 ? (
+              <div style={{ padding: "28px 16px", textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>
+                You're all caught up.
+              </div>
+            ) : (
+              notifications.map((n) => (
+                <button
+                  key={n.id}
+                  onClick={() => handleItemClick(n)}
+                  style={{
+                    display: "flex", alignItems: "flex-start", gap: 10, width: "100%",
+                    padding: "12px 16px", textAlign: "left",
+                    background: n.read ? "transparent" : "rgba(59,130,246,0.05)",
+                    border: "none", borderBottom: "1px solid rgba(15,23,42,0.05)",
+                    cursor: "pointer", transition: "background 0.1s",
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(15,23,42,0.04)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = n.read ? "transparent" : "rgba(59,130,246,0.05)"; }}
+                >
+                  {n.type === "NEW_MESSAGE" ? <MessageDot /> : <TicketDot />}
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{n.title}</span>
+                    {n.body && (
+                      <span style={{ display: "block", fontSize: 12.5, color: "var(--text-muted)", marginTop: 1 }}>{n.body}</span>
+                    )}
+                    <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>{formatRelativeTime(n.createdAt)}</span>
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>

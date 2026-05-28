@@ -18,21 +18,34 @@ export function IssueInvoicePanel({ ticket }: Props) {
   const [amount, setAmount] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // Provider can only issue an invoice if all four bank fields are set —
-  // otherwise the resulting PDF would advertise placeholder details.
+  // Provider can only issue an invoice once the required bank fields are set —
+  // otherwise the resulting PDF would advertise placeholder details. BIC/SWIFT
+  // is no longer collected; the SEPA QR works fine without it inside the EEA.
   const bankReady = !!provider
     && !!provider.bankAccountHolder?.trim()
     && !!provider.bankIban?.trim()
-    && !!provider.bankBic?.trim()
     && !!provider.bankName?.trim();
 
   function buildBank(): InvoiceBankDetails | null {
     if (!provider || !bankReady) return null;
+    // Compose the provider's address from their stored location. Slovenian
+    // bank tariff engines need a recipient address to classify the payment —
+    // without it the transaction lands in the generic "compensation payment"
+    // bucket, which often has no defined tariff and rejects on submit.
+    const street = [provider.locationStreetName, provider.locationStreetNumber]
+      .filter((p) => p && p.trim())
+      .join(' ')
+      .trim();
+    const city = [provider.locationPostalCode, provider.locationCity]
+      .filter((p) => p && p.trim())
+      .join(' ')
+      .trim();
     return {
       accountHolder: provider.bankAccountHolder!,
       iban: provider.bankIban!,
-      bic: provider.bankBic!,
       bankName: provider.bankName!,
+      street: street || undefined,
+      city: city || undefined,
     };
   }
 

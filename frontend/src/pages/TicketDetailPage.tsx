@@ -444,6 +444,7 @@ function MetaCard({ ticket }: { ticket: Ticket }) {
 
   return (
     <div
+      className="ticket-meta-card"
       style={{
         display: "grid",
         gridTemplateColumns: "repeat(4, 1fr)",
@@ -669,6 +670,7 @@ export function TicketDetailPage() {
 
       {/* ── Live header ── */}
       <section
+        className="ticket-live-header"
         style={{
           background: "var(--navy-900)",
           backgroundImage:
@@ -865,7 +867,7 @@ export function TicketDetailPage() {
 
       {/* ── Body ── */}
       <main
-        className="container"
+        className="container ticket-detail-body"
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 360px",

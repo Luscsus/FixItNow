@@ -12,6 +12,7 @@ import type { ChatRoomSummary } from '@/domain/chat';
 import { useChatWebSocket } from '@/hooks/useChatWebSocket';
 import type { Ticket, TicketPriority, TicketStatus } from '@/domain/ticket';
 import type { ChatMessage, MessageStatus } from '@/domain/chat';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -263,6 +264,7 @@ function TypingIndicator({ name }: { name: string }) {
 export function ChatPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isMobile } = useBreakpoint();
   const { accessToken, role, refreshSession } = useAuth();
   const currentUserQuery = useCurrentUser();
   const currentUserId = currentUserQuery.data?.id ?? '';
@@ -523,6 +525,11 @@ export function ChatPage() {
     setStagedFiles(prev => { prev.forEach(sf => { if (sf.objectUrl) URL.revokeObjectURL(sf.objectUrl); }); return []; });
   };
 
+  const handleBack = () => {
+    setSelectedRoomId(null);
+    setSearchParams({});
+  };
+
   const handleSend = async () => {
     setSendError(null);
     const hasText = text.trim().length > 0;
@@ -639,7 +646,7 @@ export function ChatPage() {
   const canSend = (text.trim().length > 0 || stagedFiles.length > 0) && !isUploading;
 
   return (
-    <div className="chat-shell">
+    <div className={`chat-shell${selectedRoomId ? ' chat-shell--thread-open' : ''}`}>
 
       {/* ── Inbox sidebar ── */}
       <aside className="inbox">
@@ -686,6 +693,12 @@ export function ChatPage() {
           ))}
         </div>
       </aside>
+
+      {/* ── Right side: back button + conv/empty panel ── */}
+      <div className="chat-right">
+        <button className="conv-back-btn" type="button" onClick={handleBack}>
+          ← Inbox
+        </button>
 
       {/* ── Conversation panel ── */}
       {selectedConv ? (
@@ -863,8 +876,8 @@ export function ChatPage() {
                 </div>
               )}
               <textarea
-                placeholder="Type a message… (Enter to send, Shift + Enter for newline)"
-                rows={2}
+                placeholder={isMobile ? "Type a message…" : "Type a message… (Enter to send, Shift + Enter for newline)"}
+                rows={isMobile ? 1 : 2}
                 value={text}
                 onChange={e => handleTextChange(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -938,6 +951,7 @@ export function ChatPage() {
           <div style={{ fontSize: 13 }}>Choose a ticket from the inbox to start chatting</div>
         </div>
       )}
+      </div>{/* end .chat-right */}
     </div>
   );
 }

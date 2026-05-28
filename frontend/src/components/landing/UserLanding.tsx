@@ -220,7 +220,7 @@ export function UserLanding() {
 
                   <button
                     type="submit"
-                    className="btn btn-primary"
+                    className="btn btn-primary problem-submit"
                     style={{ marginLeft: "auto" }}
                     disabled={classifying}
                   >
@@ -528,7 +528,7 @@ export function UserLanding() {
       <section style={{ background: "var(--navy-900)", color: "#fff", padding: "64px 0", overflow: "hidden", position: "relative", marginTop: 96 }}>
         <div className="proof-grid-bg" />
         <div className="container" style={{ position: "relative", zIndex: 1 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 80, alignItems: "center" }}>
+          <div className="proof-band-inner" style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 80, alignItems: "center" }}>
             <div>
               <span className="live-pulse" style={{ marginBottom: 14 }}>Last 30 days</span>
               <div className="proof-num" style={{ marginTop: 14 }}>

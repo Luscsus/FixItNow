@@ -103,13 +103,13 @@ function ActiveJob({ ticket }: { ticket: Ticket }) {
           {ticket.location && <span>{ticket.location}</span>}
           {ticket.requestedStartAt && (
             <>
-              <span>·</span>
+              {(ticket.submittedByName || ticket.location) && <span>·</span>}
               <span className="mono">Scheduled {fmtTime(ticket.requestedStartAt)}</span>
             </>
           )}
           {ticket.estimatedCost != null && (
             <>
-              <span>·</span>
+              {(ticket.submittedByName || ticket.location || ticket.requestedStartAt) && <span>·</span>}
               <span className="mono">${ticket.estimatedCost.toFixed(2)} quoted</span>
             </>
           )}

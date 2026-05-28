@@ -352,7 +352,7 @@ export function UserDashboardPage() {
             )}
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 48 }}>
+          <div className="dash-card-grid">
             {filteredTickets.map((ticket) => (
               <TicketCard
                 key={ticket.id}

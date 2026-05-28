@@ -3,6 +3,8 @@ import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/context/auth";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { NotificationBell } from "@/components/layout/NotificationBell";
+import { MobileNav } from "@/components/layout/MobileNav";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import type { UserRole } from "@/domain/auth";
 
 function dashboardHref(role: UserRole | null, isAuthenticated: boolean): string {
@@ -76,7 +78,7 @@ export function AppLayout() {
         WebkitBackdropFilter: "saturate(180%) blur(12px)",
         borderBottom: "1px solid rgba(15, 23, 42, 0.08)",
       }}>
-        <div style={{
+        <div className="app-header-inner" style={{
           maxWidth: 1280, margin: "0 auto",
           padding: "0 32px",
           height: 60,
@@ -98,7 +100,7 @@ export function AppLayout() {
           </Link>
 
           {/* Nav links */}
-          <nav style={{ display: "flex", gap: 2 }}>
+          <nav className="app-header-navlinks" style={{ display: "flex", gap: 2 }}>
             {navLinks.map(({ label, href }) => (
               <NavLink key={label} to={href}>
                 {({ isActive }) => (
@@ -147,6 +149,7 @@ export function AppLayout() {
             {isAuthenticated && role === "CUSTOMER" && (
               <NavLink
                 to="/tickets/new"
+                className="app-header-cta-newticket"
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
                   padding: "7px 14px",
@@ -285,7 +288,12 @@ export function AppLayout() {
         </div>
       </header>
 
-      <Outlet />
+      <div className="has-mobile-nav-pad" style={{ flex: 1, minHeight: 0 }}>
+        <Outlet />
+      </div>
+
+      <MobileNav />
+      <InstallPrompt />
     </div>
   );
 }

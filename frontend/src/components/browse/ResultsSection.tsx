@@ -7,6 +7,7 @@ import { type Segment, SORT_OPTIONS, DROPDOWN } from "./browseConstants";
 function SkeletonCard() {
   return (
     <div
+      className="browse-skeleton-card"
       style={{
         display: "grid",
         gridTemplateColumns: "96px 1fr auto",
@@ -98,6 +99,7 @@ export function ResultsSection({
     <section ref={resultsRef}>
       {/* Results header */}
       <div
+        className="browse-results-header"
         style={{
           display: "flex",
           alignItems: "center",

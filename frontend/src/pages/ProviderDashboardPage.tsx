@@ -307,7 +307,7 @@ export function ProviderDashboardPage() {
             <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>Tickets assigned specifically to you will appear here.</div>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 48 }}>
+          <div className="dash-card-grid">
             {inboundTickets.map((ticket) => (
               <RequestCard
                 key={ticket.id}
@@ -335,7 +335,7 @@ export function ProviderDashboardPage() {
               <span className="rule" />
               <span className="mono muted" style={{ fontSize: 11 }}>{activeJobs.length} IN PROGRESS</span>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 48 }}>
+            <div className="dash-card-grid">
               {activeJobs.map((ticket) => (
                 <ActiveJobCard key={ticket.id} ticket={ticket} />
               ))}
@@ -361,7 +361,7 @@ export function ProviderDashboardPage() {
             <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>Tickets open to all providers will appear here.</div>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 48 }}>
+          <div className="dash-card-grid">
             {openTickets.map((ticket) => (
               <RequestCard
                 key={ticket.id}

@@ -16,7 +16,7 @@ Every push to the `main` branch automatically runs tests and deploys the affecte
 
 **Workflow:** `.github/workflows/frontend.yml`  
 **Triggers:** push to `main` when files inside `frontend/` change  
-**Deploys to:** Netlify — https://fixitnowfrontend.netlify.app
+**Deploys to:** Netlify — https://fixitnow.si
 
 | Step | What happens |
 |---|---|

@@ -289,17 +289,6 @@ export function ProviderDashboardPage() {
   const declineMut = useDeclineTicketMutation();
   const acceptOpen = useAcceptTicketMutation();
 
-  // Single error handler for any "missing payout details" rejection. The server
-  // sends back a clear message, but we want to surface it as a toast (not a
-  // silent failure) and direct the user to where they can fix it.
-  const handleAcceptError = (err: unknown) => {
-    const msg = getErrorMessage(err);
-    notify(msg || "Could not accept this ticket.", "error");
-  };
-
-  // Single error handler for any "missing payout details" rejection. The server
-  // sends back a clear message, but we want to surface it as a toast (not a
-  // silent failure) and direct the user to where they can fix it.
   const handleAcceptError = (err: unknown) => {
     const msg = getErrorMessage(err);
     notify(msg || "Could not accept this ticket.", "error");

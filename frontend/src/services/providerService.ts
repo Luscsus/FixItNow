@@ -42,6 +42,7 @@ export interface ProviderDto {
   profilePictureUrl?: string | null
   status: string
   createdAt: string
+  emailVerified?: boolean
   distanceKm: number | null
 }
 

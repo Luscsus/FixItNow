@@ -9,6 +9,8 @@ import { useOpenTicketsQuery } from "@/hooks/useOpenTicketsQuery";
 import { useProviderTicketsQuery } from "@/hooks/useProviderTicketsQuery";
 import { useUpdateTicketStatusMutation } from "@/hooks/useUpdateTicketStatusMutation";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/toast";
+import { getErrorMessage } from "@/lib/errorMessage";
 
 const ACTIVE_STATUSES: TicketStatus[] = [
   "APPROVED",
@@ -280,11 +282,28 @@ export function ProviderDashboardPage() {
     useProviderTicketsQuery();
   const { data: openTickets = [], isLoading: loadingOpen } =
     useOpenTicketsQuery();
+  const { notify } = useToast();
 
   const updateStatus = useUpdateTicketStatusMutation();
   const confirmMut = useConfirmTicketMutation();
   const declineMut = useDeclineTicketMutation();
   const acceptOpen = useAcceptTicketMutation();
+
+  // Single error handler for any "missing payout details" rejection. The server
+  // sends back a clear message, but we want to surface it as a toast (not a
+  // silent failure) and direct the user to where they can fix it.
+  const handleAcceptError = (err: unknown) => {
+    const msg = getErrorMessage(err);
+    notify(msg || "Could not accept this ticket.", "error");
+  };
+
+  // Single error handler for any "missing payout details" rejection. The server
+  // sends back a clear message, but we want to surface it as a toast (not a
+  // silent failure) and direct the user to where they can fix it.
+  const handleAcceptError = (err: unknown) => {
+    const msg = getErrorMessage(err);
+    notify(msg || "Could not accept this ticket.", "error");
+  };
 
   const inboundTickets = providerTickets.filter(
     (t) => t.status === "PENDING_APPROVAL",
@@ -473,11 +492,16 @@ export function ProviderDashboardPage() {
                 }
                 onAccept={() =>
                   ticket.requestedStartAt
-                    ? confirmMut.mutate(ticket.id)
-                    : updateStatus.mutate({
-                        ticketId: ticket.id,
-                        status: "APPROVED",
+                    ? confirmMut.mutate(ticket.id, {
+                        onError: handleAcceptError,
                       })
+                    : updateStatus.mutate(
+                        {
+                          ticketId: ticket.id,
+                          status: "APPROVED",
+                        },
+                        { onError: handleAcceptError },
+                      )
                 }
                 onDecline={() => declineMut.mutate(ticket.id)}
               />
@@ -567,11 +591,7 @@ export function ProviderDashboardPage() {
                 acceptLabel="Accept & assign →"
                 isPending={acceptOpen.isPending}
                 onAccept={() => {
-                  try {
-                    acceptOpen.mutate(ticket.id);
-                  } catch {
-                    // handled by mutation state
-                  }
+                  acceptOpen.mutate(ticket.id, { onError: handleAcceptError });
                 }}
               />
             ))}

@@ -52,4 +52,25 @@ public class Provider extends User {
 
     @Column(name = "rejection_reason", length = 1000)
     private String rejectionReason;
+
+    // ─── Payout / invoice bank details ───────────────────────────────────────
+    // Required before the provider can accept work. Stored on the Provider
+    // entity (one bank account per provider). All nullable in the DB so we
+    // can grandfather existing providers, but enforced at the service layer.
+
+    /** Name on the bank account. Defaults to the provider's full name on first save. */
+    @Column(name = "bank_account_holder", length = 200)
+    private String bankAccountHolder;
+
+    /** IBAN, stored without spaces (e.g. SI56123456789012345). Validated on write. */
+    @Column(name = "bank_iban", length = 50)
+    private String bankIban;
+
+    /** BIC / SWIFT (8 or 11 chars). */
+    @Column(name = "bank_bic", length = 20)
+    private String bankBic;
+
+    /** Free-text bank name for invoice display. */
+    @Column(name = "bank_name", length = 200)
+    private String bankName;
 }

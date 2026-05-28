@@ -8,6 +8,7 @@ import { updateCurrentProvider, updateProfilePicture } from "@/services/userServ
 import { uploadImage } from "@/services/imageService";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { mapZodErrors } from "@/lib/validation";
+import { formatIban, isValidIban, normalizeIban } from "@/lib/iban";
 import type { ServiceCategory } from "@/domain/admin";
 
 const TRADES: { label: string; icon: string; category: ServiceCategory }[] = [
@@ -44,7 +45,14 @@ const schema = z.object({
   serviceRadiusKm: z.number().int().min(1).max(500),
   categories: z.array(z.string()).min(1, "Pick at least one category."),
   bio: z.string().max(BIO_MAX).optional(),
-});
+  // Bank fields — optional at save time. If iban is provided, it must validate.
+  bankAccountHolder: z.string().max(200).optional(),
+  bankIban: z.string().optional(),
+  bankName: z.string().max(200).optional(),
+}).refine(
+  (v) => !v.bankIban || isValidIban(v.bankIban),
+  { path: ["bankIban"], message: "Invalid IBAN — check country code, length, and digits." },
+);
 
 type Fields =
   | "firstName"
@@ -59,7 +67,10 @@ type Fields =
   | "yearsOfExperience"
   | "serviceRadiusKm"
   | "categories"
-  | "bio";
+  | "bio"
+  | "bankAccountHolder"
+  | "bankIban"
+  | "bankName";
 
 export function EditProviderProfileForm() {
   const { accessToken } = useAuth();
@@ -93,6 +104,9 @@ export function EditProviderProfileForm() {
     yearsOfExperience: "",
     serviceRadiusKm: "",
     bio: "",
+    bankAccountHolder: "",
+    bankIban: "",
+    bankName: "",
   });
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [errors, setErrors] = useState<Partial<Record<Fields, string>>>({});
@@ -114,6 +128,11 @@ export function EditProviderProfileForm() {
         yearsOfExperience: provider.yearsOfExperience?.toString() ?? "",
         serviceRadiusKm: provider.serviceRadiusKm?.toString() ?? "",
         bio: provider.bio ?? "",
+        bankAccountHolder:
+          provider.bankAccountHolder ??
+          `${provider.firstName ?? ""} ${provider.lastName ?? ""}`.trim(),
+        bankIban: provider.bankIban ? formatIban(provider.bankIban) : "",
+        bankName: provider.bankName ?? "",
       });
       setCategories(provider.categories ?? []);
     }
@@ -179,11 +198,18 @@ export function EditProviderProfileForm() {
       serviceRadiusKm: Number(form.serviceRadiusKm),
       categories,
       bio: form.bio.trim() || null,
+      // Bank — IBAN is normalized (spaces stripped, uppercase) before send.
+      bankAccountHolder: form.bankAccountHolder.trim() || null,
+      bankIban: form.bankIban.trim() ? normalizeIban(form.bankIban) : null,
+      bankName: form.bankName.trim() || null,
     };
     const parsed = schema.safeParse({
       ...payload,
       phoneNumber: payload.phoneNumber ?? undefined,
       bio: payload.bio ?? undefined,
+      bankAccountHolder: payload.bankAccountHolder ?? undefined,
+      bankIban: payload.bankIban ?? undefined,
+      bankName: payload.bankName ?? undefined,
     });
     if (!parsed.success) {
       setErrors(mapZodErrors(parsed.error));
@@ -407,6 +433,88 @@ export function EditProviderProfileForm() {
         </div>
         <span className="field-hint">{form.bio.length}/{BIO_MAX}</span>
         {errors.bio && <span className="field-error">{errors.bio}</span>}
+      </div>
+
+      {/* ── Payout / bank details ────────────────────────────────────────── */}
+      <div
+        style={{
+          marginTop: 8,
+          padding: 16,
+          borderRadius: 12,
+          border: "1px solid var(--border)",
+          background: "var(--slate-50, #f8fafc)",
+        }}
+      >
+        <div style={{ marginBottom: 14 }}>
+          <div
+            className="mono"
+            style={{
+              fontSize: 10.5,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: "var(--text-muted)",
+              fontWeight: 600,
+              marginBottom: 4,
+            }}
+          >
+            Payout details
+          </div>
+          <div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5 }}>
+            Bank account that customers will pay into. <strong>Required</strong> before
+            you can accept work — your invoice PDF and SEPA QR code use this info.
+          </div>
+        </div>
+
+        <div className="field">
+          <label className="field-label" htmlFor="p-bank-holder">Account holder</label>
+          <div className={`input-wrap${errors.bankAccountHolder ? " error" : ""}`}>
+            <input
+              id="p-bank-holder"
+              className="input"
+              placeholder="Full name on the bank account"
+              value={form.bankAccountHolder}
+              onChange={setField("bankAccountHolder")}
+              autoComplete="cc-name"
+            />
+          </div>
+          {errors.bankAccountHolder && <span className="field-error">{errors.bankAccountHolder}</span>}
+        </div>
+
+        <div className="field" style={{ marginTop: 12 }}>
+          <label className="field-label" htmlFor="p-bank-iban">IBAN</label>
+          <div className={`input-wrap${errors.bankIban ? " error" : ""}`}>
+            <input
+              id="p-bank-iban"
+              className="input"
+              placeholder="SI56 1234 5678 9012 345"
+              value={form.bankIban}
+              onChange={(e) => {
+                // Pretty-print as the user types (spaces every 4 chars, uppercase).
+                setForm((p) => ({ ...p, bankIban: formatIban(e.target.value) }));
+                setSuccess(false);
+              }}
+              spellCheck={false}
+              autoComplete="off"
+              style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.04em" }}
+            />
+          </div>
+          {errors.bankIban && <span className="field-error">{errors.bankIban}</span>}
+        </div>
+
+        <div className="field" style={{ marginTop: 12 }}>
+          <label className="field-label" htmlFor="p-bank-name">Bank name</label>
+          <div className={`input-wrap${errors.bankName ? " error" : ""}`}>
+            <input
+              id="p-bank-name"
+              className="input"
+              placeholder="Nova Ljubljanska Banka"
+              value={form.bankName}
+              onChange={setField("bankName")}
+              autoComplete="off"
+            />
+          </div>
+          {errors.bankName && <span className="field-error">{errors.bankName}</span>}
+        </div>
       </div>
 
       <div className="row" style={{ gap: 12, alignItems: "center" }}>

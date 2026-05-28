@@ -125,3 +125,12 @@ export async function logout(
 
   return mapMessageResponse(data)
 }
+
+export async function googleLogin(accessToken: string): Promise<AuthSession> {
+  const data = await requestJson<AuthResponseDto>('/api/v1/auth/google', {
+    method: 'POST',
+    body: JSON.stringify({ accessToken }),
+  })
+
+  return mapAuthResponse(data)
+}

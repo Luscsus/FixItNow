@@ -67,6 +67,11 @@ export type UpdateProviderProfilePayload = {
   serviceRadiusKm: number;
   categories: ServiceCategory[];
   bio: string | null;
+  // Payout / bank details — required before accepting work.
+  bankAccountHolder?: string | null;
+  bankIban?: string | null;
+  bankBic?: string | null;
+  bankName?: string | null;
 };
 
 export async function updateCurrentProvider(

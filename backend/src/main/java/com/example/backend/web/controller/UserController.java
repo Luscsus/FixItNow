@@ -127,8 +127,32 @@ public class UserController {
         provider.setServiceRadiusKm(request.getServiceRadiusKm());
         provider.setCategories(request.getCategories());
         provider.setBio(request.getBio());
+
+        // ── Bank / payout details ─────────────────────────────────────────────
+        // Empty values are allowed (provider can save without filling them
+        // yet — the acceptTicket guard is what enforces presence). But if an
+        // IBAN is provided, it must be valid (mod-97 + correct length).
+        String ibanIn = request.getBankIban();
+        String normalizedIban = null;
+        if (ibanIn != null && !ibanIn.isBlank()) {
+            normalizedIban = com.example.backend.common.IbanValidator.normalize(ibanIn);
+            if (!com.example.backend.common.IbanValidator.isValid(normalizedIban)) {
+                throw new ApiException("Invalid IBAN. Please check the country code, length, and digits.");
+            }
+        }
+        provider.setBankAccountHolder(trimToNull(request.getBankAccountHolder()));
+        provider.setBankIban(normalizedIban);
+        provider.setBankBic(trimToNull(request.getBankBic()));
+        provider.setBankName(trimToNull(request.getBankName()));
+
         providerRepository.save(provider);
         return ResponseEntity.ok(ProviderResponse.from(provider));
+    }
+
+    private static String trimToNull(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
     }
 
     @Operation(summary = "Update the current user's profile picture URL.")

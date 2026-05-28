@@ -15,9 +15,10 @@ interface ProviderHeroProps {
   online: boolean;
   setOnline: (updater: (v: boolean) => boolean) => void;
   stats?: ProviderStats;
+  emailVerified?: boolean;
 }
 
-export function ProviderHero({ fullName, initials, profilePictureUrl, email, online, setOnline, stats }: Readonly<ProviderHeroProps>) {
+export function ProviderHero({ fullName, initials, profilePictureUrl, email, online, setOnline, stats, emailVerified }: Readonly<ProviderHeroProps>) {
   return (
     <section className="pro-hero">
       <div className="pro-hero-grid" />
@@ -39,7 +40,22 @@ export function ProviderHero({ fullName, initials, profilePictureUrl, email, onl
           <div>
             <h1>
               {fullName}
-              <span className="verified-md">✓ Verified</span>
+              {emailVerified === true ? (
+                <span className="verified-md">✓ Verified</span>
+              ) : emailVerified === false ? (
+                <Link
+                  to="/confirm-email"
+                  className="verified-md"
+                  style={{
+                    background: "rgba(245,158,11,0.18)",
+                    color: "#fcd34d",
+                    textDecoration: "none",
+                  }}
+                  title="Verify your email to get a verified badge"
+                >
+                  Verify email
+                </Link>
+              ) : null}
             </h1>
             <div className="sub">
               {email && <span className="mono">{email}</span>}

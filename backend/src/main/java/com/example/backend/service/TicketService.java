@@ -476,6 +476,9 @@ public class TicketService {
      * that transitions a ticket to APPROVED. Accepts a {@code User} reference
      * because that's how the ticket holds its assigned provider — we instanceof
      * + cast inside.
+     * <p>
+     * BIC/SWIFT is not required (the SEPA EPC QR spec allows omitting it for
+     * EEA transfers), so we only enforce account holder, IBAN, and bank name.
      */
     private void ensureProviderCanAcceptWork(User assigned) {
         if (!(assigned instanceof Provider provider)) {
@@ -483,7 +486,6 @@ public class TicketService {
         }
         if (isBlank(provider.getBankAccountHolder())
                 || isBlank(provider.getBankIban())
-                || isBlank(provider.getBankBic())
                 || isBlank(provider.getBankName())) {
             throw new ApiException(
                 "Add your payout details (bank info) before accepting work. "

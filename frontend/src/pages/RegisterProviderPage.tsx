@@ -145,21 +145,6 @@ function IconPhone() {
   );
 }
 
-function IconPin() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-    >
-      <path d="M8 14s5-4.5 5-9a5 5 0 0 0-10 0c0 4.5 5 9 5 9z" />
-      <circle cx="8" cy="5" r="2" />
-    </svg>
-  );
-}
 
 export function RegisterProviderPage() {
   const registerMutation = useRegisterProviderMutation();
@@ -188,9 +173,6 @@ export function RegisterProviderPage() {
   const [postalCode, setPostalCode] = useState<string>("");
   const [country, setCountry] = useState<string>("");
 
-  const [geoStatus, setGeoStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
-  const [geoMessage, setGeoMessage] = useState("");
-
   const pwStrength = passwordStrength(form.password);
 
   const set =
@@ -201,31 +183,6 @@ export function RegisterProviderPage() {
     setSelectedTrades((prev) =>
       prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id],
     );
-
-  const useMyLocation = () => {
-    if (!("geolocation" in navigator)) {
-      setGeoStatus("error");
-      setGeoMessage("Geolocation is not supported in this browser.");
-      return;
-    }
-    setGeoStatus("loading");
-    setGeoMessage("");
-    navigator.geolocation.getCurrentPosition(
-      () => {
-        setGeoStatus("ok");
-        setGeoMessage("Location captured.");
-        setErrors((c) => ({ ...c, location: undefined }));
-      },
-      (err) => {
-        setGeoStatus("error");
-        setGeoMessage(
-          err.message ||
-            "Could not get your location. Enter it manually below.",
-        );
-      },
-      { enableHighAccuracy: true, timeout: 10000 },
-    );
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -730,42 +687,6 @@ export function RegisterProviderPage() {
                   <p className="field-hint" style={{ marginBottom: 10 }}>
                     We use your location to match you with nearby job requests.
                   </p>
-
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={useMyLocation}
-                    disabled={geoStatus === "loading"}
-                    style={{ gap: 8 }}
-                  >
-                    <IconPin />
-                    {geoStatus === "loading"
-                      ? "Locating…"
-                      : "Use my current location"}
-                  </button>
-
-                  {geoStatus === "ok" && geoMessage && (
-                    <p
-                      style={{
-                        fontSize: 13,
-                        color: "var(--emerald-700)",
-                        margin: "8px 0 0",
-                      }}
-                    >
-                      ✓ {geoMessage}
-                    </p>
-                  )}
-                  {geoStatus === "error" && geoMessage && (
-                    <p
-                      style={{
-                        fontSize: 13,
-                        color: "var(--red-600, #DC2626)",
-                        margin: "8px 0 0",
-                      }}
-                    >
-                      {geoMessage}
-                    </p>
-                  )}
 
                   <div className="row" style={{ gap: 12, alignItems: "flex-start", marginTop: 12 }}>
                     <div className="field" style={{ flex: 3 }}>

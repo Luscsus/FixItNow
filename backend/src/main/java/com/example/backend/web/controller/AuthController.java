@@ -44,6 +44,12 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
 
+    @Operation(summary = "Sign in with Google", description = "Exchanges a Google OAuth access token for application JWT tokens. Creates an account if the email is not yet registered.")
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
+        return ResponseEntity.ok(authService.googleLogin(request));
+    }
+
     @Operation(summary = "Complete 2FA login", description = "Exchange the tempToken + TOTP code for full access and refresh tokens")
     @PostMapping("/2fa/verify")
     public ResponseEntity<AuthResponse> verifyTwoFactor(@Valid @RequestBody TwoFactorVerifyRequest request) {

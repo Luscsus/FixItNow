@@ -2,6 +2,7 @@ package com.example.backend.service;
 
 import com.example.backend.web.dto.request.*;
 import com.example.backend.web.dto.response.*;
+import com.example.backend.web.dto.request.GoogleLoginRequest;
 
 public interface AuthService {
 
@@ -10,6 +11,8 @@ public interface AuthService {
     MessageResponse registerProvider(ProviderRegisterRequest request);
 
     AuthResponse login(LoginRequest request);
+
+    AuthResponse googleLogin(GoogleLoginRequest request);
 
     AuthResponse verifyTwoFactor(TwoFactorVerifyRequest request);
 

@@ -68,7 +68,6 @@ const SLATE  = [100, 116, 139] as const;
 const TEXT   = [15, 23, 42]    as const;
 const BORDER = [226, 232, 240] as const;
 const BG     = [248, 250, 252] as const;
-const GREEN  = [22, 101, 52]   as const;
 
 function fill(doc: jsPDF, c: readonly [number,number,number]) { doc.setFillColor(c[0],c[1],c[2]); }
 function draw(doc: jsPDF, c: readonly [number,number,number]) { doc.setDrawColor(c[0],c[1],c[2]); }

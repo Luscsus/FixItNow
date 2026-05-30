@@ -459,7 +459,7 @@ export function ChatPage() {
           ticketId: ticket.id,
           description: ticket.description,
           status: ticket.status,
-          priority: ticket.priority,
+          priority: ticket.priority ?? 'LOW',
           otherName: isProvider
             ? (ticket.submittedByName ?? room.otherParticipantName)
             : (ticket.assignedServiceProviderName ?? room.otherParticipantName),
@@ -878,8 +878,6 @@ export function ChatPage() {
               <textarea
                 placeholder={isMobile ? "Type a message…" : "Type a message… (Enter to send, Shift + Enter for newline)"}
                 rows={isMobile ? 1 : 2}
-                placeholder="Type a message… (Enter to send, Shift + Enter for newline)"
-                rows={2}
                 value={text}
                 onChange={e => handleTextChange(e.target.value)}
                 onKeyDown={handleKeyDown}

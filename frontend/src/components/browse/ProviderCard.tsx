@@ -2,12 +2,49 @@ import { Link, useNavigate } from "react-router-dom";
 import type { ProviderDto } from "@/services/providerService";
 import { CATEGORY_LABEL, avatarColor, initials } from "./browseConstants";
 import { SaveProviderButton } from "./SaveProviderButton";
+import { useAuth } from "@/context/auth";
+import { useTicketsQuery } from "@/hooks/useTicketsQuery";
 
 interface ProviderCardProps {
   provider: ProviderDto;
   coords: { lat: number; lon: number } | null;
   selectionMode: boolean;
   routerState: { formState?: unknown } | null;
+}
+
+/**
+ * Build the `state.selectedProvider` payload the new-ticket form expects.
+ * Centralised so both "Book" and "Message" (and any future entry points)
+ * stay in sync if the form's shape changes.
+ */
+function buildSelectedProviderState(p: ProviderDto, formState?: unknown) {
+  return {
+    formState,
+    selectedProvider: {
+      id: p.id,
+      email: "",
+      firstName: p.firstName,
+      lastName: p.lastName,
+      phoneNumber: null,
+      status: p.status,
+      emailVerified: true,
+      locationStreetName: p.locationStreetName,
+      locationStreetNumber: p.locationStreetNumber,
+      locationCity: p.locationCity,
+      locationPostalCode: p.locationPostalCode,
+      locationCountry: p.locationCountry,
+      locationLat: p.locationLat,
+      locationLon: p.locationLon,
+      pricePerHour: p.pricePerHour,
+      yearsOfExperience: p.yearsOfExperience,
+      serviceRadiusKm: p.serviceRadiusKm,
+      categories: p.categories,
+      bio: p.bio,
+      rejectionReason: null,
+      approvedAt: null,
+      createdAt: new Date(p.createdAt),
+    },
+  };
 }
 
 export function ProviderCard({
@@ -17,10 +54,45 @@ export function ProviderCard({
   routerState,
 }: Readonly<ProviderCardProps>) {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  // Customer's own tickets — used to find an existing chat with this provider
+  // when they click "Message". Empty for non-customers (query disabled).
+  const { data: ownTickets = [] } = useTicketsQuery();
   const av = avatarColor(p.id);
   const init = initials(p.firstName, p.lastName);
   const showDist =
     coords != null && p.distanceKm != null && p.distanceKm < 19000;
+
+  /** Go to /tickets/new with this provider pre-attached. */
+  function handleBook() {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+    navigate("/tickets/new", {
+      state: buildSelectedProviderState(p, routerState?.formState),
+    });
+  }
+
+  /**
+   * Open the existing chat with this provider if one exists; otherwise fall
+   * back to the new-ticket flow (chat rooms in this app only exist tied to
+   * tickets).
+   */
+  function handleMessage() {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+    const ticketWithChat = ownTickets
+      .filter((t) => t.assignedServiceProviderId === p.id && t.chatRoomId)
+      .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0))[0];
+    if (ticketWithChat?.chatRoomId) {
+      navigate(`/chat?room=${ticketWithChat.chatRoomId}`);
+    } else {
+      handleBook();
+    }
+  }
 
   return (
     <div
@@ -246,33 +318,7 @@ export function ProviderCard({
             type="button"
             onClick={() =>
               navigate("/tickets/new", {
-                state: {
-                  formState: routerState?.formState,
-                  selectedProvider: {
-                    id: p.id,
-                    email: "",
-                    firstName: p.firstName,
-                    lastName: p.lastName,
-                    phoneNumber: null,
-                    status: p.status,
-                    emailVerified: true,
-                    locationStreetName: p.locationStreetName,
-                    locationStreetNumber: p.locationStreetNumber,
-                    locationCity: p.locationCity,
-                    locationPostalCode: p.locationPostalCode,
-                    locationCountry: p.locationCountry,
-                    locationLat: p.locationLat,
-                    locationLon: p.locationLon,
-                    pricePerHour: p.pricePerHour,
-                    yearsOfExperience: p.yearsOfExperience,
-                    serviceRadiusKm: p.serviceRadiusKm,
-                    categories: p.categories,
-                    bio: p.bio,
-                    rejectionReason: null,
-                    approvedAt: null,
-                    createdAt: new Date(p.createdAt),
-                  },
-                },
+                state: buildSelectedProviderState(p, routerState?.formState),
               })
             }
           >
@@ -280,13 +326,18 @@ export function ProviderCard({
           </button>
         ) : (
           <>
-            <button className="btn btn-primary btn-sm" type="button">
+            <button
+              className="btn btn-primary btn-sm"
+              type="button"
+              onClick={handleBook}
+            >
               Book →
             </button>
             <button
               className="btn btn-ghost btn-sm"
               type="button"
               style={{ fontSize: 12, padding: "4px 8px" }}
+              onClick={handleMessage}
             >
               Message
             </button>

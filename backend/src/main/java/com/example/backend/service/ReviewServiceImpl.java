@@ -3,10 +3,12 @@ package com.example.backend.service;
 import com.example.backend.common.exception.ApiException;
 import com.example.backend.common.exception.ResourceNotFoundException;
 import com.example.backend.domain.review.Review;
+import com.example.backend.domain.ticket.TicketStatus;
 import com.example.backend.domain.user.Provider;
 import com.example.backend.domain.user.User;
 import com.example.backend.repository.ProviderRepository;
 import com.example.backend.repository.ReviewRepository;
+import com.example.backend.repository.TicketRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.web.dto.request.CreateReviewRequest;
 import com.example.backend.web.dto.response.ProviderRatingStats;
@@ -28,6 +30,7 @@ public class ReviewServiceImpl implements ReviewService {
 
     private final ReviewRepository reviewRepository;
     private final ProviderRepository providerRepository;
+    private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
 
     @Override
@@ -41,6 +44,20 @@ public class ReviewServiceImpl implements ReviewService {
 
         Provider provider = providerRepository.findById(providerId)
             .orElseThrow(() -> new ResourceNotFoundException("Provider not found."));
+
+        // Reviewer must have actually worked with this provider on at least
+        // one COMPLETED ticket. Note we run this check before fetching the
+        // existing-review state so editing a review still re-validates the
+        // relationship (covers the edge case where eligibility was somehow
+        // revoked, e.g. ticket reset).
+        boolean hasCompletedTicket = ticketRepository
+            .existsByUser_IdAndAssignedServiceProvider_IdAndStatus(
+                reviewerId, providerId, TicketStatus.COMPLETED);
+        if (!hasCompletedTicket) {
+            throw new ApiException(
+                "You can leave a review only after a completed ticket with this provider."
+            );
+        }
 
         Optional<Review> existing = reviewRepository.findByReviewerIdAndProviderId(reviewerId, providerId);
 

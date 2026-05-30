@@ -31,4 +31,12 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 		   "FROM Ticket t WHERE t.status = 'PENDING_APPROVAL' AND t.assignedServiceProvider IS NULL " +
 		   "ORDER BY t.createdAt DESC LIMIT 20")
 	List<OpenTicketSummary> findTop20OpenTicketSummaries();
+
+	/**
+	 * Whether this customer has at least one COMPLETED ticket assigned to this
+	 * provider. Used by the review service to gate review creation — a customer
+	 * can only review a provider they've actually worked with.
+	 */
+	boolean existsByUser_IdAndAssignedServiceProvider_IdAndStatus(
+		UUID userId, UUID providerId, TicketStatus status);
 }

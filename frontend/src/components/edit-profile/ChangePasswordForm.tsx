@@ -7,6 +7,7 @@ import { changePassword } from "@/services/userService";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { mapZodErrors } from "@/lib/validation";
 import { passwordStrength } from "@/utils/passwordStrength";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 const schema = z
   .object({
@@ -69,32 +70,26 @@ export function ChangePasswordForm() {
     <form onSubmit={handleSubmit} className="col" style={{ gap: 20 }}>
       <div className="field">
         <label className="field-label" htmlFor="cp-current">Current password</label>
-        <div className={`input-wrap${errors.currentPassword ? " error" : ""}`}>
-          <input
-            id="cp-current"
-            className="input"
-            type="password"
-            autoComplete="current-password"
-            value={form.currentPassword}
-            onChange={set("currentPassword")}
-          />
-        </div>
+        <PasswordInput
+          id="cp-current"
+          autoComplete="current-password"
+          value={form.currentPassword}
+          onChange={set("currentPassword")}
+          hasError={Boolean(errors.currentPassword)}
+        />
         {errors.currentPassword && <span className="field-error">{errors.currentPassword}</span>}
       </div>
 
       <div className="field">
         <label className="field-label" htmlFor="cp-new">New password</label>
-        <div className={`input-wrap${errors.newPassword ? " error" : ""}`}>
-          <input
-            id="cp-new"
-            className="input"
-            type="password"
-            autoComplete="new-password"
-            placeholder="Min. 8 characters"
-            value={form.newPassword}
-            onChange={set("newPassword")}
-          />
-        </div>
+        <PasswordInput
+          id="cp-new"
+          autoComplete="new-password"
+          placeholder="Min. 8 characters"
+          value={form.newPassword}
+          onChange={set("newPassword")}
+          hasError={Boolean(errors.newPassword)}
+        />
         {form.newPassword && (
           <div className={`pw-meter s${pwStrength}`}>
             <span /><span /><span /><span />
@@ -105,16 +100,13 @@ export function ChangePasswordForm() {
 
       <div className="field">
         <label className="field-label" htmlFor="cp-confirm">Confirm new password</label>
-        <div className={`input-wrap${errors.confirmNewPassword ? " error" : ""}`}>
-          <input
-            id="cp-confirm"
-            className="input"
-            type="password"
-            autoComplete="new-password"
-            value={form.confirmNewPassword}
-            onChange={set("confirmNewPassword")}
-          />
-        </div>
+        <PasswordInput
+          id="cp-confirm"
+          autoComplete="new-password"
+          value={form.confirmNewPassword}
+          onChange={set("confirmNewPassword")}
+          hasError={Boolean(errors.confirmNewPassword)}
+        />
         {errors.confirmNewPassword && <span className="field-error">{errors.confirmNewPassword}</span>}
       </div>
 

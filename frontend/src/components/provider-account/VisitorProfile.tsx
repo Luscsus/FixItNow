@@ -1,15 +1,87 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import type { ProviderDto } from "@/services/providerService";
 import { CATEGORY_LABEL, avatarColor, initials } from "@/components/browse/browseConstants";
 import { SaveProviderButton } from "@/components/browse/SaveProviderButton";
 import { WeekSchedule } from "@/components/provider-account/WeekSchedule";
 import { ReviewsSection } from "@/components/reviews/ReviewsSection";
+import { useAuth } from "@/context/auth";
+import { useTicketsQuery } from "@/hooks/useTicketsQuery";
 
 interface VisitorProfileProps {
   provider: ProviderDto | undefined;
 }
 
 export function VisitorProfile({ provider }: Readonly<VisitorProfileProps>) {
+  const navigate = useNavigate();
+  const { isAuthenticated, role } = useAuth();
+  // Customer's own tickets — used to find an existing chat with this provider
+  // when they hit "Send message". Providers viewing other providers won't have
+  // this populated (the query is disabled), and that's fine.
+  const { data: ownTickets = [] } = useTicketsQuery();
+
+  /** Navigate to the new-ticket flow with this provider pre-attached. */
+  function goToNewTicketWithProvider() {
+    if (!provider) return;
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+    navigate("/tickets/new", {
+      state: {
+        selectedProvider: {
+          id: provider.id,
+          email: "",
+          firstName: provider.firstName,
+          lastName: provider.lastName,
+          phoneNumber: provider.phoneNumber ?? null,
+          profilePictureUrl: provider.profilePictureUrl ?? null,
+          status: provider.status,
+          emailVerified: provider.emailVerified ?? true,
+          locationStreetName: provider.locationStreetName,
+          locationStreetNumber: provider.locationStreetNumber,
+          locationCity: provider.locationCity,
+          locationPostalCode: provider.locationPostalCode,
+          locationCountry: provider.locationCountry,
+          locationLat: provider.locationLat,
+          locationLon: provider.locationLon,
+          pricePerHour: provider.pricePerHour,
+          yearsOfExperience: provider.yearsOfExperience,
+          serviceRadiusKm: provider.serviceRadiusKm,
+          categories: provider.categories,
+          bio: provider.bio,
+        },
+      },
+    });
+  }
+
+  /**
+   * Try to open an existing chat with this provider. Chat rooms only exist
+   * tied to tickets in this app, so:
+   *   1. If the customer already has a ticket assigned to this provider with
+   *      a live chat room → open that chat directly.
+   *   2. Otherwise fall back to creating a new ticket (same as "Book now").
+   */
+  function goToMessageProvider() {
+    if (!provider) return;
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+    // Find the most recent ticket with this provider that has a chat room.
+    const ticketWithChat = ownTickets
+      .filter((t) => t.assignedServiceProviderId === provider.id && t.chatRoomId)
+      .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0))[0];
+    if (ticketWithChat?.chatRoomId) {
+      navigate(`/chat?room=${ticketWithChat.chatRoomId}`);
+    } else {
+      // No existing chat — only way to start one is via a ticket.
+      goToNewTicketWithProvider();
+    }
+  }
+
+  // Hide the booking rail entirely for providers viewing other providers —
+  // booking/messaging another provider doesn't make sense in this app.
+  const showBookingRail = role !== "PROVIDER";
   if (!provider) {
     return (
       <div>
@@ -191,12 +263,26 @@ export function VisitorProfile({ provider }: Readonly<VisitorProfileProps>) {
                 {provider.yearsOfExperience} yr
               </span>
             </div>
-            <button className="btn btn-primary btn-full" style={{ marginTop: 16 }}>
-              Book now →
-            </button>
-            <button className="btn btn-secondary btn-full" style={{ marginTop: 8 }}>
-              Send message
-            </button>
+            {showBookingRail && (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-full"
+                  style={{ marginTop: 16 }}
+                  onClick={goToNewTicketWithProvider}
+                >
+                  Book now →
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-full"
+                  style={{ marginTop: 8 }}
+                  onClick={goToMessageProvider}
+                >
+                  Send message
+                </button>
+              </>
+            )}
           </div>
         </aside>
       </main>

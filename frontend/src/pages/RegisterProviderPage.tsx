@@ -5,6 +5,7 @@ import { z } from "zod";
 import { useRegisterProviderMutation } from "@/hooks/useRegisterProviderMutation";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { mapZodErrors } from "@/lib/validation";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 const schema = z.object({
   firstName: z.string().min(1, "First name is required."),
@@ -374,11 +375,14 @@ export function RegisterProviderPage() {
 
                     <div className="field">
                       <label className="field-label" htmlFor="prov-password">Password</label>
-                      <div className={`input-wrap${errors.password ? " error" : ""}`}>
-                        <IconLock />
-                        <input id="prov-password" className="input" type="password" placeholder="8–100 characters"
-                          autoComplete="new-password" value={form.password} onChange={set("password")} />
-                      </div>
+                      <PasswordInput
+                        id="prov-password"
+                        placeholder="8–100 characters"
+                        autoComplete="new-password"
+                        value={form.password}
+                        onChange={set("password")}
+                        hasError={Boolean(errors.password)}
+                      />
                       {form.password && (
                         <div className={`pw-meter s${pwStrength}`}>
                           <span /><span /><span /><span />

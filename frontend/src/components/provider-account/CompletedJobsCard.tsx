@@ -129,8 +129,8 @@ export function CompletedJobsCard() {
             No completed jobs yet.
           </div>
         )}
-        {pageItems.map((t, i) => (
-          <CompletedJobRow key={t.id} ticket={t} index={i} />
+        {pageItems.map((t) => (
+          <CompletedJobRow key={t.id} ticket={t} />
         ))}
 
         {done.length > PAGE_SIZE && (

@@ -875,7 +875,6 @@ export function TicketDetailPage() {
       {/* ── Body ── */}
       <main
         className="container ticket-detail-body"
-        className="container"
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 360px",
@@ -1016,7 +1015,7 @@ export function TicketDetailPage() {
                       location: ticket.location ?? "",
                       providerName: ticket.assignedServiceProviderName ?? "Provider",
                       customerName: ticket.submittedByName ?? "Customer",
-                      amount: ticket.estimatedCost,
+                      amount: ticket.estimatedCost ?? 0,
                     });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement("a");
@@ -1038,7 +1037,6 @@ export function TicketDetailPage() {
           >
             <button
               className="btn btn-secondary"
-              onClick={() => navigate("/dashboard/user")}
               onClick={() => navigate(isProvider ? "/dashboard/provider" : "/dashboard/user")}
             >
               ← Back to dashboard

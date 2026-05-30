@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAllProvidersQuery } from "@/hooks/useAllProvidersQuery";
 import { usePublicOpenTicketsQuery } from "@/hooks/usePublicOpenTicketsQuery";
 import { useActiveCategoriesQuery } from "@/hooks/useActiveCategoriesQuery";
+import { usePublicStatsQuery } from "@/hooks/usePublicStatsQuery";
 import { CATEGORY_META } from "@/components/browse/browseConstants";
 import { classifyCategory } from "@/lib/classifyCategory";
 
@@ -84,6 +85,7 @@ export function UserLanding() {
   const { data: allProviders = [] } = useAllProvidersQuery();
   const { data: publicTickets = [] } = usePublicOpenTicketsQuery();
   const { data: activeCategories = [] } = useActiveCategoriesQuery();
+  const { data: stats } = usePublicStatsQuery();
 
   const categoryCountMap = useMemo(() => {
     const map: Record<string, number> = {};
@@ -513,14 +515,28 @@ export function UserLanding() {
             <span className="step-num">STEP 02 · ~12 MIN</span>
             <h3>A provider<br />accepts &amp; quotes.</h3>
             <p>Three best-fit providers see it instantly. The fastest accept wins. You see their rating, ETA, and an all-in quote before any work starts.</p>
-            <div className="step-meta">Median time to accept · <b>11 min</b></div>
+            <div className="step-meta">
+              Median time to accept ·{" "}
+              <b>
+                {stats?.medianResponseMinutes != null
+                  ? `${stats.medianResponseMinutes} min`
+                  : "—"}
+              </b>
+            </div>
           </div>
 
           <div className="step" style={{ borderTopColor: "var(--emerald-600)" }}>
             <span className="step-num">STEP 03 · DONE</span>
             <h3>Track the fix.<br />Pay when it's done.</h3>
             <p>Watch the phase rail move from "accepted" to "on site" to "done." Chat with the provider live. Pay only after sign-off — no upfront fees.</p>
-            <div className="step-meta">Same-day completion · <b>92%</b></div>
+            <div className="step-meta">
+              Same-day completion ·{" "}
+              <b>
+                {stats?.sameDayFixRate != null
+                  ? `${Math.round(stats.sameDayFixRate * 100)}%`
+                  : "—"}
+              </b>
+            </div>
           </div>
         </div>
       </section>
@@ -533,30 +549,57 @@ export function UserLanding() {
             <div>
               <span className="live-pulse" style={{ marginBottom: 14 }}>Last 30 days</span>
               <div className="proof-num" style={{ marginTop: 14 }}>
-                <span className="amber">14,287</span> tickets fixed.<br />
-                <span style={{ fontSize: "0.65em", color: "rgba(255,255,255,0.7)" }}>Zero phone calls placed.</span>
+                <span className="amber">
+                  {stats ? stats.completedTicketsLast30Days.toLocaleString() : "…"}
+                </span>{" "}
+                tickets fixed.<br />
+                <span style={{ fontSize: "0.65em", color: "rgba(255,255,255,0.7)" }}>
+                  Zero phone calls placed.
+                </span>
               </div>
             </div>
             <div className="proof-cells">
               <div className="proof-cell">
                 <div className="lbl">Median response</div>
-                <div className="big">12<span style={{ fontSize: 18, color: "rgba(255,255,255,0.5)", marginLeft: 4 }}>min</span></div>
+                <div className="big">
+                  {stats?.medianResponseMinutes != null
+                    ? stats.medianResponseMinutes
+                    : "—"}
+                  <span style={{ fontSize: 18, color: "rgba(255,255,255,0.5)", marginLeft: 4 }}>min</span>
+                </div>
                 <div className="hint">From "filed" to "accepted"</div>
               </div>
               <div className="proof-cell">
                 <div className="lbl">Average rating</div>
-                <div className="big">4.8<span style={{ fontSize: 22, color: "var(--amber-500)", marginLeft: 4 }}>★</span></div>
-                <div className="hint">Across {allProviders.length > 0 ? allProviders.length.toLocaleString() : "…"} providers</div>
+                <div className="big">
+                  {stats?.averageRating != null
+                    ? stats.averageRating.toFixed(1)
+                    : "—"}
+                  <span style={{ fontSize: 22, color: "var(--amber-500)", marginLeft: 4 }}>★</span>
+                </div>
+                <div className="hint">
+                  Across {stats ? stats.reviewCount.toLocaleString() : "…"}{" "}
+                  review{stats?.reviewCount === 1 ? "" : "s"}
+                </div>
               </div>
               <div className="proof-cell">
                 <div className="lbl">Same-day fix</div>
-                <div className="big">92<span style={{ fontSize: 18, color: "rgba(255,255,255,0.5)", marginLeft: 2 }}>%</span></div>
+                <div className="big">
+                  {stats?.sameDayFixRate != null
+                    ? Math.round(stats.sameDayFixRate * 100)
+                    : "—"}
+                  <span style={{ fontSize: 18, color: "rgba(255,255,255,0.5)", marginLeft: 2 }}>%</span>
+                </div>
                 <div className="hint">Reported and resolved in 24 hr</div>
               </div>
               <div className="proof-cell">
                 <div className="lbl">Cities served</div>
-                <div className="big">43</div>
-                <div className="hint">Bay Area, NYC, LA, &amp; 40 more</div>
+                <div className="big">{stats ? stats.citiesServedCount : "…"}</div>
+                <div className="hint">
+                  {stats
+                    ? `${stats.activeProvidersCount.toLocaleString()} active provider${stats.activeProvidersCount === 1 ? "" : "s"}`
+                    : "—"}
+                </div>
               </div>
             </div>
           </div>

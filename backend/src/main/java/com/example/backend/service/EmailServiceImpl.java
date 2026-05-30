@@ -309,6 +309,9 @@ public class EmailServiceImpl implements EmailService {
     }
 
     private String buildPasswordResetHtml(String firstName, String resetUrl) {
+        // Three placeholders in the template: greeting, button href, and the
+        // plain-text copy-paste version of the link. Must match the arg count
+        // in the .formatted(...) call at the end.
         return """
             <!DOCTYPE html>
             <html lang="en">
@@ -388,7 +391,7 @@ public class EmailServiceImpl implements EmailService {
               </table>
             </body>
             </html>
-            """.formatted(escape(firstName), resetUrl);
+            """.formatted(escape(firstName), resetUrl, resetUrl);
     }
 
     private String escape(String s) {

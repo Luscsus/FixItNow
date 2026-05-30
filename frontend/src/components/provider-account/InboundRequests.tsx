@@ -75,8 +75,8 @@ function InboundRow({ ticket }: { ticket: Ticket }) {
       <div>
         <div className="ireq-title">{ticket.serviceType}</div>
         <div className="ireq-meta">
-          <span className={`urgency ${PRIORITY_CLASS[ticket.priority] ?? "urgency-medium"}`}>
-            {PRIORITY_LABEL[ticket.priority] ?? ticket.priority}
+          <span className={`urgency ${(ticket.priority && PRIORITY_CLASS[ticket.priority]) ?? "urgency-medium"}`}>
+            {(ticket.priority && PRIORITY_LABEL[ticket.priority]) ?? "Medium"}
           </span>
           <span>•</span>
           <span>{ticket.location}</span>

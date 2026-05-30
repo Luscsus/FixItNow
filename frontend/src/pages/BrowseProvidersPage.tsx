@@ -519,25 +519,6 @@ export function BrowseProvidersPage() {
               onReset={handleReset}
             />
           )}
-          <FilterSidebar
-            selectedCategories={selectedCategories}
-            toggleCategory={toggleCategory}
-            radiusKm={radiusKm}
-            setRadiusKm={setRadiusKm}
-            minPrice={minPrice}
-            setMinPrice={setMinPrice}
-            maxPrice={maxPrice}
-            setMaxPrice={setMaxPrice}
-            minExp={minExp}
-            setMinExp={setMinExp}
-            setPage={setPage}
-            coords={coords}
-            locationEnabled={locationEnabled}
-            setLocationEnabled={handleLocationToggle}
-            categories={activeCategories}
-            categoryCountMap={categoryCountMap}
-            onReset={handleReset}
-          />
 
           <ResultsSection
             resultsRef={resultsRef}

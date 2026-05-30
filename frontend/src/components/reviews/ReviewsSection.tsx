@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useAuth } from "@/context/auth";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useTicketsQuery } from "@/hooks/useTicketsQuery";
 import {
   deleteOwnReview,
   getProviderRatingStats,
@@ -206,6 +207,19 @@ export function ReviewsSection({ providerId, sectionNumber = "03" }: Readonly<Pr
     return reviewsQuery.data.find((r) => r.reviewerId === myUserId) ?? null;
   }, [reviewsQuery.data, myUserId]);
 
+  // Eligibility to leave a review: the customer must have at least one
+  // COMPLETED ticket assigned to this provider. The backend enforces the same
+  // rule (see ReviewServiceImpl#upsertReview); this client check just hides
+  // the CTA so it isn't a confusing dead-end.
+  const ticketsQuery = useTicketsQuery();
+  const canReview = useMemo(() => {
+    if (!isCustomer) return false;
+    const tickets = ticketsQuery.data ?? [];
+    return tickets.some(
+      (t) => t.assignedServiceProviderId === providerId && t.status === "COMPLETED",
+    );
+  }, [isCustomer, ticketsQuery.data, providerId]);
+
   const reviews = reviewsQuery.data ?? [];
   const avg = statsQuery.data?.averageRating ?? null;
   const count = statsQuery.data?.reviewCount ?? 0;
@@ -247,7 +261,10 @@ export function ReviewsSection({ providerId, sectionNumber = "03" }: Readonly<Pr
             </div>
           </div>
           <span style={{ flex: 1 }} />
-          {isCustomer && !showForm && (
+          {/* CTA: show "Edit" if user already has a review (they were eligible
+              when they posted), otherwise show "Write a review" only when
+              they have at least one COMPLETED ticket with this provider. */}
+          {isCustomer && !showForm && (myReview || canReview) && (
             <button
               type="button"
               className="btn btn-primary btn-sm"
@@ -257,6 +274,27 @@ export function ReviewsSection({ providerId, sectionNumber = "03" }: Readonly<Pr
             </button>
           )}
         </div>
+
+        {/* Eligibility hint for logged-in customers who haven't completed a
+            ticket with this provider yet and don't already have a review. */}
+        {isCustomer && !myReview && !canReview && (
+          <div
+            style={{
+              marginBottom: 16,
+              padding: "10px 14px",
+              borderRadius: 10,
+              background: "var(--slate-50, #f8fafc)",
+              border: "1px solid var(--border)",
+              fontSize: 13,
+              color: "var(--text-muted)",
+              lineHeight: 1.5,
+            }}
+          >
+            <strong style={{ color: "var(--text)" }}>Worked with {`this provider`}?</strong>{" "}
+            Reviews are open once a ticket between you two is marked{" "}
+            <strong>Completed</strong>.
+          </div>
+        )}
 
         {/* Form */}
         {isCustomer && showForm && (

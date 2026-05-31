@@ -473,20 +473,26 @@ public class TicketService {
     /**
      * Provider can't take on a job until they've set their payout details, or
      * the customer would have no way to pay them. Called from every code path
-     * that transitions a ticket to APPROVED. Accepts a {@code User} reference
-     * because that's how the ticket holds its assigned provider — we instanceof
-     * + cast inside.
+     * that transitions a ticket to APPROVED.
+     * <p>
+     * Takes the assigned account as a {@code User} because that's how the ticket
+     * holds it. We do NOT use {@code instanceof Provider} — under lazy loading
+     * Hibernate returns a {@code User} proxy that fails the type check even when
+     * the underlying row really is a provider. Instead we re-fetch through the
+     * provider repository by id, which both unwraps the proxy and confirms the
+     * account is a provider.
      * <p>
      * BIC/SWIFT is not required (the SEPA EPC QR spec allows omitting it for
      * EEA transfers), so we only enforce account holder, IBAN, and bank name.
      */
     private void ensureProviderCanAcceptWork(User assigned) {
-        if (!(assigned instanceof Provider provider)) {
-            throw new ApiException("Assigned account is not a provider.");
+        if (assigned == null) {
+            throw new ApiException("This ticket has no assigned provider yet.");
         }
+        Provider provider = providerRepository.findById(assigned.getId())
+            .orElseThrow(() -> new ApiException("Assigned account is not a provider."));
         if (isBlank(provider.getBankAccountHolder())
                 || isBlank(provider.getBankIban())
-                || isBlank(provider.getBankBic())
                 || isBlank(provider.getBankName())) {
             throw new ApiException(
                 "Add your payout details (bank info) before accepting work. "

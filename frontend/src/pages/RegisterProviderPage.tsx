@@ -5,6 +5,7 @@ import { z } from "zod";
 import { useRegisterProviderMutation } from "@/hooks/useRegisterProviderMutation";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { mapZodErrors } from "@/lib/validation";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 const schema = z.object({
   firstName: z.string().min(1, "First name is required."),
@@ -145,7 +146,6 @@ function IconPhone() {
   );
 }
 
-
 export function RegisterProviderPage() {
   const registerMutation = useRegisterProviderMutation();
 
@@ -214,9 +214,11 @@ export function RegisterProviderPage() {
       nextErrors.serviceRadiusKm = "Select a service radius.";
     }
 
-    if (!streetName.trim()) nextErrors.locationStreetName = "Street name is required.";
+    if (!streetName.trim())
+      nextErrors.locationStreetName = "Street name is required.";
     if (!city.trim()) nextErrors.locationCity = "City is required.";
-    if (!postalCode.trim()) nextErrors.locationPostalCode = "Postal code is required.";
+    if (!postalCode.trim())
+      nextErrors.locationPostalCode = "Postal code is required.";
     if (!country.trim()) nextErrors.locationCountry = "Country is required.";
 
     if (bio.length > BIO_MAX) {
@@ -544,7 +546,7 @@ export function RegisterProviderPage() {
                   </div>
                   <div className="col" style={{ gap: 16 }}>
                     <div
-                      className="row"
+                      className="row form-row"
                       style={{ gap: 12, alignItems: "flex-start" }}
                     >
                       <div className="field grow">
@@ -620,20 +622,14 @@ export function RegisterProviderPage() {
                       <label className="field-label" htmlFor="prov-password">
                         Password
                       </label>
-                      <div
-                        className={`input-wrap${errors.password ? " error" : ""}`}
-                      >
-                        <IconLock />
-                        <input
-                          id="prov-password"
-                          className="input"
-                          type="password"
-                          placeholder="8–100 characters"
-                          autoComplete="new-password"
-                          value={form.password}
-                          onChange={set("password")}
-                        />
-                      </div>
+                      <PasswordInput
+                        id="prov-password"
+                        placeholder="8–100 characters"
+                        autoComplete="new-password"
+                        value={form.password}
+                        onChange={set("password")}
+                        hasError={Boolean(errors.password)}
+                      />
                       {form.password && (
                         <div className={`pw-meter s${pwStrength}`}>
                           <span />
@@ -688,10 +684,17 @@ export function RegisterProviderPage() {
                     We use your location to match you with nearby job requests.
                   </p>
 
-                  <div className="row" style={{ gap: 12, alignItems: "flex-start", marginTop: 12 }}>
+                  <div
+                    className="row form-row"
+                    style={{ gap: 12, alignItems: "flex-start", marginTop: 12 }}
+                  >
                     <div className="field" style={{ flex: 3 }}>
-                      <label className="field-label" htmlFor="prov-street">Street name</label>
-                      <div className={`input-wrap${errors.locationStreetName ? " error" : ""}`}>
+                      <label className="field-label" htmlFor="prov-street">
+                        Street name
+                      </label>
+                      <div
+                        className={`input-wrap${errors.locationStreetName ? " error" : ""}`}
+                      >
                         <input
                           id="prov-street"
                           className="input"
@@ -701,10 +704,16 @@ export function RegisterProviderPage() {
                           autoComplete="address-line1"
                         />
                       </div>
-                      {errors.locationStreetName && <span className="field-error">{errors.locationStreetName}</span>}
+                      {errors.locationStreetName && (
+                        <span className="field-error">
+                          {errors.locationStreetName}
+                        </span>
+                      )}
                     </div>
                     <div className="field" style={{ flex: 1, minWidth: 0 }}>
-                      <label className="field-label" htmlFor="prov-streetno">No.</label>
+                      <label className="field-label" htmlFor="prov-streetno">
+                        No.
+                      </label>
                       <div className="input-wrap">
                         <input
                           id="prov-streetno"
@@ -718,10 +727,17 @@ export function RegisterProviderPage() {
                     </div>
                   </div>
 
-                  <div className="row" style={{ gap: 12, alignItems: "flex-start", marginTop: 8 }}>
+                  <div
+                    className="row form-row"
+                    style={{ gap: 12, alignItems: "flex-start", marginTop: 8 }}
+                  >
                     <div className="field" style={{ flex: 1, minWidth: 0 }}>
-                      <label className="field-label" htmlFor="prov-postal">Postal code</label>
-                      <div className={`input-wrap${errors.locationPostalCode ? " error" : ""}`}>
+                      <label className="field-label" htmlFor="prov-postal">
+                        Postal code
+                      </label>
+                      <div
+                        className={`input-wrap${errors.locationPostalCode ? " error" : ""}`}
+                      >
                         <input
                           id="prov-postal"
                           className="input"
@@ -731,11 +747,19 @@ export function RegisterProviderPage() {
                           autoComplete="postal-code"
                         />
                       </div>
-                      {errors.locationPostalCode && <span className="field-error">{errors.locationPostalCode}</span>}
+                      {errors.locationPostalCode && (
+                        <span className="field-error">
+                          {errors.locationPostalCode}
+                        </span>
+                      )}
                     </div>
                     <div className="field" style={{ flex: 3 }}>
-                      <label className="field-label" htmlFor="prov-city">City</label>
-                      <div className={`input-wrap${errors.locationCity ? " error" : ""}`}>
+                      <label className="field-label" htmlFor="prov-city">
+                        City
+                      </label>
+                      <div
+                        className={`input-wrap${errors.locationCity ? " error" : ""}`}
+                      >
                         <input
                           id="prov-city"
                           className="input"
@@ -745,14 +769,25 @@ export function RegisterProviderPage() {
                           autoComplete="address-level2"
                         />
                       </div>
-                      {errors.locationCity && <span className="field-error">{errors.locationCity}</span>}
+                      {errors.locationCity && (
+                        <span className="field-error">
+                          {errors.locationCity}
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  <div className="row" style={{ gap: 12, alignItems: "flex-start", marginTop: 8 }}>
+                  <div
+                    className="row form-row"
+                    style={{ gap: 12, alignItems: "flex-start", marginTop: 8 }}
+                  >
                     <div className="field" style={{ flex: 1 }}>
-                      <label className="field-label" htmlFor="prov-country">Country</label>
-                      <div className={`input-wrap${errors.locationCountry ? " error" : ""}`}>
+                      <label className="field-label" htmlFor="prov-country">
+                        Country
+                      </label>
+                      <div
+                        className={`input-wrap${errors.locationCountry ? " error" : ""}`}
+                      >
                         <input
                           id="prov-country"
                           className="input"
@@ -762,7 +797,11 @@ export function RegisterProviderPage() {
                           autoComplete="country-name"
                         />
                       </div>
-                      {errors.locationCountry && <span className="field-error">{errors.locationCountry}</span>}
+                      {errors.locationCountry && (
+                        <span className="field-error">
+                          {errors.locationCountry}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -808,7 +847,7 @@ export function RegisterProviderPage() {
                     <span className="rule" />
                   </div>
                   <div
-                    className="row"
+                    className="row form-row"
                     style={{ gap: 12, alignItems: "flex-start" }}
                   >
                     <div className="field grow">

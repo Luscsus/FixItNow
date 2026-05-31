@@ -29,6 +29,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
@@ -240,7 +243,9 @@ public class AuthServiceImpl implements AuthService {
         userRepository.findByEmail(request.getEmail().toLowerCase()).ifPresent(user -> {
             verificationTokenRepository.deleteAllByUserAndTokenType(user, TokenType.PASSWORD_RESET);
             String token = generateAndSaveVerificationToken(user, TokenType.PASSWORD_RESET, passwordResetExpirationHours);
-            String resetUrl = frontendUrl + "/auth/reset-password?token=" + token;
+            // Path matches the React route in App.tsx (`<Route path="/reset-password" ...>`).
+            // Previously this was "/auth/reset-password" which 404'd in the SPA.
+            String resetUrl = frontendUrl + "/reset-password?token=" + token;
             emailService.sendPasswordReset(user.getEmail(), user.getFirstName(), resetUrl);
             log.info("Password reset requested for: {}", user.getEmail());
         });

@@ -5,6 +5,8 @@ import { useAuth } from "@/context/auth";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useNotificationsSocket } from "@/hooks/useNotificationsSocket";
+import { useBreakpoint } from "@/hooks/useBreakpoint";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import type { AppNotification } from "@/domain/notification";
 
 function BellIcon() {
@@ -44,6 +46,7 @@ export function NotificationBell() {
   const { accessToken, refreshSession } = useAuth();
   const { data: currentUser } = useCurrentUser();
   const { notifications, unreadCount, isLoading, markRead, markAllRead } = useNotifications();
+  const { isMobile } = useBreakpoint();
 
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -77,8 +80,49 @@ export function NotificationBell() {
     }
   }
 
+  // Shared notification list content used in both dropdown and BottomSheet
+  const notifList = (
+    <div style={{ overflowY: "auto", maxHeight: isMobile ? "60vh" : 380 }}>
+      {isLoading ? (
+        <div style={{ padding: "24px 16px", textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>
+          Loading…
+        </div>
+      ) : notifications.length === 0 ? (
+        <div style={{ padding: "28px 16px", textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>
+          You're all caught up.
+        </div>
+      ) : (
+        notifications.map((n) => (
+          <button
+            key={n.id}
+            onClick={() => handleItemClick(n)}
+            style={{
+              display: "flex", alignItems: "flex-start", gap: 10, width: "100%",
+              padding: "14px 16px", textAlign: "left",
+              background: n.read ? "transparent" : "rgba(59,130,246,0.05)",
+              border: "none", borderBottom: "1px solid rgba(15,23,42,0.05)",
+              cursor: "pointer", transition: "background 0.1s",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(15,23,42,0.04)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = n.read ? "transparent" : "rgba(59,130,246,0.05)"; }}
+          >
+            {n.type === "NEW_MESSAGE" ? <MessageDot /> : <TicketDot />}
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{n.title}</span>
+              {n.body && (
+                <span style={{ display: "block", fontSize: 12.5, color: "var(--text-muted)", marginTop: 1 }}>{n.body}</span>
+              )}
+              <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>{formatRelativeTime(n.createdAt)}</span>
+            </span>
+          </button>
+        ))
+      )}
+    </div>
+  );
+
   return (
     <div ref={ref} style={{ position: "relative" }}>
+      {/* Bell button */}
       <button
         title="Notifications"
         onClick={() => setOpen((o) => !o)}
@@ -107,7 +151,32 @@ export function NotificationBell() {
         )}
       </button>
 
-      {open && (
+      {/* Mobile: full-screen BottomSheet */}
+      {isMobile && (
+        <BottomSheet
+          open={open}
+          onClose={() => setOpen(false)}
+          title="Notifications"
+          desktopAsModal={false}
+          maxHeight="80vh"
+        >
+          {unreadCount > 0 && (
+            <div style={{ padding: "0 0 12px", borderBottom: "1px solid rgba(15,23,42,0.07)", marginBottom: 4 }}>
+              <button
+                onClick={() => markAllRead.mutate()}
+                disabled={markAllRead.isPending}
+                style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 500, color: "var(--navy-700)", padding: 0 }}
+              >
+                Mark all read
+              </button>
+            </div>
+          )}
+          {notifList}
+        </BottomSheet>
+      )}
+
+      {/* Desktop: absolute dropdown */}
+      {!isMobile && open && (
         <div style={{
           position: "absolute", top: "calc(100% + 8px)", right: 0,
           width: 340, maxWidth: "calc(100vw - 32px)",
@@ -139,6 +208,7 @@ export function NotificationBell() {
               </button>
             )}
           </div>
+          {notifList}
 
           {/* List */}
           <div style={{ maxHeight: 380, overflowY: "auto" }}>

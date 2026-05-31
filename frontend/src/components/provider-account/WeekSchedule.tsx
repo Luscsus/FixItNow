@@ -1,4 +1,4 @@
-import { useRef, useMemo, useState, useCallback } from "react";
+import { useRef, useMemo, useState, useCallback, useEffect } from "react";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -6,6 +6,7 @@ import type { EventContentArg, EventClickArg, DatesSetArg } from "@fullcalendar/
 import type { DateClickArg } from "@fullcalendar/interaction";
 import { useOwnCalendarQuery } from "@/hooks/useOwnCalendarQuery";
 import { useProviderCalendarQuery } from "@/hooks/useProviderCalendarQuery";
+import { useMediaQuery, BREAKPOINTS } from "@/hooks/useBreakpoint";
 import type { PublicTimeBlock, TimeBlock, TimeBlockType } from "@/services/calendarService";
 import { BlockTimeModal } from "./BlockTimeModal";
 
@@ -52,6 +53,12 @@ function weekRangeLabel(start: Date): string {
   return `${months[start.getMonth()]} ${start.getDate()} – ${months[end.getMonth()]} ${end.getDate()}`;
 }
 
+function dayLabel(d: Date): string {
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  return `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}`;
+}
+
 function renderBlockLabel(b: AnyBlock): string {
   if (b.type === "BOOKED") {
     const owner = (b as TimeBlock).title;
@@ -95,6 +102,7 @@ function EventContent({ arg, editable }: { arg: EventContentArg; editable: boole
 
   const isOff = type === "OFF";
   const label = block ? renderBlockLabel(block) : "";
+  const isRecurring = Boolean(block && isOwnerBlock(block) && block.seriesId);
 
   return (
     <div
@@ -116,13 +124,22 @@ function EventContent({ arg, editable }: { arg: EventContentArg; editable: boole
         {timeText}
       </b>
       {label}
+      {isRecurring && (
+        <span title="Repeats" style={{ marginLeft: 4, opacity: 0.7 }}>↻</span>
+      )}
     </div>
   );
 }
 
 export function WeekSchedule({ providerId, editable }: WeekScheduleProps) {
   const calRef = useRef<FullCalendar>(null);
-  const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(new Date()));
+  const isMobile = useMediaQuery(BREAKPOINTS.mobile);
+  const [rangeStart, setRangeStart] = useState<Date>(() => startOfWeek(new Date()));
+  const [rangeEnd, setRangeEnd] = useState<Date>(() => {
+    const d = startOfWeek(new Date());
+    d.setDate(d.getDate() + 7);
+    return d;
+  });
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBlock, setEditingBlock] = useState<TimeBlock | null>(null);
   const [defaultDate, setDefaultDate] = useState<string | undefined>(undefined);
@@ -130,14 +147,15 @@ export function WeekSchedule({ providerId, editable }: WeekScheduleProps) {
   // Only use initialDate on first mount — FullCalendar ignores changes after mount anyway
   const initialDate = useMemo(() => startOfWeek(new Date()), []);
 
-  const weekEnd = useMemo(() => {
-    const d = new Date(weekStart);
-    d.setDate(d.getDate() + 7);
-    return d;
-  }, [weekStart]);
+  // When the viewport crosses the mobile breakpoint, swap FullCalendar views.
+  useEffect(() => {
+    const api = calRef.current?.getApi();
+    if (!api) return;
+    api.changeView(isMobile ? "timeGridDay" : "timeGridWeek");
+  }, [isMobile]);
 
-  const fromIso = useMemo(() => formatIsoLocal(weekStart), [weekStart]);
-  const toIso   = useMemo(() => formatIsoLocal(weekEnd),   [weekEnd]);
+  const fromIso = useMemo(() => formatIsoLocal(rangeStart), [rangeStart]);
+  const toIso   = useMemo(() => formatIsoLocal(rangeEnd),   [rangeEnd]);
 
   const ownQuery    = useOwnCalendarQuery(fromIso, toIso, editable);
   const publicQuery = useProviderCalendarQuery(editable ? undefined : providerId, fromIso, toIso);
@@ -163,9 +181,11 @@ export function WeekSchedule({ providerId, editable }: WeekScheduleProps) {
   );
 
   const handleDatesSet = useCallback((arg: DatesSetArg) => {
-    const newStart = startOfWeek(arg.start);
-    setWeekStart((prev) =>
-      prev.getTime() === newStart.getTime() ? prev : newStart,
+    setRangeStart((prev) =>
+      prev.getTime() === arg.start.getTime() ? prev : new Date(arg.start),
+    );
+    setRangeEnd((prev) =>
+      prev.getTime() === arg.end.getTime() ? prev : new Date(arg.end),
     );
   }, []);
 
@@ -202,13 +222,15 @@ export function WeekSchedule({ providerId, editable }: WeekScheduleProps) {
     <>
       <div className="panel-title">
         <span className="num">03</span>
-        <span className="label">This week · {weekRangeLabel(weekStart)}</span>
+        <span className="label">
+          {isMobile ? dayLabel(rangeStart) : `This week · ${weekRangeLabel(rangeStart)}`}
+        </span>
         <span className="rule" />
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           <button
             className="btn btn-secondary btn-sm"
             onClick={() => calRef.current?.getApi().prev()}
-            aria-label="Previous week"
+            aria-label={isMobile ? "Previous day" : "Previous week"}
           >
             ‹
           </button>
@@ -221,7 +243,7 @@ export function WeekSchedule({ providerId, editable }: WeekScheduleProps) {
           <button
             className="btn btn-secondary btn-sm"
             onClick={() => calRef.current?.getApi().next()}
-            aria-label="Next week"
+            aria-label={isMobile ? "Next day" : "Next week"}
           >
             ›
           </button>
@@ -244,7 +266,7 @@ export function WeekSchedule({ providerId, editable }: WeekScheduleProps) {
         <FullCalendar
           ref={calRef}
           plugins={[timeGridPlugin, interactionPlugin]}
-          initialView="timeGridWeek"
+          initialView={isMobile ? "timeGridDay" : "timeGridWeek"}
           initialDate={initialDate}
           headerToolbar={false}
           firstDay={1}

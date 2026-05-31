@@ -110,7 +110,7 @@ export function AdminProvidersPage() {
       </section>
 
       {/* Main two-column layout */}
-      <main style={{
+      <main className={`admin-providers-main${selected ? " has-selected" : ""}`} style={{
         flex: 1,
         display: "grid",
         gridTemplateColumns: "360px 1fr",
@@ -118,7 +118,7 @@ export function AdminProvidersPage() {
         minHeight: 0,
       }}>
         {/* LEFT: Queue */}
-        <aside style={{
+        <aside className="admin-providers-queue" style={{
           background: "var(--card)",
           borderRight: "1px solid var(--border)",
           display: "flex",
@@ -217,7 +217,16 @@ export function AdminProvidersPage() {
 
         {/* RIGHT: Detail */}
         {selected ? (
-          <section style={{ padding: "28px 32px 80px", overflowY: "auto", position: "relative" }}>
+          <section className="admin-provider-detail" style={{ padding: "28px 32px 80px", overflowY: "auto", position: "relative" }}>
+            <button
+              type="button"
+              className="admin-back-btn mobile-only"
+              onClick={() => setSelectedId(null)}
+              aria-label="Back to applications"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              Back to queue
+            </button>
             {/* Breadcrumbs */}
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--text-muted)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 18 }}>
               <span>Provider applications</span>
@@ -260,7 +269,7 @@ export function AdminProvidersPage() {
               <span className="label">Personal details</span>
               <span className="rule" />
             </div>
-            <div style={{
+            <div className="admin-detail-grid" style={{
               display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
               background: "var(--card)", border: "1px solid var(--border)",
               borderRadius: 14, overflow: "hidden",
@@ -290,7 +299,7 @@ export function AdminProvidersPage() {
               <span className="label">Service details</span>
               <span className="rule" />
             </div>
-            <div style={{
+            <div className="admin-detail-grid" style={{
               display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
               background: "var(--card)", border: "1px solid var(--border)",
               borderRadius: 14, overflow: "hidden",

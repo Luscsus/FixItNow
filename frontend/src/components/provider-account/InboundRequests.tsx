@@ -1,7 +1,14 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProviderTicketsQuery } from "@/hooks/useProviderTicketsQuery";
-import { useConfirmTicketMutation, useDeclineTicketMutation } from "@/hooks/useConfirmTicketMutation";
+import {
+  useConfirmTicketMutation,
+  useDeclineTicketMutation,
+} from "@/hooks/useConfirmTicketMutation";
+import { Pagination, usePaginatedItems } from "@/components/ui/Pagination";
 import type { Ticket } from "@/domain/ticket";
+
+const PAGE_SIZE = 6;
 
 const PRIORITY_CLASS: Record<string, string> = {
   CRITICAL: "urgency-critical",
@@ -17,10 +24,14 @@ const PRIORITY_LABEL: Record<string, string> = {
   LOW: "Low",
 };
 
-function pad(n: number) { return String(n).padStart(2, "0"); }
+function pad(n: number) {
+  return String(n).padStart(2, "0");
+}
 
 function fmtTime(d: Date) {
-  return d.getMinutes() === 0 ? `${d.getHours()}:00` : `${d.getHours()}:${pad(d.getMinutes())}`;
+  return d.getMinutes() === 0
+    ? `${d.getHours()}:00`
+    : `${d.getHours()}:${pad(d.getMinutes())}`;
 }
 
 function fmtAge(d: Date): string {
@@ -31,14 +42,31 @@ function fmtAge(d: Date): string {
   return `${Math.floor(hrs / 24)} d ago`;
 }
 
-const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const DAYS   = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-function RequestedTimeChip({ startAt, endAt }: { startAt: Date; endAt: Date | null | undefined }) {
+function RequestedTimeChip({
+  startAt,
+  endAt,
+}: {
+  startAt: Date;
+  endAt: Date | null | undefined;
+}) {
   const s = startAt;
-  const timeRange = endAt
-    ? `${fmtTime(s)}–${fmtTime(endAt)}`
-    : fmtTime(s);
+  const timeRange = endAt ? `${fmtTime(s)}–${fmtTime(endAt)}` : fmtTime(s);
   return (
     <span
       style={{
@@ -75,8 +103,10 @@ function InboundRow({ ticket }: { ticket: Ticket }) {
       <div>
         <div className="ireq-title">{ticket.serviceType}</div>
         <div className="ireq-meta">
-          <span className={`urgency ${PRIORITY_CLASS[ticket.priority ?? ""] ?? "urgency-medium"}`}>
-            {PRIORITY_LABEL[ticket.priority ?? ""] ?? ticket.priority}
+          <span
+            className={`urgency ${(ticket.priority && PRIORITY_CLASS[ticket.priority]) ?? "urgency-medium"}`}
+          >
+            {(ticket.priority && PRIORITY_LABEL[ticket.priority]) ?? "Medium"}
           </span>
           <span>•</span>
           <span>{ticket.location}</span>
@@ -103,16 +133,26 @@ function InboundRow({ ticket }: { ticket: Ticket }) {
         <button
           className="btn btn-secondary btn-sm"
           disabled={busy}
-          onClick={(e) => { e.stopPropagation(); declineMut.mutate(ticket.id); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            declineMut.mutate(ticket.id);
+          }}
         >
           Decline
         </button>
         <button
           className="btn btn-primary btn-sm"
           disabled={busy}
-          onClick={(e) => { e.stopPropagation(); confirmMut.mutate(ticket.id); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            confirmMut.mutate(ticket.id);
+          }}
         >
-          {confirmMut.isPending ? "Confirming…" : ticket.requestedStartAt ? "Confirm & schedule →" : "Accept →"}
+          {confirmMut.isPending
+            ? "Confirming…"
+            : ticket.requestedStartAt
+              ? "Confirm & schedule →"
+              : "Accept →"}
         </button>
       </div>
     </div>
@@ -121,8 +161,14 @@ function InboundRow({ ticket }: { ticket: Ticket }) {
 
 export function InboundRequests() {
   const { data: tickets = [], isLoading } = useProviderTicketsQuery();
+  const [page, setPage] = useState(1);
 
   const pending = tickets.filter((t) => t.status === "PENDING_APPROVAL");
+  const { pageItems, totalPages, safePage } = usePaginatedItems(
+    pending,
+    page,
+    PAGE_SIZE,
+  );
 
   return (
     <>
@@ -139,19 +185,32 @@ export function InboundRequests() {
 
       <div className="card" style={{ marginBottom: 32, padding: 0 }}>
         {isLoading && (
-          <div style={{ padding: "20px 24px", fontSize: 13, color: "var(--text-muted)" }}>
+          <div
+            style={{
+              padding: "20px 24px",
+              fontSize: 13,
+              color: "var(--text-muted)",
+            }}
+          >
             Loading requests…
           </div>
         )}
         {!isLoading && pending.length === 0 && (
-          <div style={{ padding: "20px 24px", fontSize: 13, color: "var(--text-muted)" }}>
+          <div
+            style={{
+              padding: "20px 24px",
+              fontSize: 13,
+              color: "var(--text-muted)",
+            }}
+          >
             No pending requests.
           </div>
         )}
-        {pending.map((t) => (
+        {pageItems.map((t) => (
           <InboundRow key={t.id} ticket={t} />
         ))}
       </div>
+      <Pagination page={safePage} total={totalPages} onChange={setPage} />
     </>
   );
 }

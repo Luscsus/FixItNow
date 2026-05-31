@@ -1,10 +1,16 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useSavedProvidersQuery } from "@/hooks/useSavedProviders";
 import { ProviderCard } from "@/components/browse/ProviderCard";
+import { Pagination, usePaginatedItems } from "@/components/ui/Pagination";
+
+const PAGE_SIZE = 6;
 
 export function SavedProvidersTab() {
   const { data: providers = [], isLoading } = useSavedProvidersQuery();
+  const [page, setPage] = useState(1);
+  const { pageItems, totalPages, safePage } = usePaginatedItems(providers, page, PAGE_SIZE);
 
   return (
     <>
@@ -37,17 +43,20 @@ export function SavedProvidersTab() {
           </Link>
         </div>
       ) : (
-        <div style={{ display: "grid", gap: 16, marginBottom: 32 }}>
-          {providers.map((provider) => (
-            <ProviderCard
-              key={provider.id}
-              provider={provider}
-              coords={null}
-              selectionMode={false}
-              routerState={null}
-            />
-          ))}
-        </div>
+        <>
+          <div style={{ display: "grid", gap: 16, marginBottom: 32 }}>
+            {pageItems.map((provider) => (
+              <ProviderCard
+                key={provider.id}
+                provider={provider}
+                coords={null}
+                selectionMode={false}
+                routerState={null}
+              />
+            ))}
+          </div>
+          <Pagination page={safePage} total={totalPages} onChange={setPage} />
+        </>
       )}
     </>
   );

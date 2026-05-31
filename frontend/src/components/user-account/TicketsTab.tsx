@@ -1,23 +1,30 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useTicketsQuery } from "@/hooks/useTicketsQuery";
 import type { TicketStatus } from "@/domain/ticket";
 import { TicketCard } from "@/components/tickets/TicketCard";
+import { Pagination, usePaginatedItems } from "@/components/ui/Pagination";
 
 const TERMINAL_STATUSES: TicketStatus[] = ["COMPLETED", "DECLINED", "CANCELLED"];
+const PAGE_SIZE = 6;
 
 type Filter = "active" | "resolved" | "all";
 
 export function TicketsTab() {
   const { data: tickets = [], isLoading } = useTicketsQuery();
   const [filter, setFilter] = useState<Filter>("active");
+  const [page, setPage] = useState(1);
 
   const filtered = useMemo(() => {
     if (filter === "active") return tickets.filter((t) => !TERMINAL_STATUSES.includes(t.status));
     if (filter === "resolved") return tickets.filter((t) => TERMINAL_STATUSES.includes(t.status));
     return tickets;
   }, [tickets, filter]);
+
+  useEffect(() => { setPage(1); }, [filter]);
+
+  const { pageItems, totalPages, safePage } = usePaginatedItems(filtered, page, PAGE_SIZE);
 
   return (
     <>
@@ -63,11 +70,14 @@ export function TicketsTab() {
           </Link>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 32 }}>
-          {filtered.map((ticket) => (
-            <TicketCard key={ticket.id} ticket={ticket} />
-          ))}
-        </div>
+        <>
+          <div className="user-tickets-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 32 }}>
+            {pageItems.map((ticket) => (
+              <TicketCard key={ticket.id} ticket={ticket} />
+            ))}
+          </div>
+          <Pagination page={safePage} total={totalPages} onChange={setPage} />
+        </>
       )}
     </>
   );

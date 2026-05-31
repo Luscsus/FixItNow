@@ -32,6 +32,7 @@ public class SavedProviderController {
 
     @Operation(summary = "List the current user's saved providers.")
     @GetMapping
+    @Transactional(readOnly = true)
     public ResponseEntity<List<ProviderSearchResult>> list(@AuthenticationPrincipal UserPrincipal principal) {
         UUID userId = principal.getUser().getId();
         List<SavedProvider> saved = savedProviderRepository.findAllByIdUserIdOrderByCreatedAtDesc(userId);

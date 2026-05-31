@@ -49,6 +49,7 @@ export type InvoiceData = {
 const MOCK_BANK: InvoiceBankDetails = {
   accountHolder: 'FixItNow Finance d.o.o.',
   iban:          'SI56 6100 0001 2345 6789',
+  bic:           'FXNNSI22',
   bankName:      'Nova Ljubljanska Banka d.d.',
 };
 

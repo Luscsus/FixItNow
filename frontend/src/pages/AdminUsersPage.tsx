@@ -109,7 +109,7 @@ export function AdminUsersPage() {
   const busy = changeRole.isPending || suspend.isPending || reactivate.isPending || remove.isPending;
 
   return (
-    <section style={{ flex: 1, overflowY: "auto", padding: "28px 32px 80px" }}>
+    <section className="admin-page" style={{ flex: 1, overflowY: "auto", padding: "28px 32px 80px" }}>
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "flex-end", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
           <div>
@@ -131,8 +131,8 @@ export function AdminUsersPage() {
         {error && <div style={{ padding: 40, textAlign: "center", color: "var(--red-600)" }}>Failed to load users.</div>}
 
         {!isLoading && !error && (
-          <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
-            <div style={{
+          <div className="admin-table" style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
+            <div className="admin-table-head" style={{
               display: "grid",
               gridTemplateColumns: "minmax(220px, 2fr) 1.4fr 150px 130px 1fr",
               gap: 12,
@@ -156,7 +156,7 @@ export function AdminUsersPage() {
               const isProvider = u.role === "PROVIDER";
               const isDeleted = u.status === "DELETED";
               return (
-                <div key={u.id} style={{
+                <div key={u.id} className="admin-table-row" style={{
                   display: "grid",
                   gridTemplateColumns: "minmax(220px, 2fr) 1.4fr 150px 130px 1fr",
                   gap: 12,

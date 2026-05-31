@@ -7,8 +7,9 @@ import { useAuth } from "@/context/auth";
 import type { AuthSession } from "@/domain/auth";
 import { useLoginMutation } from "@/hooks/useLoginMutation";
 import { getErrorMessage } from "@/lib/errorMessage";
-import { googleLogin } from "@/services/authService";
 import { mapZodErrors } from "@/lib/validation";
+import { googleLogin } from "@/services/authService";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 const GOOGLE_ENABLED = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
 
@@ -253,18 +254,14 @@ export function LoginPage() {
                   Forgot password?
                 </Link>
               </div>
-              <div className={`input-wrap${errors.password ? " error" : ""}`}>
-                <IconLock />
-                <input
-                  id="login-password"
-                  className="input"
-                  type="password"
-                  placeholder="Your password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
+              <PasswordInput
+                id="login-password"
+                placeholder="Your password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                hasError={Boolean(errors.password)}
+              />
               {errors.password && <span className="field-error">{errors.password}</span>}
             </div>
 

@@ -19,6 +19,7 @@ public class TimeBlockResponse {
     private String title;
     private String notes;
     private Long ticketId;
+    private UUID seriesId;
 
     public static TimeBlockResponse from(ProviderTimeBlock b) {
         return TimeBlockResponse.builder()
@@ -29,6 +30,7 @@ public class TimeBlockResponse {
             .title(b.getTitle())
             .notes(b.getNotes())
             .ticketId(b.getTicket() != null ? b.getTicket().getId() : null)
+            .seriesId(b.getSeriesId())
             .build();
     }
 }

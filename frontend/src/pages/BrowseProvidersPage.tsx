@@ -10,6 +10,8 @@ import { FilterSidebar } from "@/components/browse/FilterSidebar";
 import { ResultsSection } from "@/components/browse/ResultsSection";
 import { ProvidersMap } from "@/components/browse/ProvidersMap";
 import { PAGE_SIZE, type Segment } from "@/components/browse/browseConstants";
+import { useBreakpoint } from "@/hooks/useBreakpoint";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
@@ -53,6 +55,8 @@ export function BrowseProvidersPage() {
   const [hoverSeg, setHoverSeg] = useState<Segment | null>(null);
   const [page, setPage] = useState(1);
   const [mapOpen, setMapOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const { isMobile } = useBreakpoint();
 
   /* ── Refs ── */
   const barRef = useRef<HTMLFormElement>(null);
@@ -334,7 +338,7 @@ export function BrowseProvidersPage() {
           </p>
         </div>
 
-        <div style={{ position: "relative", zIndex: 10 }}>
+        <div className="browse-searchbar-wrap" style={{ position: "relative", zIndex: 10 }}>
         <SearchBar
           barRef={barRef}
           selectedCategories={selectedCategories}
@@ -366,8 +370,33 @@ export function BrowseProvidersPage() {
         />
         </div>
 
+        {/* Filters button (mobile only) + map toggle */}
+        <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          {/* Mobile filters trigger */}
+          {isMobile && (
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(true)}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 7,
+                padding: "8px 16px",
+                background: "var(--card)", color: "var(--text)",
+                border: "1px solid var(--border)", borderRadius: 8,
+                fontSize: 13.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="4" y1="6" x2="20" y2="6" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="18" x2="20" y2="18" />
+              </svg>
+              Filters
+              {(selectedCategories.length > 0 || minPrice || maxPrice || minExp > 0) && (
+                <span style={{ background: "var(--amber-500)", color: "var(--navy-900)", borderRadius: 999, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>
+                  {selectedCategories.length + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0) + (minExp > 0 ? 1 : 0)}
+                </span>
+              )}
+            </button>
+          )}
         {/* Map toggle button */}
-        <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
           <button
             type="button"
             onClick={() => setMapOpen((v) => !v)}
@@ -416,7 +445,7 @@ export function BrowseProvidersPage() {
             style={{
               position: "relative",
               zIndex: 1,
-              height: 440,
+              height: isMobile ? 280 : 440,
               borderRadius: 12,
               overflow: "hidden",
               border: "1px solid var(--border)",
@@ -428,33 +457,62 @@ export function BrowseProvidersPage() {
           </div>
         )}
 
+        {/* Mobile: FilterSidebar in a BottomSheet */}
+        {isMobile && (
+          <BottomSheet open={filtersOpen} onClose={() => setFiltersOpen(false)} title="Filters" desktopAsModal={false}>
+            <FilterSidebar
+              selectedCategories={selectedCategories}
+              toggleCategory={toggleCategory}
+              radiusKm={radiusKm}
+              setRadiusKm={setRadiusKm}
+              minPrice={minPrice}
+              setMinPrice={setMinPrice}
+              maxPrice={maxPrice}
+              setMaxPrice={setMaxPrice}
+              minExp={minExp}
+              setMinExp={setMinExp}
+              setPage={setPage}
+              coords={coords}
+              locationEnabled={locationEnabled}
+              setLocationEnabled={handleLocationToggle}
+              categories={activeCategories}
+              categoryCountMap={categoryCountMap}
+              onReset={handleReset}
+            />
+          </BottomSheet>
+        )}
+
         <div
+          className="browse-layout"
           style={{
             display: "grid",
-            gridTemplateColumns: "232px 1fr",
+            gridTemplateColumns: isMobile ? "1fr" : "232px 1fr",
             gap: 32,
             alignItems: "flex-start",
           }}
         >
-          <FilterSidebar
-            selectedCategories={selectedCategories}
-            toggleCategory={toggleCategory}
-            radiusKm={radiusKm}
-            setRadiusKm={setRadiusKm}
-            minPrice={minPrice}
-            setMinPrice={setMinPrice}
-            maxPrice={maxPrice}
-            setMaxPrice={setMaxPrice}
-            minExp={minExp}
-            setMinExp={setMinExp}
-            setPage={setPage}
-            coords={coords}
-            locationEnabled={locationEnabled}
-            setLocationEnabled={handleLocationToggle}
-            categories={activeCategories}
-            categoryCountMap={categoryCountMap}
-            onReset={handleReset}
-          />
+          {/* Desktop sidebar */}
+          {!isMobile && (
+            <FilterSidebar
+              selectedCategories={selectedCategories}
+              toggleCategory={toggleCategory}
+              radiusKm={radiusKm}
+              setRadiusKm={setRadiusKm}
+              minPrice={minPrice}
+              setMinPrice={setMinPrice}
+              maxPrice={maxPrice}
+              setMaxPrice={setMaxPrice}
+              minExp={minExp}
+              setMinExp={setMinExp}
+              setPage={setPage}
+              coords={coords}
+              locationEnabled={locationEnabled}
+              setLocationEnabled={handleLocationToggle}
+              categories={activeCategories}
+              categoryCountMap={categoryCountMap}
+              onReset={handleReset}
+            />
+          )}
 
           <ResultsSection
             resultsRef={resultsRef}

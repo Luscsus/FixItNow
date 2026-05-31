@@ -48,6 +48,7 @@ const schema = z.object({
   // Bank fields — optional at save time. If iban is provided, it must validate.
   bankAccountHolder: z.string().max(200).optional(),
   bankIban: z.string().optional(),
+  bankBic: z.string().max(20).optional(),
   bankName: z.string().max(200).optional(),
 }).refine(
   (v) => !v.bankIban || isValidIban(v.bankIban),
@@ -70,6 +71,7 @@ type Fields =
   | "bio"
   | "bankAccountHolder"
   | "bankIban"
+  | "bankBic"
   | "bankName";
 
 export function EditProviderProfileForm() {
@@ -106,6 +108,7 @@ export function EditProviderProfileForm() {
     bio: "",
     bankAccountHolder: "",
     bankIban: "",
+    bankBic: "",
     bankName: "",
   });
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
@@ -132,6 +135,7 @@ export function EditProviderProfileForm() {
           provider.bankAccountHolder ??
           `${provider.firstName ?? ""} ${provider.lastName ?? ""}`.trim(),
         bankIban: provider.bankIban ? formatIban(provider.bankIban) : "",
+        bankBic: provider.bankBic ?? "",
         bankName: provider.bankName ?? "",
       });
       setCategories(provider.categories ?? []);
@@ -201,6 +205,7 @@ export function EditProviderProfileForm() {
       // Bank — IBAN is normalized (spaces stripped, uppercase) before send.
       bankAccountHolder: form.bankAccountHolder.trim() || null,
       bankIban: form.bankIban.trim() ? normalizeIban(form.bankIban) : null,
+      bankBic: form.bankBic.trim().toUpperCase() || null,
       bankName: form.bankName.trim() || null,
     };
     const parsed = schema.safeParse({
@@ -209,6 +214,7 @@ export function EditProviderProfileForm() {
       bio: payload.bio ?? undefined,
       bankAccountHolder: payload.bankAccountHolder ?? undefined,
       bankIban: payload.bankIban ?? undefined,
+      bankBic: payload.bankBic ?? undefined,
       bankName: payload.bankName ?? undefined,
     });
     if (!parsed.success) {
@@ -372,7 +378,7 @@ export function EditProviderProfileForm() {
         </div>
       </div>
 
-      <div className="row" style={{ gap: 12, alignItems: "flex-start" }}>
+      <div className="row form-row" style={{ gap: 12, alignItems: "flex-start" }}>
         <div className="field grow" style={{ flexBasis: "65%" }}>
           <label className="field-label" htmlFor="p-street">Street name</label>
           <div className={`input-wrap${errors.locationStreetName ? " error" : ""}`}>
@@ -388,7 +394,7 @@ export function EditProviderProfileForm() {
         </div>
       </div>
 
-      <div className="row" style={{ gap: 12, alignItems: "flex-start" }}>
+      <div className="row form-row" style={{ gap: 12, alignItems: "flex-start" }}>
         <div className="field grow">
           <label className="field-label" htmlFor="p-city">City</label>
           <div className={`input-wrap${errors.locationCity ? " error" : ""}`}>
@@ -497,6 +503,45 @@ export function EditProviderProfileForm() {
               autoComplete="off"
               style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.04em" }}
             />
+          </div>
+          <span className="field-hint">Format + mod-97 checksum is validated client-side and on the server.</span>
+          {errors.bankIban && <span className="field-error">{errors.bankIban}</span>}
+        </div>
+
+        <div className="row" style={{ gap: 12, marginTop: 12 }}>
+          <div className="field grow">
+            <label className="field-label" htmlFor="p-bank-bic">BIC / SWIFT</label>
+            <div className={`input-wrap${errors.bankBic ? " error" : ""}`}>
+              <input
+                id="p-bank-bic"
+                className="input"
+                placeholder="LJBASI2X"
+                value={form.bankBic}
+                onChange={(e) => {
+                  setForm((p) => ({ ...p, bankBic: e.target.value.toUpperCase() }));
+                  setSuccess(false);
+                }}
+                spellCheck={false}
+                autoComplete="off"
+                style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.04em" }}
+              />
+            </div>
+            {errors.bankBic && <span className="field-error">{errors.bankBic}</span>}
+          </div>
+
+          <div className="field grow">
+            <label className="field-label" htmlFor="p-bank-name">Bank name</label>
+            <div className={`input-wrap${errors.bankName ? " error" : ""}`}>
+              <input
+                id="p-bank-name"
+                className="input"
+                placeholder="Nova Ljubljanska Banka"
+                value={form.bankName}
+                onChange={setField("bankName")}
+                autoComplete="off"
+              />
+            </div>
+            {errors.bankName && <span className="field-error">{errors.bankName}</span>}
           </div>
           {errors.bankIban && <span className="field-error">{errors.bankIban}</span>}
         </div>

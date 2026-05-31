@@ -48,6 +48,7 @@
 
 /* ─── Base ─── */
 *, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
 html, body { margin: 0; padding: 0; overflow-x: clip; }
 body {
   font-family: var(--font-sans);
@@ -58,11 +59,222 @@ body {
   background: var(--bg-canvas);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior-y: contain;
 }
 button { font: inherit; cursor: pointer; }
 a { color: inherit; text-decoration: none; }
 input, textarea, select { font: inherit; color: inherit; }
 ::selection { background: var(--amber-100); color: var(--navy-900); }
+
+/* ─── Mobile-first utilities ─── */
+/* Prevent iOS auto-zoom on focus by ensuring inputs are >=16px on small screens */
+@media (max-width: 767px) {
+  input, textarea, select { font-size: 16px; }
+  body { font-size: 16px; }
+}
+
+.app-container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+@media (max-width: 767px) {
+  .app-container { padding: 0 16px; }
+}
+
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.safe-top    { padding-top: env(safe-area-inset-top); }
+
+/* Hide on mobile / hide on desktop helpers */
+.mobile-only  { display: none; }
+.desktop-only { display: initial; }
+@media (max-width: 767px) {
+  .mobile-only  { display: initial; }
+  .desktop-only { display: none !important; }
+}
+
+/* When the mobile bottom tab bar is mounted we add this class on the shell */
+.has-mobile-nav-pad {
+  padding-bottom: calc(64px + env(safe-area-inset-bottom));
+}
+@media (min-width: 768px) {
+  .has-mobile-nav-pad { padding-bottom: 0; }
+}
+
+/* ─── Mobile bottom navigation ─── */
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  display: none;
+  align-items: stretch;
+  justify-content: space-around;
+  background: rgba(250, 250, 247, 0.98);
+  backdrop-filter: saturate(180%) blur(14px);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  height: calc(64px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@media (max-width: 767px) {
+  .mobile-nav { display: flex; }
+}
+.mobile-nav-item {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 4px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: color 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+.mobile-nav-item.is-active { color: var(--navy-900); font-weight: 600; }
+.mobile-nav-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+.mobile-nav-label {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mobile-nav-badge {
+  position: absolute;
+  top: -2px;
+  right: -6px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #F59E0B;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  box-shadow: 0 0 0 2px rgba(250, 250, 247, 0.98);
+}
+
+/* ─── Bottom sheet ─── */
+.bottom-sheet-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex; align-items: flex-end; justify-content: stretch;
+  z-index: 60;
+  animation: bs-fade 0.18s ease-out;
+}
+.bottom-sheet {
+  width: 100%;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.14);
+  display: flex; flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: bs-slide-up 0.22s ease-out;
+}
+.bottom-sheet-handle {
+  width: 40px; height: 4px;
+  background: rgba(15, 23, 42, 0.18);
+  border-radius: 2px;
+  margin: 10px auto 6px;
+  flex-shrink: 0;
+}
+.bottom-sheet-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 18px 12px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  flex-shrink: 0;
+}
+.bottom-sheet-title { margin: 0; font-size: 16px; font-weight: 600; color: var(--text); }
+.bottom-sheet-close {
+  width: 36px; height: 36px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none; background: transparent; color: var(--text-muted);
+  border-radius: 8px; cursor: pointer;
+}
+.bottom-sheet-close:hover { background: rgba(15,23,42,0.05); color: var(--text); }
+.bottom-sheet-body {
+  overflow-y: auto;
+  padding: 16px 18px 20px;
+  flex: 1 1 auto;
+}
+@keyframes bs-slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes bs-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+/* On desktop, render the bottom sheet as a centered modal */
+@media (min-width: 768px) {
+  .bottom-sheet--desktop-modal { align-items: center; justify-content: center; padding: 16px; }
+  .bottom-sheet--desktop-modal .bottom-sheet {
+    max-width: 520px;
+    border-radius: 16px;
+    animation: bs-fade 0.18s ease-out;
+  }
+  .bottom-sheet--desktop-modal .bottom-sheet-handle { display: none; }
+}
+
+/* ─── Drawer ─── */
+.drawer-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 60;
+  animation: bs-fade 0.18s ease-out;
+}
+.drawer {
+  position: absolute; top: 0; bottom: 0;
+  background: #fff;
+  display: flex; flex-direction: column;
+  box-shadow: 0 0 24px rgba(15, 23, 42, 0.14);
+  max-width: 90vw;
+}
+.drawer--left  { left: 0;  animation: drawer-slide-left 0.22s ease-out; }
+.drawer--right { right: 0; animation: drawer-slide-right 0.22s ease-out; }
+.drawer-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  flex-shrink: 0;
+}
+.drawer-title { margin: 0; font-size: 16px; font-weight: 600; color: var(--text); }
+.drawer-close {
+  width: 36px; height: 36px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none; background: transparent; color: var(--text-muted);
+  border-radius: 8px; cursor: pointer;
+}
+.drawer-close:hover { background: rgba(15,23,42,0.05); color: var(--text); }
+.drawer-body { flex: 1 1 auto; overflow-y: auto; }
+@keyframes drawer-slide-left  { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@keyframes drawer-slide-right { from { transform: translateX(100%);  } to { transform: translateX(0); } }
+
+/* ─── App header responsive helpers ─── */
+@media (max-width: 767px) {
+  .app-header-inner { padding: 0 16px !important; gap: 8px !important; }
+  .app-header-navlinks { display: none !important; }
+  .app-header-cta-newticket { display: none !important; }
+  .app-header-loginlinks .app-header-login-text { display: none; }
+}
 
 /* ─── Brand mark ─── */
 .brand-mark {
@@ -304,6 +516,15 @@ input, textarea, select { font: inherit; color: inherit; }
   color: var(--text-muted);
 }
 .problem-mini b { color: var(--text); font-weight: 600; }
+
+@media (max-width: 767px) {
+  /* Force the submit button onto its own full-width row */
+  .problem-submit {
+    margin-left: 0 !important;
+    flex: 0 0 100%;
+    width: 100%;
+  }
+}
 
 /* ─── Live card ─── */
 .live-card {
@@ -692,6 +913,74 @@ input, textarea, select { font: inherit; color: inherit; }
 .mfoot-grid li a { font-size: 14px; color: var(--text); }
 .mfoot-grid li a:hover { color: var(--navy-700); }
 
+/* ─── Responsive: landing, container, footer ─── */
+@media (max-width: 767px) {
+  .container { padding: 0 16px; }
+
+  /* Hero — single column, live-card goes below on mobile */
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .live-card { margin-top: 8px; }
+  .display-mega { font-size: clamp(38px, 9vw, 56px); }
+  .hero-lede { max-width: 100% !important; }
+  .problem-box { border-radius: 16px; }
+  .problem-textarea { font-size: 16px; } /* prevent iOS zoom */
+
+  /* Category grid — 2-col on mobile, drop named areas */
+  .cat-grid {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: none;
+    grid-template-areas: none;
+    gap: 10px;
+  }
+  /* Feature card spans full row */
+  .cat-feature { grid-column: 1 / -1; min-height: 180px; }
+  .cat { border-radius: 14px; padding: 16px 18px; }
+  .cat-name { font-size: 18px; }
+
+  /* Steps — vertical stack */
+  .steps {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .step h3 { font-size: 22px; }
+
+  /* Proof band inner grid */
+  .proof-band-inner {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+  }
+  .proof-cells {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .proof-num { font-size: clamp(40px, 10vw, 60px); }
+
+  /* CTA band — single column */
+  .cta-band-inner {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .cta-dark-overlay { display: none; }
+  .cta-band h2 { font-size: clamp(32px, 8vw, 48px); }
+
+  /* Footer — 2-col then 1-col */
+  .mfoot-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  /* Brand column spans full width */
+  .mfoot-grid > div:first-child { grid-column: 1 / -1; }
+}
+
+@media (max-width: 479px) {
+  .mfoot-grid { grid-template-columns: 1fr; }
+  .cat-grid { grid-template-columns: 1fr; }
+  .cat-feature { grid-column: auto; }
+}
+
 /* ─── Auth layout ─── */
 .auth {
   display: grid;
@@ -910,6 +1199,54 @@ input, textarea, select { font: inherit; color: inherit; }
   letter-spacing: 0.08em;
   color: var(--text);
 }
+.panel-title .rule { flex: 1; min-width: 12px; height: 1px; background: var(--border); }
+
+/* Trailing actions (Edit, + Add location, Go to dashboard, …) — last child
+   of a panel-title that isn't the rule. Keep them from overflowing on narrow
+   viewports by allowing them to shrink and stay inside the row. */
+.panel-title > :last-child:not(.rule) {
+  flex-shrink: 0;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+/* Desktop default: full label visible, short hidden. */
+.tab-label-full  { display: inline; }
+.tab-label-short { display: none; }
+
+/* Mobile: layout panel-title as two rows — title (num + label + rule) on
+   the first row, action right-aligned on its own row underneath. This is
+   unconditional so long labels can never push the action off-screen. */
+@media (max-width: 767px) {
+  .panel-title {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "num   label"
+      "action action";
+    column-gap: 10px;
+    row-gap: 6px;
+    align-items: baseline;
+  }
+  .panel-title .num   { grid-area: num; }
+  .panel-title .label { grid-area: label; min-width: 0; }
+  /* Hide the decorative rule on mobile — it doesn't add value once the
+     action drops to its own row. */
+  .panel-title .rule  { display: none; }
+  .panel-title > :last-child:not(.rule) {
+    grid-area: action;
+    justify-self: end;
+    margin-left: 0;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Tab labels: swap full ↔ short on phones. */
+  .tab-label-full  { display: none; }
+  .tab-label-short { display: inline; }
+}
 .panel-title .rule { flex: 1; height: 1px; background: var(--border); }
 
 /* ─── Role chooser cards (register page) ─── */
@@ -1033,10 +1370,55 @@ input, textarea, select { font: inherit; color: inherit; }
 .feature-row .fbody b { color: #fff; font-weight: 600; }
 .feature-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 4px 0; }
 
+/* ─── Responsive: auth layout ─── */
+@media (max-width: 767px) {
+  .auth {
+    grid-template-columns: 1fr;
+    min-height: calc(100vh - 60px);
+  }
+  .auth-art { display: none; }
+  .auth-form-side {
+    padding: 32px 24px 48px;
+    min-height: calc(100vh - 60px);
+    justify-content: flex-start;
+  }
+  .auth-form { max-width: 100%; }
+  .input-wrap, .fselect { min-height: 48px; }
+
+  /* Trade chips: tighter on small screens */
+  .trade-chip { padding: 9px 10px; font-size: 12px; gap: 7px; }
+
+  /* Multi-field form rows stack vertically */
+  .form-row {
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+  .form-row .field,
+  .form-row .grow {
+    flex: 1 1 100% !important;
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Role-selection cards: hide desc/tags, compact layout */
+  .choose-card {
+    grid-template-columns: 48px 1fr auto;
+    gap: 14px;
+    padding: 18px 20px;
+  }
+  .choose-card .role-num { font-size: 20px; }
+  .choose-card .role-name { font-size: 17px; }
+  .choose-card .role-desc { display: none; }
+  .choose-card .role-tags { display: none; }
+  .choose-card .role-cta { font-size: 0; gap: 0; } /* icon-only arrow */
+  .choose-card .role-cta svg { display: block; }
+  .recommended-badge { font-size: 9.5px; padding: 3px 8px; top: 12px; right: 12px; }
+}
+
 /* ─── Trade chips (provider form) ─── */
 .trade-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 6px;
 }
 .trade-chip {
@@ -1317,6 +1699,14 @@ input, textarea, select { font: inherit; color: inherit; }
 .hstat.accent .hstat-num { color: var(--amber-500); }
 .hstat.danger .hstat-num { color: #FCA5A5; }
 .hstat.warn   .hstat-num { color: #FCA5A5; }
+
+/* ─── Dashboard card grid ─── */
+.dash-card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 48px;
+}
 
 /* ─── Ticket card (user dashboard) ─── */
 .ticket {
@@ -2649,10 +3039,343 @@ input, textarea, select { font: inherit; color: inherit; }
   }
 }
 
+/* ─── Ticket pages — mobile ─── */
+@media (max-width: 767px) {
+  /* New Ticket form */
+  .form-section {
+    padding: 20px 16px;
+  }
+  .new-ticket-heading {
+    margin-bottom: 20px;
+  }
+  .new-ticket-actions {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+  .new-ticket-actions .grow {
+    display: none;
+  }
+  .new-ticket-submit-btn {
+    width: 100%;
+  }
+  .new-ticket-photo-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px !important;
+  }
+  .new-ticket-photo-grid > div {
+    width: 100%;
+  }
+  .new-ticket-photo-grid img {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 1;
+  }
+
+  /* Ticket Detail body — collapse 2-col to single column */
+  .ticket-detail-body {
+    grid-template-columns: 1fr !important;
+    padding: 16px 16px 80px !important;
+    gap: 16px !important;
+  }
+
+  /* Meta card — 4-col → 2×2 grid */
+  .ticket-meta-card {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .ticket-meta-card > div:nth-child(n+3) {
+    border-top: 1px solid var(--border);
+  }
+  .ticket-meta-card > div:nth-child(3) {
+    border-left: none !important;
+  }
+
+  /* Live header — tighten vertical padding */
+  .ticket-live-header {
+    padding-top: 16px !important;
+    padding-bottom: 20px !important;
+  }
+
+  /* Phase rail — horizontally scrollable strip */
+  .steprail {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  .steprail::-webkit-scrollbar { display: none; }
+  .steprail-bars,
+  .steprail-labels {
+    min-width: 520px;
+  }
+}
+
+/* ─── Profile pages — mobile ─── */
+@media (max-width: 767px) {
+  /* Collapse both account body grids to single column */
+  .acct-body,
+  .pro-body {
+    grid-template-columns: 1fr !important;
+    gap: 20px;
+    padding: 20px 16px 64px;
+    /* Crucial: clip any child that tries to grow wider than the viewport.
+       Without this, a job card or ticket card with min-content > viewport
+       stretches the body, which in turn pushes the tabs row wider than the
+       screen — that's why "Reviews" was getting cut off only when the
+       Overview tab (with the active job cards) was active. */
+    min-width: 0;
+    overflow-x: hidden;
+  }
+  .acct-body > *,
+  .pro-body  > * { min-width: 0; }
+  /* Same width-safety for the direct content/aside columns */
+  .acct-body > div,
+  .pro-body  > div { min-width: 0; max-width: 100%; }
+
+  /* Active job card on the Overview tab — keep it bounded inside the body
+     and let its inner content shrink to the available width. */
+  .job-card,
+  .job-body { min-width: 0; max-width: 100%; }
+  .job-head { flex-wrap: wrap; row-gap: 6px; }
+  .job-head .pill { flex-shrink: 0; }
+
+  /* Tabs: switch from flex to a grid that distributes columns evenly. Grid
+     with minmax(0,1fr) is more reliable than flex:1 because it forces every
+     column to share width regardless of intrinsic content width. */
+  .tabs {
+    display: grid !important;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    padding-bottom: 1px;
+    width: 100%;
+  }
+  .tabs button {
+    width: 100%;
+    min-width: 0 !important;
+    padding: 12px 4px !important;
+    font-size: 12.5px !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Week schedule: fit the full 7-day week in the viewport rather than
+     forcing horizontal scroll. We tighten the time-gutter, slot heights,
+     and event blocks so the calendar stays scannable on phones. */
+  .week-sched-wrap {
+    overflow-x: hidden;
+    margin: 0 -4px; /* claw back a little width */
+  }
+  .week-sched-wrap .fc { min-width: 0; font-size: 11px; }
+
+  /* Day header column letters (M/T/W/T/F/S/S) */
+  .week-sched-wrap .fc .fc-col-header-cell-cushion,
+  .week-sched-wrap .fc-col-header-cell { padding: 0 !important; }
+  .week-sched-wrap .fc .fc-col-header-cell span {
+    font-size: 9.5px !important;
+    letter-spacing: 0.04em !important;
+  }
+
+  /* Left time gutter narrower so day columns get more room */
+  .week-sched-wrap .fc .fc-timegrid-axis-cushion,
+  .week-sched-wrap .fc .fc-timegrid-slot-label-cushion {
+    padding: 0 3px !important;
+    font-size: 9.5px !important;
+  }
+  .week-sched-wrap .fc .fc-timegrid-axis-frame { padding: 0 !important; }
+  .week-sched-wrap .fc .fc-timegrid-slot { height: 28px !important; }
+
+  /* Events stay readable but won't overflow narrow columns */
+  .week-sched-wrap .fc .fc-event {
+    font-size: 9.5px !important;
+    padding: 1px 2px !important;
+    border-radius: 4px !important;
+  }
+  .week-sched-wrap .fc .fc-event-title,
+  .week-sched-wrap .fc .fc-event-time {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Header toolbar (week range + nav buttons) wraps cleanly */
+  .week-sched-wrap + .panel-title,
+  .fc-week-calendar .panel-title { row-gap: 8px; }
+
+  /* Mobile day view: a single column means there's room for legible blocks.
+     Undo the aggressive shrinking applied for the 7-column week layout. */
+  .week-sched-wrap .fc-view-timeGridDay .fc-col-header-cell span,
+  .week-sched-wrap .fc-view-timeGridDay .fc-timegrid-axis-cushion,
+  .week-sched-wrap .fc-view-timeGridDay .fc-timegrid-slot-label-cushion {
+    font-size: 12px !important;
+  }
+  .week-sched-wrap .fc-view-timeGridDay .fc-timegrid-slot {
+    height: 56px !important;
+  }
+  .week-sched-wrap .fc-view-timeGridDay .fc-event {
+    font-size: 13px !important;
+    padding: 4px 8px !important;
+    border-radius: 6px !important;
+    line-height: 1.45 !important;
+  }
+  .week-sched-wrap .fc-view-timeGridDay .fc-event-title,
+  .week-sched-wrap .fc-view-timeGridDay .fc-event-time {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+  .week-sched-wrap .fc-view-timeGridDay .fc-block-inner {
+    padding: 6px 8px !important;
+    font-size: 13px !important;
+  }
+  .week-sched-wrap .fc-view-timeGridDay .fc-block-inner b {
+    font-size: 11.5px !important;
+  }
+  .week-sched-wrap .fc-view-timeGridDay .fc-timegrid-event-harness {
+    margin: 2px 6px !important;
+  }
+  /* The day-view header shows "MON 12" with extra emphasis since
+     it's the only column. */
+  .week-sched-wrap .fc-view-timeGridDay .fc-col-header-cell {
+    padding: 8px 0 !important;
+  }
+
+  /* Active job card: tighten the meta row + steprail so each card fits in
+     less vertical space and the labels don't wrap to 3 lines. */
+  .job-meta {
+    font-size: 12px;
+    gap: 6px;
+    line-height: 1.4;
+    flex-wrap: wrap;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .job-meta > span { max-width: 100%; word-break: break-word; }
+  .steprail,
+  .steprail-bars,
+  .steprail-labels { min-width: 0; max-width: 100%; }
+  .steprail-labels { font-size: 8.5px; gap: 2px; }
+  .steprail-labels span { line-height: 1.25; }
+
+  /* Inbound request row — tighten on narrow screens */
+  .inbound-req {
+    grid-template-columns: 48px 1fr;
+    gap: 10px;
+  }
+  .inbound-req .ireq-actions {
+    grid-column: 2;
+  }
+}
+
+/* ─── Dashboard — mobile ─── */
+@media (max-width: 767px) {
+  .dash-hero {
+    padding: 20px 0 24px;
+  }
+  .dash-hero-headline {
+    font-size: clamp(26px, 7vw, 38px) !important;
+    margin-top: 10px;
+    max-width: 100%;
+  }
+  /* Hero stats: horizontal scrollable strip (works for both 3-col and 4-col) */
+  .hero-stats {
+    display: flex !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin-top: 20px;
+    padding-bottom: 4px;
+  }
+  .hero-stats::-webkit-scrollbar { display: none; }
+  .hero-stats .hstat {
+    min-width: 130px;
+    flex-shrink: 0;
+    padding: 0 18px;
+  }
+  .hero-stats .hstat:first-child {
+    padding-left: 0;
+  }
+  .hstat-num { font-size: 36px; }
+  /* hero-top: status pod wraps below headline */
+  .hero-top {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .status-pod {
+    align-self: flex-start;
+  }
+  /* Card grids: 2-col → 1-col */
+  .dash-card-grid {
+    grid-template-columns: 1fr;
+  }
+  /* Action row tightening */
+  .page-area {
+    padding: 16px 0 56px;
+  }
+
+  /* ── Dashboard / page container fix ────────────────────────────────────
+     ROOT CAUSE: `.page` and `.page-area` use the shorthand `padding: 32px
+     0 56px`, which fully overrides `.container`'s `padding: 0 16px` on
+     mobile — leaving the page with ZERO horizontal padding. That's why
+     "01 YOUR ACTIVE TICKETS" hugs the left edge and "20 ACTIVE" gets cut
+     off on the right. Restore the 16px gutters here, plus overflow-x clip
+     and min-width: 0 so wide card content can't push siblings off-screen
+     (same defensive chain we added to .pro-body). */
+  .container.page,
+  .container.page-area {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    overflow-x: hidden;
+    min-width: 0;
+  }
+  .container.page > *,
+  .container.page-area > * { min-width: 0; max-width: 100%; }
+
+  /* Ticket card internal tightening */
+  .ticket { min-width: 0; }
+  .ticket-body {
+    padding: 14px 16px 16px;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .ticket-row1 {
+    flex-wrap: wrap;
+    row-gap: 4px;
+    min-width: 0;
+  }
+  .ticket-title {
+    font-size: 16px;
+    word-break: break-word;
+  }
+  .ticket-prov {
+    flex-wrap: wrap;
+    row-gap: 6px;
+    min-width: 0;
+  }
+  .ticket-prov-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+  /* Phase rail on ticket card: keep it inside the card width */
+  .mini-rail { min-width: 0; max-width: 100%; overflow: hidden; }
+}
+
 /* ─── Chat page ─── */
 /* Fixed to viewport: navbar is ~62px (AppLayout header). The chat shell occupies
    the remaining viewport so the thread can scroll internally without pushing the page taller. */
 .chat-shell { height: calc(100dvh - 62px); display: grid; grid-template-columns: 320px 1fr; overflow: hidden; }
+
+/* Right-side wrapper (conv + back btn); needed so the back btn lives inside the
+   grid cell and doesn't become its own grid item. */
+.chat-right { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+
+/* Back-to-inbox button — hidden on desktop, visible on mobile */
+.conv-back-btn { display: none; }
 
 /* Inbox */
 .inbox { border-right: 1px solid var(--border); background: var(--card); display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
@@ -2674,6 +3397,7 @@ input, textarea, select { font: inherit; color: inherit; }
 .inbox-time { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-muted); letter-spacing: 0.04em; }
 
 /* Conversation */
+.conv { flex: 1; display: flex; flex-direction: column; min-height: 0; background: var(--slate-50); overflow: hidden; }
 .conv { display: flex; flex-direction: column; min-height: 0; background: var(--slate-50); overflow: hidden; }
 .conv-head { padding: 16px 28px; border-bottom: 1px solid var(--border); background: var(--card); display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
 .conv-name h2 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.015em; }
@@ -2699,6 +3423,13 @@ input, textarea, select { font: inherit; color: inherit; }
 
 /* Inbox row unread dot */
 .inbox-row .unread-dot { display: inline-block; width: 7px; height: 7px; background: var(--amber-500); border-radius: 4px; margin-top: 6px; }
+
+/* Unread conversations: name + ticket id render heavier so the inbox visually
+   surfaces threads that need attention. Returns to baseline weight as soon as
+   the row is clicked (notification is marked read upstream). */
+.inbox-row.unread .inbox-name { font-weight: 800; color: var(--text); }
+.inbox-row.unread .inbox-name .ticket-id { font-weight: 600; color: var(--text); }
+.inbox-row.unread .inbox-preview { color: var(--text); font-weight: 500; }
 .inbox-time-col { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 .conv-thread { flex: 1; overflow-y: auto; padding: 28px 28px 16px; display: flex; flex-direction: column; gap: 14px; }
 .day-sep { text-align: center; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; padding: 12px 0; }
@@ -2740,6 +3471,145 @@ input, textarea, select { font: inherit; color: inherit; }
 /* Chat empty state */
 .chat-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text-muted); background: var(--slate-50); }
 .chat-empty-icon { width: 56px; height: 56px; border-radius: 16px; background: var(--slate-100); display: grid; place-items: center; }
+
+/* ─── Chat — mobile ─── */
+@media (max-width: 767px) {
+  /* Shell: subtract bottom nav from height */
+  .chat-shell {
+    grid-template-columns: 1fr !important;
+    height: calc(100dvh - 62px - 64px - env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Default view: inbox fills shell, right side hidden */
+  .chat-shell .inbox {
+    border-right: none;
+  }
+  .chat-shell .chat-right {
+    display: none;
+  }
+
+  /* Thread-open: hide inbox, show right side full-width */
+  .chat-shell--thread-open .inbox {
+    display: none !important;
+  }
+  .chat-shell--thread-open .chat-right {
+    display: flex;
+    width: 100%;
+  }
+
+  /* Back-to-inbox bar */
+  .conv-back-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    background: var(--card);
+    border: none;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--navy-700);
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    flex-shrink: 0;
+  }
+
+  /* Tighten internal padding on mobile */
+  .conv-head { padding: 12px 16px !important; }
+  .conv-thread { padding: 16px 12px 12px !important; gap: 10px !important; }
+  .composer { padding: 10px 12px 12px !important; }
+
+  /* Bubbles: cap at 85% width so they don't span the full screen */
+  .bubble { max-width: 85% !important; }
+  .msg-row { max-width: 90%; }
+}
+
+/* ─── PWA install banner ─── */
+.install-banner {
+  position: fixed;
+  bottom: calc(64px + env(safe-area-inset-bottom) + 12px);
+  left: 16px;
+  right: 16px;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--navy-900);
+  color: #fff;
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.28);
+  z-index: 200;
+  animation: banner-slide-up 0.3s ease;
+}
+@keyframes banner-slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+/* On desktop (no bottom nav), sit just above the page footer */
+@media (min-width: 768px) {
+  .install-banner {
+    bottom: 24px;
+    left: auto;
+    right: 24px;
+    max-width: 360px;
+    margin: 0;
+  }
+}
+.install-banner-icon img {
+  border-radius: 8px;
+  display: block;
+  flex-shrink: 0;
+}
+.install-banner-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.install-banner-text strong {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #fff;
+}
+.install-banner-text span {
+  font-size: 12px;
+  color: rgba(255,255,255,0.7);
+  line-height: 1.4;
+}
+.install-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.install-banner-dismiss {
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.55);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+  line-height: 1;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.install-banner-dismiss:hover {
+  color: #fff;
+}
+/* iOS variant: amber accent for the share icon */
+.install-banner--ios {
+  background: var(--navy-800, #0b1e3f);
+  border: 1px solid rgba(245,158,11,0.3);
+}
+.install-banner--ios .install-banner-text span {
+  color: rgba(255,255,255,0.75);
+}
 
 .browse-provider-card {
   cursor: pointer;
@@ -2864,6 +3734,340 @@ input, textarea, select { font: inherit; color: inherit; }
   .landing-pane-enter.landing-pane-forward,
   .landing-pane-enter.landing-pane-back {
     animation: none;
+  }
+}
+
+/* ─── Admin console — mobile ─── */
+.admin-back-btn {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding: 8px 12px;
+  background: var(--slate-100);
+  color: var(--navy-700);
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.admin-back-btn:hover { background: var(--slate-200); }
+
+@media (max-width: 767px) {
+  /* Strip + topbar — tighten gutters */
+  .admin-strip-inner,
+  .admin-topbar-inner {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    gap: 12px !important;
+    flex-wrap: wrap !important;
+  }
+  .admin-topbar-inner {
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+    gap: 10px !important;
+  }
+  /* Hide the "/ Admin" breadcrumb on narrow screens */
+  .admin-topbar-inner > span:not([class]) { display: none; }
+  /* Admin tabs become a horizontal scroll strip */
+  .admin-tabs {
+    margin-left: 0 !important;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap !important;
+  }
+  .admin-tabs::-webkit-scrollbar { display: none; }
+  .admin-tabs a { flex-shrink: 0; }
+
+  /* Admin pages — tighter padding */
+  .admin-page {
+    padding: 18px 14px 80px !important;
+  }
+  .admin-page > div { padding: 0 !important; }
+  /* Admin tables collapse to stacked cards */
+  .admin-table-head { display: none !important; }
+  .admin-table { border-radius: 12px !important; }
+  .admin-table-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    padding: 14px 16px !important;
+  }
+  .admin-table-row > div { min-width: 0; }
+  .admin-table-row > div:last-child {
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+  }
+
+  /* Admin providers split: stack queue ⇄ detail */
+  .admin-providers-main {
+    grid-template-columns: 1fr !important;
+  }
+  .admin-providers-queue {
+    border-right: none !important;
+    border-bottom: 1px solid var(--border);
+  }
+  /* When a provider is selected, hide the queue and show only the detail */
+  .admin-providers-main.has-selected .admin-providers-queue { display: none !important; }
+  .admin-providers-main:not(.has-selected) .admin-provider-detail { display: none !important; }
+  .admin-back-btn { display: inline-flex; }
+  .admin-provider-detail {
+    padding: 18px 14px 80px !important;
+  }
+  .admin-detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .admin-detail-grid > div {
+    border-left: none !important;
+    border-top: 1px solid var(--border);
+  }
+  .admin-detail-grid > div:first-child {
+    border-top: none !important;
+  }
+}
+
+/* ─── Browse providers — mobile ─── */
+@media (max-width: 767px) {
+  /* Hide the cramped horizontal SearchBar on mobile — the "Filters"
+     bottom-sheet button + auto-search-on-change covers the same flow */
+  .browse-searchbar-wrap { display: none !important; }
+
+  /* Provider cards: collapse the 3-column grid (avatar | content | cta)
+     into a vertical stack so nothing overflows on narrow screens. */
+  .browse-provider-card {
+    grid-template-columns: 56px 1fr !important;
+    gap: 12px !important;
+    padding: 14px !important;
+    border-radius: 14px !important;
+  }
+  /* Shrink avatar */
+  .browse-provider-card > div:first-of-type {
+    width: 56px !important;
+    height: 56px !important;
+    font-size: 18px !important;
+    border-radius: 12px !important;
+  }
+  /* Content keeps its column; CTA spans both columns underneath */
+  .browse-provider-card > div:last-child {
+    grid-column: 1 / -1 !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    min-width: 0 !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    padding-top: 10px !important;
+    border-top: 1px solid var(--border);
+    margin-top: 4px !important;
+  }
+  .browse-provider-card > div:last-child > * { flex-shrink: 0; }
+
+  /* Loading skeleton: same collapse so the layout doesn't jump on load */
+  .browse-skeleton-card {
+    grid-template-columns: 56px 1fr !important;
+    gap: 12px !important;
+    padding: 14px !important;
+  }
+
+  /* Results header: keep count + sort on the same row, prevent overflow */
+  .browse-results-header { gap: 8px !important; flex-wrap: wrap !important; }
+}
+
+/* ─── Account hero — mobile ─── */
+@media (max-width: 767px) {
+  /* Stack avatar + identity + actions vertically; keep them inside the
+     container padding instead of overflowing past the right edge. */
+  .acct-hero {
+    padding: 24px 0 32px;
+  }
+  .acct-hero-inner {
+    grid-template-columns: 64px 1fr !important;
+    gap: 14px !important;
+    align-items: center;
+  }
+  .acct-avatar {
+    width: 64px !important;
+    height: 64px !important;
+    border-radius: 16px;
+    font-size: 22px !important;
+  }
+  .acct-hero h1 {
+    font-size: clamp(22px, 6vw, 30px) !important;
+    line-height: 1.15;
+    word-break: break-word;
+  }
+  .acct-hero .sub {
+    gap: 8px;
+    font-size: 13px;
+    margin-top: 6px;
+  }
+  .acct-hero .sub .mono { font-size: 11px; }
+  /* Actions wrap onto their own row underneath, full-width */
+  .acct-hero-actions {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .acct-hero-actions .btn { flex: 1 1 auto; }
+
+  /* Stat strip: 2×2 grid instead of 4 cramped columns; large mono numbers
+     get a comfortable cell. Internal borders mirror desktop's divider style. */
+  .stat-strip {
+    grid-template-columns: 1fr 1fr;
+    margin-top: 20px;
+  }
+  .stat-cell {
+    padding: 14px 16px;
+    min-width: 0;
+  }
+  .stat-cell:nth-child(odd) { border-left: 0; }
+  .stat-cell:nth-child(n+3) { border-top: 1px solid rgba(255,255,255,0.1); }
+  .stat-cell .val { font-size: 26px; margin-top: 6px; }
+  .stat-cell .hint { font-size: 11px; margin-top: 4px; }
+  .stat-cell .lbl { font-size: 10px; }
+}
+
+/* ─── Provider hero — mobile (mirrors customer hero treatment) ─── */
+@media (max-width: 767px) {
+  .pro-hero { padding: 24px 0 32px; }
+  .pro-hero-inner {
+    grid-template-columns: 64px 1fr !important;
+    gap: 14px !important;
+    align-items: center;
+  }
+  .pro-avatar {
+    width: 64px !important;
+    height: 64px !important;
+    border-radius: 16px;
+    font-size: 22px !important;
+  }
+  .pro-hero h1 {
+    font-size: clamp(22px, 6vw, 30px) !important;
+    line-height: 1.15;
+    word-break: break-word;
+  }
+  .pro-hero .sub { gap: 8px; font-size: 13px; margin-top: 6px; }
+  .pro-hero .sub .mono { font-size: 11px; }
+
+  /* Availability pod (Status / Online toggle / Edit profile) drops onto its
+     own full-width row underneath. */
+  .availability-pod {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin-top: 14px;
+    padding: 14px 16px;
+  }
+  .avail-title { font-size: 16px; }
+  .avail-sub { font-size: 12px; }
+
+  /* Provider stat strip (Total earned / Completed / Active / Inbound) —
+     same 2×2 treatment as the customer stat strip. */
+  .rev-strip {
+    grid-template-columns: 1fr 1fr !important;
+    margin-top: 20px;
+  }
+  .rev-cell {
+    padding: 14px 16px;
+    min-width: 0;
+  }
+  .rev-cell:nth-child(odd) { border-left: 0; }
+  .rev-cell:nth-child(n+3) { border-top: 1px solid rgba(255,255,255,0.1); }
+  .rev-cell .val { font-size: 26px; margin-top: 6px; word-break: break-word; }
+  .rev-cell .hint { font-size: 11px; margin-top: 4px; }
+  .rev-cell .lbl { font-size: 10px; }
+}
+
+/* ─── Tickets / Account 2-col grids — mobile collapse ─── */
+@media (max-width: 767px) {
+  /* Tickets grid (Tickets tab) — one ticket per row */
+  .user-tickets-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Personal info & billing inner field grids: single column on phones so
+     the email field doesn't get cropped. Targeted via descendants of card. */
+  .card-pad > div[style*="grid-template-columns: 1fr 1fr"],
+  .card-pad-lg > div[style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+}
+
+/* ─── Chat — mobile additions ─── */
+@media (max-width: 767px) {
+  /* Quick-reply chips eat a whole row and aren't critical on mobile where
+     thumb-typing is faster than scanning chips. Hide them. */
+  .chat-shell .quick-replies { display: none !important; }
+
+  /* "REPLYING TO FIX-0013" + "LIVE" status take up half the composer-bottom
+     row. Hide them on phones — the ticket context bar above already shows
+     which ticket the user is replying to, and connection state is visible
+     in the message status ticks. */
+  .chat-shell .composer-bottom > .muted.mono,
+  .chat-shell .composer-bottom > span:nth-of-type(2) {
+    display: none !important;
+  }
+
+  /* Shorter, scannable textarea placeholder on mobile. We can't change the
+     attribute from CSS, but we can shrink rows + tighten padding so the long
+     placeholder doesn't dominate the viewport. */
+  .chat-shell .composer-wrap textarea {
+    min-height: 22px;
+    font-size: 15px;
+  }
+
+  /* Ticket context bar above the messages — provider card + ticket card
+     consume ~30% of the viewport. Compress it. */
+  .chat-shell .conv-head {
+    padding: 10px 14px !important;
+    gap: 12px;
+  }
+  .chat-shell .conv-head .avatar {
+    width: 40px !important;
+    height: 40px !important;
+  }
+  .chat-shell .conv-name h2 { font-size: 15px !important; }
+  .chat-shell .conv-name .sub { font-size: 11px !important; margin-top: 2px; }
+  /* "Go to Profile" link in the header — keep but tighten */
+  .chat-shell .conv-head a { font-size: 12.5px !important; white-space: nowrap; }
+
+  .chat-shell .chat-ctx {
+    padding: 8px 14px !important;
+    gap: 10px;
+    font-size: 12px;
+  }
+  .chat-shell .chat-ctx-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+/* ─── Tap-target & input ergonomics (mobile) ─── */
+@media (max-width: 767px) {
+  /* iOS won't zoom on inputs ≥ 16px */
+  .input, .textarea, .fselect, input, textarea, select {
+    font-size: 16px;
+  }
+  /* Sit buttons at a touch-friendly height */
+  .btn { min-height: 44px; }
+  .btn-sm { min-height: 36px; }
+
+  /* Block-time modal: stack the start/end pickers vertically so the
+     datetime-local widget gets the full row width instead of clipping.
+     Also tighten padding so the dialog doesn't overflow tall phones. */
+  .block-time-modal {
+    padding: 20px !important;
+  }
+  .block-time-modal__times {
+    grid-template-columns: 1fr !important;
   }
 }
 

@@ -9,6 +9,12 @@ import { SavedProvidersTab } from "@/components/user-account/SavedProvidersTab";
 import { BillingTab } from "@/components/user-account/BillingTab";
 
 const TABS = ["Overview", "Tickets", "Saved providers", "Billing"] as const;
+const TABS_SHORT: Record<(typeof TABS)[number], string> = {
+  "Overview": "Overview",
+  "Tickets": "Tickets",
+  "Saved providers": "Saved",
+  "Billing": "Billing",
+};
 type Tab = (typeof TABS)[number];
 
 export function UserAccountPage() {
@@ -38,7 +44,8 @@ export function UserAccountPage() {
                 aria-selected={activeTab === tab}
                 onClick={() => setActiveTab(tab)}
               >
-                {tab}
+                <span className="tab-label-full">{tab}</span>
+                <span className="tab-label-short">{TABS_SHORT[tab]}</span>
               </button>
             ))}
           </div>

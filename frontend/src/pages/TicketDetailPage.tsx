@@ -5,7 +5,10 @@ import { useTicketQuery } from "@/hooks/useTicketQuery";
 import { useAuth } from "@/context/auth";
 import { useUpdateTicketStatusMutation } from "@/hooks/useUpdateTicketStatusMutation";
 import { useAcceptTicketMutation } from "@/hooks/useAcceptTicketMutation";
-import { useConfirmTicketMutation, useDeclineTicketMutation } from "@/hooks/useConfirmTicketMutation";
+import {
+  useConfirmTicketMutation,
+  useDeclineTicketMutation,
+} from "@/hooks/useConfirmTicketMutation";
 import { TicketChatPanel } from "@/components/ticket/TicketChatPanel";
 import { IssueInvoicePanel } from "@/components/ticket/IssueInvoicePanel";
 import { generateInvoicePdf } from "@/utils/generateInvoicePdf";
@@ -354,7 +357,11 @@ function MetaCard({ ticket }: { ticket: Ticket }) {
               )}
             </div>
             <span
-              style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em" }}
+              style={{
+                fontSize: 14,
+                fontWeight: 600,
+                letterSpacing: "-0.01em",
+              }}
             >
               {ticket.assignedServiceProviderName}
             </span>
@@ -447,6 +454,7 @@ function MetaCard({ ticket }: { ticket: Ticket }) {
 
   return (
     <div
+      className="ticket-meta-card"
       style={{
         display: "grid",
         gridTemplateColumns: "repeat(4, 1fr)",
@@ -542,66 +550,166 @@ function ImageGallery({ urls }: { urls: string[] }) {
     if (lightboxIdx === null) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setLightboxIdx(null);
-      if (e.key === "ArrowRight") setLightboxIdx((i) => (i !== null ? Math.min(i + 1, urls.length - 1) : null));
-      if (e.key === "ArrowLeft")  setLightboxIdx((i) => (i !== null ? Math.max(i - 1, 0) : null));
+      if (e.key === "ArrowRight")
+        setLightboxIdx((i) =>
+          i !== null ? Math.min(i + 1, urls.length - 1) : null,
+        );
+      if (e.key === "ArrowLeft")
+        setLightboxIdx((i) => (i !== null ? Math.max(i - 1, 0) : null));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [lightboxIdx, urls.length]);
 
   const navBtn: React.CSSProperties = {
-    position: "absolute", top: "50%", transform: "translateY(-50%)",
-    background: "rgba(255,255,255,0.12)", border: "none", color: "#fff",
-    borderRadius: 8, width: 44, height: 44, fontSize: 20, cursor: "pointer",
-    display: "grid", placeItems: "center", backdropFilter: "blur(4px)",
+    position: "absolute",
+    top: "50%",
+    transform: "translateY(-50%)",
+    background: "rgba(255,255,255,0.12)",
+    border: "none",
+    color: "#fff",
+    borderRadius: 8,
+    width: 44,
+    height: 44,
+    fontSize: 20,
+    cursor: "pointer",
+    display: "grid",
+    placeItems: "center",
+    backdropFilter: "blur(4px)",
   };
 
   return (
     <>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 10 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
+          gap: 10,
+        }}
+      >
         {urls.map((url, i) => (
           <button
             key={i}
             onClick={() => setLightboxIdx(i)}
-            style={{ border: "1px solid var(--border)", padding: 0, borderRadius: 10, overflow: "hidden", aspectRatio: "1", cursor: "zoom-in", background: "var(--slate-100)", transition: "opacity 0.15s" }}
+            style={{
+              border: "1px solid var(--border)",
+              padding: 0,
+              borderRadius: 10,
+              overflow: "hidden",
+              aspectRatio: "1",
+              cursor: "zoom-in",
+              background: "var(--slate-100)",
+              transition: "opacity 0.15s",
+            }}
             onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.82")}
             onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
           >
-            <img src={url} alt={`Photo ${i + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+            <img
+              src={url}
+              alt={`Photo ${i + 1}`}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                display: "block",
+              }}
+            />
           </button>
         ))}
       </div>
 
       {lightboxIdx !== null && (
         <div
-          role="dialog" aria-modal="true" aria-label="Image viewer"
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Image viewer"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.9)",
+            zIndex: 1000,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
           onClick={() => setLightboxIdx(null)}
         >
           <img
-            src={urls[lightboxIdx]} alt={`Photo ${lightboxIdx + 1}`}
+            src={urls[lightboxIdx]}
+            alt={`Photo ${lightboxIdx + 1}`}
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: "min(90vw, 1100px)", maxHeight: "80vh", objectFit: "contain", borderRadius: 10, boxShadow: "0 24px 64px rgba(0,0,0,0.6)", userSelect: "none" }}
+            style={{
+              maxWidth: "min(90vw, 1100px)",
+              maxHeight: "80vh",
+              objectFit: "contain",
+              borderRadius: 10,
+              boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
+              userSelect: "none",
+            }}
           />
-          <div style={{ marginTop: 14, color: "rgba(255,255,255,0.5)", fontSize: 12, fontFamily: "var(--font-mono)", letterSpacing: "0.08em" }}>
+          <div
+            style={{
+              marginTop: 14,
+              color: "rgba(255,255,255,0.5)",
+              fontSize: 12,
+              fontFamily: "var(--font-mono)",
+              letterSpacing: "0.08em",
+            }}
+          >
             {lightboxIdx + 1} / {urls.length}
           </div>
           {lightboxIdx > 0 && (
-            <button style={{ ...navBtn, left: 20 }} onClick={(e) => { e.stopPropagation(); setLightboxIdx(lightboxIdx - 1); }} aria-label="Previous image">‹</button>
+            <button
+              style={{ ...navBtn, left: 20 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIdx(lightboxIdx - 1);
+              }}
+              aria-label="Previous image"
+            >
+              ‹
+            </button>
           )}
           {lightboxIdx < urls.length - 1 && (
-            <button style={{ ...navBtn, right: 20 }} onClick={(e) => { e.stopPropagation(); setLightboxIdx(lightboxIdx + 1); }} aria-label="Next image">›</button>
+            <button
+              style={{ ...navBtn, right: 20 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIdx(lightboxIdx + 1);
+              }}
+              aria-label="Next image"
+            >
+              ›
+            </button>
           )}
           <button
-            onClick={() => setLightboxIdx(null)} aria-label="Close"
-            style={{ position: "absolute", top: 18, right: 22, background: "rgba(255,255,255,0.1)", border: "none", color: "#fff", borderRadius: 8, width: 36, height: 36, fontSize: 18, cursor: "pointer", display: "grid", placeItems: "center", backdropFilter: "blur(4px)" }}
-          >✕</button>
+            onClick={() => setLightboxIdx(null)}
+            aria-label="Close"
+            style={{
+              position: "absolute",
+              top: 18,
+              right: 22,
+              background: "rgba(255,255,255,0.1)",
+              border: "none",
+              color: "#fff",
+              borderRadius: 8,
+              width: 36,
+              height: 36,
+              fontSize: 18,
+              cursor: "pointer",
+              display: "grid",
+              placeItems: "center",
+              backdropFilter: "blur(4px)",
+            }}
+          >
+            ✕
+          </button>
         </div>
       )}
     </>
   );
 }
-
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
@@ -676,6 +784,7 @@ export function TicketDetailPage() {
 
       {/* ── Live header ── */}
       <section
+        className="ticket-live-header"
         style={{
           background: "var(--navy-900)",
           backgroundImage:
@@ -872,7 +981,7 @@ export function TicketDetailPage() {
 
       {/* ── Body ── */}
       <main
-        className="container"
+        className="container ticket-detail-body"
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 360px",
@@ -999,7 +1108,8 @@ export function TicketDetailPage() {
           )}
 
           {/* Download Invoice button — visible once invoice has been issued */}
-          {(ticket.status === "PENDING_PAYMENT" || ticket.status === "COMPLETED") &&
+          {(ticket.status === "PENDING_PAYMENT" ||
+            ticket.status === "COMPLETED") &&
             ticket.estimatedCost != null && (
               <div style={{ marginTop: 16 }}>
                 <button
@@ -1011,9 +1121,10 @@ export function TicketDetailPage() {
                       category: ticket.category,
                       description: ticket.description,
                       location: ticket.location ?? "",
-                      providerName: ticket.assignedServiceProviderName ?? "Provider",
+                      providerName:
+                        ticket.assignedServiceProviderName ?? "Provider",
                       customerName: ticket.submittedByName ?? "Customer",
-                      amount: ticket.estimatedCost!,
+                      amount: ticket.estimatedCost ?? 0,
                     });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement("a");
@@ -1035,61 +1146,73 @@ export function TicketDetailPage() {
           >
             <button
               className="btn btn-secondary"
-              onClick={() => navigate(isProvider ? "/dashboard/provider" : "/dashboard/user")}
+              onClick={() =>
+                navigate(isProvider ? "/dashboard/provider" : "/dashboard/user")
+              }
             >
               ← Back to dashboard
             </button>
             <span className="grow" />
-            {isProvider && ticket.status === "PENDING_APPROVAL" && (() => {
-              const isUnassigned = !ticket.assignedServiceProviderId;
-              const anyPending = acceptMut.isPending || confirmMut.isPending || declineMut.isPending;
-              const refreshTicket = () =>
-                queryClient.invalidateQueries({ queryKey: ["tickets", ticketId] });
+            {isProvider &&
+              ticket.status === "PENDING_APPROVAL" &&
+              (() => {
+                const isUnassigned = !ticket.assignedServiceProviderId;
+                const anyPending =
+                  acceptMut.isPending ||
+                  confirmMut.isPending ||
+                  declineMut.isPending;
+                const refreshTicket = () =>
+                  queryClient.invalidateQueries({
+                    queryKey: ["tickets", ticketId],
+                  });
 
-              const handleAccept = () => {
-                if (isUnassigned) {
-                  acceptMut.mutate(ticket.id, { onSuccess: refreshTicket });
-                } else if (ticket.requestedStartAt) {
-                  confirmMut.mutate(ticket.id, { onSuccess: refreshTicket });
-                } else {
-                  updateMut.mutate({ ticketId: ticket.id, status: "APPROVED" });
-                }
-              };
+                const handleAccept = () => {
+                  if (isUnassigned) {
+                    acceptMut.mutate(ticket.id, { onSuccess: refreshTicket });
+                  } else if (ticket.requestedStartAt) {
+                    confirmMut.mutate(ticket.id, { onSuccess: refreshTicket });
+                  } else {
+                    updateMut.mutate({
+                      ticketId: ticket.id,
+                      status: "APPROVED",
+                    });
+                  }
+                };
 
-              const acceptLabel = isUnassigned
-                ? "Accept & assign →"
-                : ticket.requestedStartAt
-                  ? "Confirm & schedule →"
-                  : "Accept →";
+                const acceptLabel = isUnassigned
+                  ? "Accept & assign →"
+                  : ticket.requestedStartAt
+                    ? "Confirm & schedule →"
+                    : "Accept →";
 
-              return (
-                <>
-                  {!isUnassigned && (
+                return (
+                  <>
+                    {!isUnassigned && (
+                      <button
+                        className="btn btn-secondary"
+                        disabled={anyPending}
+                        onClick={() =>
+                          declineMut.mutate(ticket.id, {
+                            onSuccess: () => {
+                              refreshTicket();
+                              navigate("/dashboard/provider");
+                            },
+                          })
+                        }
+                      >
+                        {declineMut.isPending ? "Declining…" : "Decline"}
+                      </button>
+                    )}
                     <button
-                      className="btn btn-secondary"
+                      className="btn btn-primary"
                       disabled={anyPending}
-                      onClick={() =>
-                        declineMut.mutate(ticket.id, {
-                          onSuccess: () => {
-                            refreshTicket();
-                            navigate("/dashboard/provider");
-                          },
-                        })
-                      }
+                      onClick={handleAccept}
                     >
-                      {declineMut.isPending ? "Declining…" : "Decline"}
+                      {anyPending ? "Updating…" : acceptLabel}
                     </button>
-                  )}
-                  <button
-                    className="btn btn-primary"
-                    disabled={anyPending}
-                    onClick={handleAccept}
-                  >
-                    {anyPending ? "Updating…" : acceptLabel}
-                  </button>
-                </>
-              );
-            })()}
+                  </>
+                );
+              })()}
             {nextStatus && (
               <button
                 className="btn btn-primary"

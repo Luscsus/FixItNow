@@ -321,7 +321,7 @@ export function NewTicketPage() {
                 )}
                 {imagePreviews.length > 0 && (
                   <div
-                    className="row gap-8"
+                    className="row gap-8 new-ticket-photo-grid"
                     style={{ marginTop: 8, flexWrap: "wrap" }}
                   >
                     {imagePreviews.map((url, i) => (
@@ -660,7 +660,7 @@ export function NewTicketPage() {
             </div>
           </section>
 
-          <div className="row" style={{ marginTop: 24, gap: 12 }}>
+          <div className="row new-ticket-actions" style={{ marginTop: 24, gap: 12 }}>
             <div className="row gap-12">
               <Link to="/dashboard/user" className="btn btn-ghost">
                 Back to Dashboard
@@ -671,7 +671,7 @@ export function NewTicketPage() {
             </div>
             <span className="grow" />
             <button
-              className="btn btn-primary btn-lg"
+              className="btn btn-primary btn-lg new-ticket-submit-btn"
               type="button"
               onClick={handleSubmit}
               disabled={

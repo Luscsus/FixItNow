@@ -5,6 +5,7 @@ import { z } from "zod";
 import { useRegisterMutation } from "@/hooks/useRegisterMutation";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { mapZodErrors } from "@/lib/validation";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 const schema = z.object({
   firstName: z.string().min(1, "First name is required."),
@@ -251,18 +252,14 @@ export function RegisterUserPage() {
 
                 <div className="field">
                   <label className="field-label" htmlFor="reg-password">Password</label>
-                  <div className={`input-wrap${errors.password ? " error" : ""}`}>
-                    <IconLock />
-                    <input
-                      id="reg-password"
-                      className="input"
-                      type="password"
-                      placeholder="Min. 8 characters"
-                      autoComplete="new-password"
-                      value={form.password}
-                      onChange={set("password")}
-                    />
-                  </div>
+                  <PasswordInput
+                    id="reg-password"
+                    placeholder="Min. 8 characters"
+                    autoComplete="new-password"
+                    value={form.password}
+                    onChange={set("password")}
+                    hasError={Boolean(errors.password)}
+                  />
                   {form.password && (
                     <div className={`pw-meter s${pwStrength}`}>
                       <span /><span /><span /><span />

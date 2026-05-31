@@ -86,7 +86,7 @@ export function AdminTicketsPage() {
   const busy = update.isPending || remove.isPending;
 
   return (
-    <section style={{ flex: 1, overflowY: "auto", padding: "28px 32px 80px" }}>
+    <section className="admin-page" style={{ flex: 1, overflowY: "auto", padding: "28px 32px 80px" }}>
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "flex-end", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
           <div>
@@ -108,8 +108,8 @@ export function AdminTicketsPage() {
         {error && <div style={{ padding: 40, textAlign: "center", color: "var(--red-600)" }}>Failed to load tickets.</div>}
 
         {!isLoading && !error && (
-          <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
-            <div style={{
+          <div className="admin-table" style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
+            <div className="admin-table-head" style={{
               display: "grid",
               gridTemplateColumns: "minmax(200px, 2fr) 1.2fr 1.2fr 180px 130px 90px",
               gap: 12,
@@ -131,7 +131,7 @@ export function AdminTicketsPage() {
             )}
 
             {filtered.map((t) => (
-              <div key={t.id} style={{
+              <div key={t.id} className="admin-table-row" style={{
                 display: "grid",
                 gridTemplateColumns: "minmax(200px, 2fr) 1.2fr 1.2fr 180px 130px 90px",
                 gap: 12,

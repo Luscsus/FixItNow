@@ -57,6 +57,8 @@ export function ProviderAccountPage() {
     totalEarned:      completedTickets.some((t) => t.estimatedCost != null) ? totalEarned : null,
   };
 
+  // Provider is missing payout details if ANY of the four required bank fields
+  // is empty. Until they fill these in they can't accept work.
   // Provider is missing payout details if any required bank field is empty.
   // Until they fill these in they can't accept work. (BIC/SWIFT was dropped —
   // not needed for SEPA transfers within the EEA.)
@@ -64,6 +66,7 @@ export function ProviderAccountPage() {
     !!ownProfile &&
     (!ownProfile.bankAccountHolder?.trim()
       || !ownProfile.bankIban?.trim()
+      || !ownProfile.bankBic?.trim()
       || !ownProfile.bankName?.trim());
 
   return (
@@ -135,7 +138,9 @@ export function ProviderAccountPage() {
           )}
 
           {activeTab === "Schedule" && ownProfile?.id && (
-            <WeekSchedule providerId={ownProfile.id} editable />
+            <div className="week-sched-wrap">
+              <WeekSchedule providerId={ownProfile.id} editable />
+            </div>
           )}
 
           {activeTab === "Jobs" && <CompletedJobsCard />}

@@ -6,10 +6,13 @@ import com.example.backend.web.dto.response.ProviderSearchResult;
 import org.springframework.data.domain.Page;
 
 import java.util.Set;
+import java.util.UUID;
 
 public interface ProviderSearchService {
 
     Page<ProviderSearchResult> search(ProviderSearchParams params);
 
     Set<ServiceCategory> getActiveCategories();
+
+    ProviderSearchResult getPublicProfile(UUID id);
 }

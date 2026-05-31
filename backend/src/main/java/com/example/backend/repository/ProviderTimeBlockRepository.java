@@ -29,6 +29,8 @@ public interface ProviderTimeBlockRepository extends JpaRepository<ProviderTimeB
 
     Optional<ProviderTimeBlock> findByTicket_Id(Long ticketId);
 
+    List<ProviderTimeBlock> findBySeriesId(UUID seriesId);
+
     @Query("""
         SELECT (COUNT(b) > 0) FROM ProviderTimeBlock b
         WHERE b.provider.id = :providerId

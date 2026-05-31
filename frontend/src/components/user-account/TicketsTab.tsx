@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useTicketsQuery } from "@/hooks/useTicketsQuery";
@@ -13,16 +13,15 @@ type Filter = "active" | "resolved" | "all";
 
 export function TicketsTab() {
   const { data: tickets = [], isLoading } = useTicketsQuery();
-  const [filter, setFilter] = useState<Filter>("active");
-  const [page, setPage] = useState(1);
+  const [{ filter, page }, setFilterPage] = useState({ filter: "active" as Filter, page: 1 });
+  const setFilter = (f: Filter) => setFilterPage({ filter: f, page: 1 });
+  const setPage = (p: number) => setFilterPage((prev) => ({ ...prev, page: p }));
 
   const filtered = useMemo(() => {
     if (filter === "active") return tickets.filter((t) => !TERMINAL_STATUSES.includes(t.status));
     if (filter === "resolved") return tickets.filter((t) => TERMINAL_STATUSES.includes(t.status));
     return tickets;
   }, [tickets, filter]);
-
-  useEffect(() => { setPage(1); }, [filter]);
 
   const { pageItems, totalPages, safePage } = usePaginatedItems(filtered, page, PAGE_SIZE);
 

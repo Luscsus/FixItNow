@@ -44,17 +44,13 @@ export function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [showBanner, setShowBanner] = useState(false);
-  const [showIosHint, setShowIosHint] = useState(false);
+  const [showIosHint, setShowIosHint] = useState(
+    () => !isInStandaloneMode() && !isDismissed() && isIos(),
+  );
 
   useEffect(() => {
-    // Never show if already installed or user recently dismissed
-    if (isInStandaloneMode() || isDismissed()) return;
-
-    // iOS Safari path — no beforeinstallprompt event
-    if (isIos()) {
-      setShowIosHint(true);
-      return;
-    }
+    // Never show if already installed or user recently dismissed, or on iOS
+    if (isInStandaloneMode() || isDismissed() || isIos()) return;
 
     // Chrome / Android path
     function handler(e: Event) {

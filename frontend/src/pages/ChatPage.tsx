@@ -274,16 +274,9 @@ export function ChatPage() {
   const currentUserProfilePicUrl = currentUserQuery.data?.profilePictureUrl ?? null;
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(searchParams.get('room'));
-
-  // Deep-link support: when the `room` query param changes (e.g. opening a chat
-  // from a notification while already on this page), sync it into the selection.
-  useEffect(() => {
-    const room = searchParams.get('room');
-    if (room && room !== selectedRoomId) {
-      setSelectedRoomId(room);
-    }
-  }, [searchParams, selectedRoomId]);
+  // Deep-link support: selectedRoomId is derived from the URL `room` param so
+  // navigating to ?room=X (e.g. from a notification) automatically selects it.
+  const selectedRoomId = searchParams.get('room');
 
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const [text, setText] = useState('');
@@ -535,7 +528,6 @@ export function ChatPage() {
       }
     }
     if (roomId === selectedRoomId) return;
-    setSelectedRoomId(roomId);
     setSearchParams({ room: roomId });
     ackedRef.current.clear();
     setIsOtherTyping(false);
@@ -545,7 +537,6 @@ export function ChatPage() {
   };
 
   const handleBack = () => {
-    setSelectedRoomId(null);
     setSearchParams({});
   };
 

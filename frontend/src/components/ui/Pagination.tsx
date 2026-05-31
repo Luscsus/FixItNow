@@ -115,6 +115,7 @@ export function Pagination({
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function usePaginatedItems<T>(items: T[], page: number, pageSize: number) {
   const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
   const safePage = Math.min(Math.max(1, page), totalPages);

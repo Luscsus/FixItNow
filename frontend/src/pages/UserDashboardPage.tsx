@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import type { Ticket, TicketPriority, TicketStatus } from "@/domain/ticket";
@@ -229,7 +229,9 @@ function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick?: () => void 
 
 export function UserDashboardPage() {
   const { data: tickets = [], isLoading } = useTicketsQuery();
-  const [filter, setFilter] = useState<TicketFilter>("active");
+  const [{ filter, page }, setFilterPage] = useState({ filter: "active" as TicketFilter, page: 1 });
+  const setFilter = (f: TicketFilter) => setFilterPage({ filter: f, page: 1 });
+  const setPage = (p: number) => setFilterPage((prev) => ({ ...prev, page: p }));
   const navigate = useNavigate();
 
   const now = new Date();
@@ -253,9 +255,6 @@ export function UserDashboardPage() {
     if (filter === "resolved") return tickets.filter((t) => TERMINAL_STATUSES.includes(t.status));
     return tickets;
   }, [tickets, filter]);
-
-  const [page, setPage] = useState(1);
-  useEffect(() => { setPage(1); }, [filter]);
   const { pageItems: pagedTickets, totalPages, safePage } = usePaginatedItems(filteredTickets, page, TICKETS_PAGE_SIZE);
 
   const panelLabel = filter === "active" ? "Your active tickets" : filter === "resolved" ? "Resolved tickets" : "All tickets";

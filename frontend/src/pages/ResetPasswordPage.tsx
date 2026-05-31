@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 
@@ -38,7 +38,9 @@ export function ResetPasswordPage() {
 
   const resetMutation = useResetPasswordMutation();
 
-  const [token, setToken] = useState(urlToken);
+  const [manualToken, setManualToken] = useState("");
+  // When a URL token is present it takes precedence; otherwise use what the user typed.
+  const token = urlToken || manualToken;
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<
@@ -46,15 +48,6 @@ export function ResetPasswordPage() {
   >({});
   const [serverError, setServerError] = useState("");
   const [success, setSuccess] = useState(false);
-
-  // Keep token in sync if the URL param changes (e.g. user re-clicks a fresh
-  // link from a second email — rare, but harmless).
-  useEffect(() => {
-    if (urlToken && urlToken !== token) {
-      setToken(urlToken);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlToken]);
 
   const tokenFromUrl = Boolean(urlToken);
   const pwStrength = passwordStrength(newPassword);
@@ -253,7 +246,7 @@ export function ResetPasswordPage() {
                         className="input"
                         placeholder="Paste the token from your email"
                         value={token}
-                        onChange={(e) => setToken(e.target.value)}
+                        onChange={(e) => setManualToken(e.target.value)}
                         autoComplete="one-time-code"
                         spellCheck={false}
                         style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.02em" }}

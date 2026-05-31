@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProviderTicketsQuery } from "@/hooks/useProviderTicketsQuery";
+import { Pagination, usePaginatedItems } from "@/components/ui/Pagination";
 import type { Ticket } from "@/domain/ticket";
 
 const PAGE_SIZE = 8;
@@ -95,15 +96,13 @@ function CompletedJobRow({ ticket }: { ticket: Ticket }) {
 
 export function CompletedJobsCard() {
   const { data: tickets = [], isLoading } = useProviderTicketsQuery();
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(1);
 
   const done = tickets.filter(
     (t) => t.status === "COMPLETED" || t.status === "CANCELLED" || t.status === "DECLINED",
   );
 
-  const totalPages = Math.max(1, Math.ceil(done.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages - 1);
-  const pageItems = done.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
+  const { pageItems, totalPages, safePage } = usePaginatedItems(done, page, PAGE_SIZE);
 
   return (
     <>
@@ -132,37 +131,8 @@ export function CompletedJobsCard() {
         {pageItems.map((t) => (
           <CompletedJobRow key={t.id} ticket={t} />
         ))}
-
-        {done.length > PAGE_SIZE && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "12px 20px",
-              borderTop: "1px solid var(--border)",
-            }}
-          >
-            <button
-              className="btn btn-secondary btn-sm"
-              disabled={safePage === 0}
-              onClick={() => setPage(safePage - 1)}
-            >
-              ← Prev
-            </button>
-            <span className="mono muted" style={{ fontSize: 12 }}>
-              Page {safePage + 1} of {totalPages}
-            </span>
-            <button
-              className="btn btn-secondary btn-sm"
-              disabled={safePage >= totalPages - 1}
-              onClick={() => setPage(safePage + 1)}
-            >
-              Next →
-            </button>
-          </div>
-        )}
       </div>
+      <Pagination page={safePage} total={totalPages} onChange={setPage} />
     </>
   );
 }

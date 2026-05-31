@@ -1,7 +1,11 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProviderTicketsQuery } from "@/hooks/useProviderTicketsQuery";
 import { useUpdateTicketStatusMutation } from "@/hooks/useUpdateTicketStatusMutation";
+import { Pagination, usePaginatedItems } from "@/components/ui/Pagination";
 import type { Ticket, TicketStatus } from "@/domain/ticket";
+
+const PAGE_SIZE = 4;
 
 const ACTIVE_STATUSES: TicketStatus[] = [
   "APPROVED",
@@ -171,6 +175,8 @@ function ActiveJob({ ticket }: { ticket: Ticket }) {
 export function ActiveJobCard() {
   const { data: tickets = [], isLoading } = useProviderTicketsQuery();
   const active = tickets.filter((t) => (ACTIVE_STATUSES as TicketStatus[]).includes(t.status));
+  const [page, setPage] = useState(1);
+  const { pageItems, totalPages, safePage } = usePaginatedItems(active, page, PAGE_SIZE);
 
   const firstChip = active[0] ? STATUS_CHIP[active[0].status] : null;
 
@@ -209,9 +215,10 @@ export function ActiveJobCard() {
         </div>
       )}
 
-      {active.map((ticket) => (
+      {pageItems.map((ticket) => (
         <ActiveJob key={ticket.id} ticket={ticket} />
       ))}
+      <Pagination page={safePage} total={totalPages} onChange={setPage} />
     </>
   );
 }

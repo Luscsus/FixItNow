@@ -125,6 +125,7 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
       }}
     >
       <form
+        className="block-time-modal"
         onClick={(e) => e.stopPropagation()}
         onSubmit={handleSubmit}
         style={{
@@ -132,6 +133,8 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
           padding: 28,
           borderRadius: 12,
           width: "min(480px, 92vw)",
+          maxHeight: "92vh",
+          overflowY: "auto",
           boxShadow: "0 24px 60px rgba(0,0,0,0.18)",
         }}
       >
@@ -152,7 +155,7 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
           ))}
         </select>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+        <div className="block-time-modal__times" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
           <div>
             <label style={{ display: "block", fontSize: 13, marginBottom: 4 }}>Start</label>
             <input

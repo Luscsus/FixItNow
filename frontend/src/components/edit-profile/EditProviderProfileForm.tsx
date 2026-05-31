@@ -378,7 +378,7 @@ export function EditProviderProfileForm() {
         </div>
       </div>
 
-      <div className="row" style={{ gap: 12, alignItems: "flex-start" }}>
+      <div className="row form-row" style={{ gap: 12, alignItems: "flex-start" }}>
         <div className="field grow" style={{ flexBasis: "65%" }}>
           <label className="field-label" htmlFor="p-street">Street name</label>
           <div className={`input-wrap${errors.locationStreetName ? " error" : ""}`}>
@@ -394,7 +394,7 @@ export function EditProviderProfileForm() {
         </div>
       </div>
 
-      <div className="row" style={{ gap: 12, alignItems: "flex-start" }}>
+      <div className="row form-row" style={{ gap: 12, alignItems: "flex-start" }}>
         <div className="field grow">
           <label className="field-label" htmlFor="p-city">City</label>
           <div className={`input-wrap${errors.locationCity ? " error" : ""}`}>

@@ -10,7 +10,10 @@ import {
 } from "@/services/reviewService";
 import { StarRating } from "./StarRating";
 import { ReviewForm } from "./ReviewForm";
+import { Pagination, usePaginatedItems } from "@/components/ui/Pagination";
 import type { Review } from "@/domain/review";
+
+const REVIEWS_PAGE_SIZE = 5;
 
 interface Props {
   providerId: string;
@@ -223,6 +226,8 @@ export function ReviewsSection({ providerId, sectionNumber = "03" }: Readonly<Pr
   const reviews = reviewsQuery.data ?? [];
   const avg = statsQuery.data?.averageRating ?? null;
   const count = statsQuery.data?.reviewCount ?? 0;
+  const [page, setPage] = useState(1);
+  const { pageItems, totalPages, safePage } = usePaginatedItems(reviews, page, REVIEWS_PAGE_SIZE);
 
   return (
     <>
@@ -338,20 +343,23 @@ export function ReviewsSection({ providerId, sectionNumber = "03" }: Readonly<Pr
         )}
 
         {reviews.length > 0 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {reviews.map((r) => (
-              <ReviewCard
-                key={r.id}
-                review={r}
-                isMine={r.reviewerId === myUserId}
-                onEdit={() => setShowForm(true)}
-                onDelete={() => {
-                  if (window.confirm("Delete your review?")) deleteMutation.mutate();
-                }}
-                isDeleting={deleteMutation.isPending}
-              />
-            ))}
-          </div>
+          <>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {pageItems.map((r) => (
+                <ReviewCard
+                  key={r.id}
+                  review={r}
+                  isMine={r.reviewerId === myUserId}
+                  onEdit={() => setShowForm(true)}
+                  onDelete={() => {
+                    if (window.confirm("Delete your review?")) deleteMutation.mutate();
+                  }}
+                  isDeleting={deleteMutation.isPending}
+                />
+              ))}
+            </div>
+            <Pagination page={safePage} total={totalPages} onChange={setPage} />
+          </>
         )}
       </div>
     </>

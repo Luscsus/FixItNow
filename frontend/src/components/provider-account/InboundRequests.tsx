@@ -1,7 +1,11 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProviderTicketsQuery } from "@/hooks/useProviderTicketsQuery";
 import { useConfirmTicketMutation, useDeclineTicketMutation } from "@/hooks/useConfirmTicketMutation";
+import { Pagination, usePaginatedItems } from "@/components/ui/Pagination";
 import type { Ticket } from "@/domain/ticket";
+
+const PAGE_SIZE = 6;
 
 const PRIORITY_CLASS: Record<string, string> = {
   CRITICAL: "urgency-critical",
@@ -121,8 +125,10 @@ function InboundRow({ ticket }: { ticket: Ticket }) {
 
 export function InboundRequests() {
   const { data: tickets = [], isLoading } = useProviderTicketsQuery();
+  const [page, setPage] = useState(1);
 
   const pending = tickets.filter((t) => t.status === "PENDING_APPROVAL");
+  const { pageItems, totalPages, safePage } = usePaginatedItems(pending, page, PAGE_SIZE);
 
   return (
     <>
@@ -148,10 +154,11 @@ export function InboundRequests() {
             No pending requests.
           </div>
         )}
-        {pending.map((t) => (
+        {pageItems.map((t) => (
           <InboundRow key={t.id} ticket={t} />
         ))}
       </div>
+      <Pagination page={safePage} total={totalPages} onChange={setPage} />
     </>
   );
 }

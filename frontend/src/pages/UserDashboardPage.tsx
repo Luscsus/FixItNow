@@ -1,12 +1,14 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import type { Ticket, TicketPriority, TicketStatus } from "@/domain/ticket";
 import { useTicketsQuery } from "@/hooks/useTicketsQuery";
+import { Pagination, usePaginatedItems } from "@/components/ui/Pagination";
 
 type TicketFilter = "active" | "resolved" | "all";
 
 const TERMINAL_STATUSES: TicketStatus[] = ["COMPLETED", "DECLINED", "CANCELLED"];
+const TICKETS_PAGE_SIZE = 6;
 
 function priorityClass(priority: TicketPriority | null) {
   return priority === "CRITICAL"
@@ -252,6 +254,10 @@ export function UserDashboardPage() {
     return tickets;
   }, [tickets, filter]);
 
+  const [page, setPage] = useState(1);
+  useEffect(() => { setPage(1); }, [filter]);
+  const { pageItems: pagedTickets, totalPages, safePage } = usePaginatedItems(filteredTickets, page, TICKETS_PAGE_SIZE);
+
   const panelLabel = filter === "active" ? "Your active tickets" : filter === "resolved" ? "Resolved tickets" : "All tickets";
   const countLabel = filter === "active" ? "ACTIVE" : filter === "resolved" ? "RESOLVED" : "TOTAL";
   const emptyMessage = filter === "active"
@@ -352,15 +358,18 @@ export function UserDashboardPage() {
             )}
           </div>
         ) : (
-          <div className="dash-card-grid">
-            {filteredTickets.map((ticket) => (
-              <TicketCard
-                key={ticket.id}
-                ticket={ticket}
-                onClick={() => navigate(`/tickets/${ticket.id}`)}
-              />
-            ))}
-          </div>
+          <>
+            <div className="dash-card-grid">
+              {pagedTickets.map((ticket) => (
+                <TicketCard
+                  key={ticket.id}
+                  ticket={ticket}
+                  onClick={() => navigate(`/tickets/${ticket.id}`)}
+                />
+              ))}
+            </div>
+            <Pagination page={safePage} total={totalPages} onChange={setPage} />
+          </>
         )}
 
         {/* ── Panel 02: Find a provider ── */}

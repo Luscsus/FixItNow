@@ -13,6 +13,7 @@ import { useChatWebSocket } from '@/hooks/useChatWebSocket';
 import type { Ticket, TicketPriority, TicketStatus } from '@/domain/ticket';
 import type { ChatMessage, MessageStatus } from '@/domain/chat';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useNotifications } from '@/hooks/useNotifications';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -153,7 +154,7 @@ function InboxRow({ conv, selected, lastMsg, hasUnread, onSelect }: {
   onSelect: () => void;
 }) {
   return (
-    <div className={`inbox-row${selected ? ' selected' : ''}`} onClick={onSelect}>
+    <div className={`inbox-row${selected ? ' selected' : ''}${hasUnread ? ' unread' : ''}`} onClick={onSelect}>
       <div className="avatar" style={{ width: 36, height: 36, fontSize: 11, background: 'var(--navy-900)', color: 'var(--amber-500)', ...(conv.otherProfilePictureUrl ? { padding: 0, overflow: 'hidden' } : {}) }}>
         {conv.otherProfilePictureUrl
           ? <img src={conv.otherProfilePictureUrl} alt={conv.otherName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
@@ -164,10 +165,7 @@ function InboxRow({ conv, selected, lastMsg, hasUnread, onSelect }: {
           {conv.otherName}
           {conv.ticketId !== null && <span className="ticket-id">· {formatTicketId(conv.ticketId)}</span>}
         </div>
-        <div
-          className="inbox-preview"
-          style={hasUnread ? { color: 'var(--text)', fontWeight: 500 } : undefined}
-        >
+        <div className="inbox-preview">
           {lastMsg ? lastMsg.content : conv.description}
         </div>
       </div>
@@ -266,6 +264,7 @@ export function ChatPage() {
   const queryClient = useQueryClient();
   const { isMobile } = useBreakpoint();
   const { accessToken, role, refreshSession } = useAuth();
+  const { notifications, markRead } = useNotifications();
   const currentUserQuery = useCurrentUser();
   const currentUserId = currentUserQuery.data?.id ?? '';
   const currentUserName = currentUserQuery.data
@@ -501,6 +500,18 @@ export function ChatPage() {
   // or search filter.
   const selectedConv = allConversations.find(c => c.roomId === selectedRoomId) ?? null;
 
+  // Per-room unread state for the inbox: any unread NEW_MESSAGE notification
+  // whose chatRoomId matches the row means we render the row's name in bold.
+  const unreadRoomIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const n of notifications) {
+      if (n.type === 'NEW_MESSAGE' && !n.read && n.chatRoomId) {
+        set.add(n.chatRoomId);
+      }
+    }
+    return set;
+  }, [notifications]);
+
   // Last message for inbox preview (current room only — keeping it simple)
   const lastMsgForRoom = useMemo(() => {
     if (!selectedRoomId || messages.length === 0) return null;
@@ -515,6 +526,13 @@ export function ChatPage() {
   }, [messages.length, isOtherTyping]);
 
   const selectRoom = (roomId: string) => {
+    // Clear the unread bold by marking any unread NEW_MESSAGE notifications
+    // for this room as read. Safe to run even when re-clicking the same room.
+    for (const n of notifications) {
+      if (n.type === 'NEW_MESSAGE' && !n.read && n.chatRoomId === roomId) {
+        markRead.mutate(n.id);
+      }
+    }
     if (roomId === selectedRoomId) return;
     setSelectedRoomId(roomId);
     setSearchParams({ room: roomId });
@@ -687,7 +705,7 @@ export function ChatPage() {
               conv={conv}
               selected={conv.roomId === selectedRoomId}
               lastMsg={conv.roomId === selectedRoomId ? lastMsgForRoom : null}
-              hasUnread={conv.roomId === selectedRoomId && hasUnreadInSelectedRoom}
+              hasUnread={unreadRoomIds.has(conv.roomId)}
               onSelect={() => selectRoom(conv.roomId)}
             />
           ))}

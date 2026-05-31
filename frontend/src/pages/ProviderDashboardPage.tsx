@@ -6,8 +6,12 @@ import { useOpenTicketsQuery } from "@/hooks/useOpenTicketsQuery";
 import { useProviderTicketsQuery } from "@/hooks/useProviderTicketsQuery";
 import { useUpdateTicketStatusMutation } from "@/hooks/useUpdateTicketStatusMutation";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { useToast } from "@/components/ui/toast";
 import { getErrorMessage } from "@/lib/errorMessage";
+import { Pagination, usePaginatedItems } from "@/components/ui/Pagination";
+
+const PAGE_SIZE = 6;
 
 const ACTIVE_STATUSES: TicketStatus[] = ["APPROVED", "IN_TRANSIT", "PENDING_PROVIDER_INVOICE", "PENDING_PAYMENT"];
 
@@ -212,6 +216,13 @@ export function ProviderDashboardPage() {
   const inboundTickets = providerTickets.filter((t) => t.status === "PENDING_APPROVAL");
   const activeJobs = providerTickets.filter((t) => (ACTIVE_STATUSES as string[]).includes(t.status));
 
+  const [inboundPage, setInboundPage] = useState(1);
+  const [activePage, setActivePage] = useState(1);
+  const [openPage, setOpenPage] = useState(1);
+  const inboundPaged = usePaginatedItems(inboundTickets, inboundPage, PAGE_SIZE);
+  const activePaged = usePaginatedItems(activeJobs, activePage, PAGE_SIZE);
+  const openPaged = usePaginatedItems(openTickets, openPage, PAGE_SIZE);
+
   const providerName = provider
     ? [provider.firstName, provider.lastName].filter(Boolean).join(" ") || provider.email
     : "Provider";
@@ -307,23 +318,26 @@ export function ProviderDashboardPage() {
             <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>Tickets assigned specifically to you will appear here.</div>
           </div>
         ) : (
-          <div className="dash-card-grid">
-            {inboundTickets.map((ticket) => (
-              <RequestCard
-                key={ticket.id}
-                ticket={ticket}
-                acceptLabel={ticket.requestedStartAt ? "Confirm & schedule →" : "Accept →"}
-                isPending={confirmMut.isPending || declineMut.isPending || updateStatus.isPending}
-                onAccept={() => ticket.requestedStartAt
-                  ? confirmMut.mutate(ticket.id, { onError: handleAcceptError })
-                  : updateStatus.mutate(
-                      { ticketId: ticket.id, status: "APPROVED" },
-                      { onError: handleAcceptError },
-                    )}
-                onDecline={() => declineMut.mutate(ticket.id)}
-              />
-            ))}
-          </div>
+          <>
+            <div className="dash-card-grid">
+              {inboundPaged.pageItems.map((ticket) => (
+                <RequestCard
+                  key={ticket.id}
+                  ticket={ticket}
+                  acceptLabel={ticket.requestedStartAt ? "Confirm & schedule →" : "Accept →"}
+                  isPending={confirmMut.isPending || declineMut.isPending || updateStatus.isPending}
+                  onAccept={() => ticket.requestedStartAt
+                    ? confirmMut.mutate(ticket.id, { onError: handleAcceptError })
+                    : updateStatus.mutate(
+                        { ticketId: ticket.id, status: "APPROVED" },
+                        { onError: handleAcceptError },
+                      )}
+                  onDecline={() => declineMut.mutate(ticket.id)}
+                />
+              ))}
+            </div>
+            <Pagination page={inboundPaged.safePage} total={inboundPaged.totalPages} onChange={setInboundPage} />
+          </>
         )}
 
         {/* ── Panel 02: Active jobs ── */}
@@ -336,10 +350,11 @@ export function ProviderDashboardPage() {
               <span className="mono muted" style={{ fontSize: 11 }}>{activeJobs.length} IN PROGRESS</span>
             </div>
             <div className="dash-card-grid">
-              {activeJobs.map((ticket) => (
+              {activePaged.pageItems.map((ticket) => (
                 <ActiveJobCard key={ticket.id} ticket={ticket} />
               ))}
             </div>
+            <Pagination page={activePaged.safePage} total={activePaged.totalPages} onChange={setActivePage} />
           </>
         )}
 
@@ -361,19 +376,22 @@ export function ProviderDashboardPage() {
             <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>Tickets open to all providers will appear here.</div>
           </div>
         ) : (
-          <div className="dash-card-grid">
-            {openTickets.map((ticket) => (
-              <RequestCard
-                key={ticket.id}
-                ticket={ticket}
-                acceptLabel="Accept & assign →"
-                isPending={acceptOpen.isPending}
-                onAccept={() => {
-                  acceptOpen.mutate(ticket.id, { onError: handleAcceptError });
-                }}
-              />
-            ))}
-          </div>
+          <>
+            <div className="dash-card-grid">
+              {openPaged.pageItems.map((ticket) => (
+                <RequestCard
+                  key={ticket.id}
+                  ticket={ticket}
+                  acceptLabel="Accept & assign →"
+                  isPending={acceptOpen.isPending}
+                  onAccept={() => {
+                    acceptOpen.mutate(ticket.id, { onError: handleAcceptError });
+                  }}
+                />
+              ))}
+            </div>
+            <Pagination page={openPaged.safePage} total={openPaged.totalPages} onChange={setOpenPage} />
+          </>
         )}
 
         {/* ── Pro tip ── */}

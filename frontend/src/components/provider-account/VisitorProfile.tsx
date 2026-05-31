@@ -33,7 +33,7 @@ export function VisitorProfile({ provider }: Readonly<VisitorProfileProps>) {
           email: "",
           firstName: provider.firstName,
           lastName: provider.lastName,
-          phoneNumber: provider.phoneNumber ?? null,
+          phoneNumber: null,
           profilePictureUrl: provider.profilePictureUrl ?? null,
           status: provider.status,
           emailVerified: provider.emailVerified ?? true,

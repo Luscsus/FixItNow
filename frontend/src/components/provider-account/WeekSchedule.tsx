@@ -102,6 +102,7 @@ function EventContent({ arg, editable }: { arg: EventContentArg; editable: boole
 
   const isOff = type === "OFF";
   const label = block ? renderBlockLabel(block) : "";
+  const isRecurring = Boolean(block && isOwnerBlock(block) && block.seriesId);
 
   return (
     <div
@@ -123,6 +124,9 @@ function EventContent({ arg, editable }: { arg: EventContentArg; editable: boole
         {timeText}
       </b>
       {label}
+      {isRecurring && (
+        <span title="Repeats" style={{ marginLeft: 4, opacity: 0.7 }}>↻</span>
+      )}
     </div>
   );
 }

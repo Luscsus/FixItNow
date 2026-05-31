@@ -6,6 +6,7 @@ import com.example.backend.service.CalendarService;
 import com.example.backend.web.dto.request.TimeBlockCreateRequest;
 import com.example.backend.web.dto.request.TimeBlockUpdateRequest;
 import com.example.backend.web.dto.response.PublicTimeBlockResponse;
+import com.example.backend.web.dto.response.TimeBlockBatchResponse;
 import com.example.backend.web.dto.response.TimeBlockResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -59,9 +60,10 @@ public class ProviderCalendarController {
         return ResponseEntity.ok(calendarService.listOwn(principal.getUser().getId(), from, to));
     }
 
+    @Operation(summary = "Create a time block, optionally repeating it into several occurrences.")
     @PostMapping("/me/calendar/blocks")
     @PreAuthorize("hasRole('PROVIDER')")
-    public ResponseEntity<TimeBlockResponse> createBlock(
+    public ResponseEntity<TimeBlockBatchResponse> createBlock(
         @AuthenticationPrincipal UserPrincipal principal,
         @Valid @RequestBody TimeBlockCreateRequest req
     ) {
@@ -87,5 +89,16 @@ public class ProviderCalendarController {
     ) {
         calendarService.delete(principal.getUser().getId(), blockId);
         return ResponseEntity.ok(new MessageResponse("Time block deleted."));
+    }
+
+    @Operation(summary = "Delete every block in a recurring series.")
+    @DeleteMapping("/me/calendar/blocks/series/{seriesId}")
+    @PreAuthorize("hasRole('PROVIDER')")
+    public ResponseEntity<MessageResponse> deleteSeries(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @PathVariable UUID seriesId
+    ) {
+        calendarService.deleteSeries(principal.getUser().getId(), seriesId);
+        return ResponseEntity.ok(new MessageResponse("Series deleted."));
     }
 }

@@ -10,6 +10,21 @@ export interface TimeBlock {
   title?: string | null;
   notes?: string | null;
   ticketId?: number | null;
+  seriesId?: string | null;
+}
+
+export type RecurrenceFrequency = "DAILY" | "WEEKLY";
+
+export interface RecurrenceInput {
+  frequency: RecurrenceFrequency;
+  /** Total number of occurrences including the first one (2-12). */
+  count: number;
+}
+
+export interface CreateTimeBlockResult {
+  created: TimeBlock[];
+  /** Start times of occurrences skipped because they overlapped an existing block. */
+  skipped: string[];
 }
 
 export interface PublicTimeBlock {
@@ -25,6 +40,7 @@ export interface TimeBlockInput {
   type: TimeBlockType;
   title?: string | null;
   notes?: string | null;
+  recurrence?: RecurrenceInput | null;
 }
 
 function authHeader(accessToken?: string): HeadersInit {
@@ -60,8 +76,8 @@ export async function getOwnCalendar(
 export async function createTimeBlock(
   payload: TimeBlockInput,
   accessToken?: string,
-): Promise<TimeBlock> {
-  return requestJson<TimeBlock>("/api/v1/providers/me/calendar/blocks", {
+): Promise<CreateTimeBlockResult> {
+  return requestJson<CreateTimeBlockResult>("/api/v1/providers/me/calendar/blocks", {
     method: "POST",
     headers: authHeader(accessToken),
     body: JSON.stringify(payload),
@@ -86,6 +102,19 @@ export async function deleteTimeBlock(
 ): Promise<void> {
   await requestJson<{ message: string }>(
     `/api/v1/providers/me/calendar/blocks/${blockId}`,
+    {
+      method: "DELETE",
+      headers: authHeader(accessToken),
+    },
+  );
+}
+
+export async function deleteTimeBlockSeries(
+  seriesId: string,
+  accessToken?: string,
+): Promise<void> {
+  await requestJson<{ message: string }>(
+    `/api/v1/providers/me/calendar/blocks/series/${seriesId}`,
     {
       method: "DELETE",
       headers: authHeader(accessToken),

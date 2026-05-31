@@ -3,6 +3,7 @@ package com.example.backend.service;
 import com.example.backend.domain.user.Provider;
 import com.example.backend.domain.user.ServiceCategory;
 import com.example.backend.domain.user.UserStatus;
+import com.example.backend.exception.UserNotFoundException;
 import com.example.backend.repository.ProviderRepository;
 import com.example.backend.repository.ProviderSpecification;
 import com.example.backend.web.dto.request.ProviderSearchParams;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -41,6 +43,16 @@ public class ProviderSearchServiceImpl implements ProviderSearchService {
     @Transactional(readOnly = true)
     public Set<ServiceCategory> getActiveCategories() {
         return providerRepository.findDistinctCategoriesByStatus(UserStatus.ACTIVE);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProviderSearchResult getPublicProfile(UUID id) {
+        // Mapping happens inside the transaction so lazy associations (location, categories)
+        // can be initialized before the session closes.
+        Provider p = providerRepository.findById(id)
+            .orElseThrow(() -> new UserNotFoundException("Provider not found: " + id));
+        return ProviderSearchResult.from(p, null);
     }
 
     private Double computeDistance(Provider provider, ProviderSearchParams params) {

@@ -1,9 +1,6 @@
 package com.example.backend.web.controller;
 
-import com.example.backend.repository.ProviderRepository;
-import com.example.backend.domain.user.Provider;
 import com.example.backend.domain.user.ServiceCategory;
-import com.example.backend.exception.UserNotFoundException;
 import com.example.backend.service.ProviderSearchService;
 import com.example.backend.web.dto.request.ProviderSearchParams;
 import com.example.backend.web.dto.response.ProviderSearchResult;
@@ -29,7 +26,6 @@ import java.util.UUID;
 public class ProviderController {
 
     private final ProviderSearchService providerSearchService;
-    private final ProviderRepository providerRepository;
 
     @Operation(
         summary = "Get categories with active providers",
@@ -61,8 +57,6 @@ public class ProviderController {
     )
     @GetMapping("/{id}")
     public ResponseEntity<ProviderSearchResult> getById(@PathVariable UUID id) {
-        Provider p = providerRepository.findById(id)
-            .orElseThrow(() -> new UserNotFoundException("Provider not found: " + id));
-        return ResponseEntity.ok(ProviderSearchResult.from(p, null));
+        return ResponseEntity.ok(providerSearchService.getPublicProfile(id));
     }
 }

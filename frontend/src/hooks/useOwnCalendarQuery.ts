@@ -4,6 +4,7 @@ import {
   createTimeBlock,
   updateTimeBlock,
   deleteTimeBlock,
+  deleteTimeBlockSeries,
   type TimeBlockInput,
 } from "@/services/calendarService";
 import { useAuth } from "@/context/auth";
@@ -49,6 +50,18 @@ export function useDeleteTimeBlockMutation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteTimeBlock(id, accessToken),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: ["providerCalendar"] });
+    },
+  });
+}
+
+export function useDeleteTimeBlockSeriesMutation() {
+  const { accessToken } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (seriesId: string) => deleteTimeBlockSeries(seriesId, accessToken),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [KEY] });
       qc.invalidateQueries({ queryKey: ["providerCalendar"] });

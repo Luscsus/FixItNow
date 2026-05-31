@@ -61,6 +61,10 @@ public class ProviderTimeBlock {
     @Column(length = 500)
     private String notes;
 
+    /** Groups the materialized occurrences of a recurring block; null for one-off blocks. */
+    @Column(name = "series_id")
+    private UUID seriesId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ticket_id")
     private Ticket ticket;

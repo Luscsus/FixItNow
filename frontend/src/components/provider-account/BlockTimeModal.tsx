@@ -1,10 +1,16 @@
 import { useEffect, useState } from "react";
-import type { TimeBlock, TimeBlockType } from "@/services/calendarService";
+import type {
+  RecurrenceFrequency,
+  TimeBlock,
+  TimeBlockType,
+} from "@/services/calendarService";
 import {
   useCreateTimeBlockMutation,
   useUpdateTimeBlockMutation,
   useDeleteTimeBlockMutation,
+  useDeleteTimeBlockSeriesMutation,
 } from "@/hooks/useOwnCalendarQuery";
+import { useToast } from "@/components/ui/toast";
 
 interface BlockTimeModalProps {
   open: boolean;
@@ -35,10 +41,15 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
   const createMut = useCreateTimeBlockMutation();
   const updateMut = useUpdateTimeBlockMutation();
   const deleteMut = useDeleteTimeBlockMutation();
+  const deleteSeriesMut = useDeleteTimeBlockSeriesMutation();
+  const { notify } = useToast();
 
   const [startAt, setStartAt] = useState("");
   const [endAt, setEndAt] = useState("");
   const [type, setType] = useState<TimeBlockType>("AVAILABLE");
+  const [repeat, setRepeat] = useState(false);
+  const [frequency, setFrequency] = useState<RecurrenceFrequency>("WEEKLY");
+  const [count, setCount] = useState(3);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -66,6 +77,9 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
       setEndAt(end);
       setType("AVAILABLE");
     }
+    setRepeat(false);
+    setFrequency("WEEKLY");
+    setCount(3);
     setError(null);
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [open, initial, defaultDate]);
@@ -81,12 +95,19 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
       type,
       title: null,
       notes: null,
+      recurrence: !isEdit && repeat ? { frequency, count } : null,
     };
     try {
       if (isEdit && initial) {
         await updateMut.mutateAsync({ id: initial.id, payload });
       } else {
-        await createMut.mutateAsync(payload);
+        const result = await createMut.mutateAsync(payload);
+        if (result.skipped.length > 0) {
+          notify(
+            `Added ${result.created.length} block${result.created.length === 1 ? "" : "s"}; skipped ${result.skipped.length} that overlapped existing blocks.`,
+            "info",
+          );
+        }
       }
       onClose();
     } catch (e: unknown) {
@@ -107,7 +128,23 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
     }
   }
 
-  const submitting = createMut.isPending || updateMut.isPending || deleteMut.isPending;
+  async function handleDeleteSeries() {
+    if (!initial?.seriesId) return;
+    setError(null);
+    try {
+      await deleteSeriesMut.mutateAsync(initial.seriesId);
+      onClose();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to delete series.";
+      setError(msg);
+    }
+  }
+
+  const submitting =
+    createMut.isPending ||
+    updateMut.isPending ||
+    deleteMut.isPending ||
+    deleteSeriesMut.isPending;
 
   return (
     <div
@@ -178,12 +215,57 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
           </div>
         </div>
 
+        {!isEdit && (
+          <div style={{ marginBottom: 14, padding: "12px 14px", border: "1px solid var(--border, #e2e8f0)", borderRadius: 8, background: "var(--muted, #f8fafc)" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={repeat}
+                onChange={(e) => setRepeat(e.target.checked)}
+              />
+              Repeat this block
+            </label>
+
+            {repeat && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 13, marginBottom: 4 }}>Frequency</label>
+                  <select
+                    value={frequency}
+                    onChange={(e) => setFrequency(e.target.value as RecurrenceFrequency)}
+                    style={{ width: "100%", padding: "8px 10px", border: "1px solid var(--border, #e2e8f0)", borderRadius: 6 }}
+                  >
+                    <option value="WEEKLY">Weekly</option>
+                    <option value="DAILY">Daily</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 13, marginBottom: 4 }}>
+                    Occurrences
+                  </label>
+                  <input
+                    type="number"
+                    min={2}
+                    max={12}
+                    value={count}
+                    onChange={(e) => setCount(Math.min(12, Math.max(2, Number(e.target.value) || 2)))}
+                    style={{ width: "100%", padding: "8px 10px", border: "1px solid var(--border, #e2e8f0)", borderRadius: 6 }}
+                  />
+                </div>
+                <div style={{ gridColumn: "1 / -1", fontSize: 12, color: "var(--muted-foreground, #64748b)" }}>
+                  Creates {count} blocks, one every {frequency === "WEEKLY" ? "week" : "day"}. Occurrences that overlap existing blocks are skipped.
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {error && (
           <div style={{ color: "#b91c1c", fontSize: 13, marginBottom: 10 }}>{error}</div>
         )}
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-          <div>
+          <div style={{ display: "flex", gap: 8 }}>
             {isEdit && (
               <button
                 type="button"
@@ -191,7 +273,17 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
                 disabled={submitting}
                 className="btn btn-danger btn-sm"
               >
-                Delete
+                {initial?.seriesId ? "Delete this" : "Delete"}
+              </button>
+            )}
+            {isEdit && initial?.seriesId && (
+              <button
+                type="button"
+                onClick={handleDeleteSeries}
+                disabled={submitting}
+                className="btn btn-danger btn-sm"
+              >
+                Delete series
               </button>
             )}
           </div>

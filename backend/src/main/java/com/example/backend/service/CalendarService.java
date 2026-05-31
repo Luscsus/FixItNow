@@ -12,6 +12,7 @@ import com.example.backend.repository.ProviderTimeBlockRepository;
 import com.example.backend.web.dto.request.TimeBlockCreateRequest;
 import com.example.backend.web.dto.request.TimeBlockUpdateRequest;
 import com.example.backend.web.dto.response.PublicTimeBlockResponse;
+import com.example.backend.web.dto.response.TimeBlockBatchResponse;
 import com.example.backend.web.dto.response.TimeBlockResponse;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -92,15 +93,24 @@ public class CalendarService {
                 }
                 segments = next;
             }
-            for (LocalDateTime[] seg : segments) {
-                result.add(ProviderTimeBlock.builder()
-                    .provider(b.getProvider())
-                    .startAt(seg[0])
-                    .endAt(seg[1])
-                    .type(TimeBlockType.AVAILABLE)
-                    .title(b.getTitle())
-                    .notes(b.getNotes())
-                    .build());
+            boolean unchanged = segments.size() == 1
+                && segments.get(0)[0].equals(b.getStartAt())
+                && segments.get(0)[1].equals(b.getEndAt());
+            if (unchanged) {
+                // No booking carved into this block: keep the original so it stays identifiable
+                // (preserves id + seriesId) and the provider can click it to edit/delete.
+                result.add(b);
+            } else {
+                for (LocalDateTime[] seg : segments) {
+                    result.add(ProviderTimeBlock.builder()
+                        .provider(b.getProvider())
+                        .startAt(seg[0])
+                        .endAt(seg[1])
+                        .type(TimeBlockType.AVAILABLE)
+                        .title(b.getTitle())
+                        .notes(b.getNotes())
+                        .build());
+                }
             }
         }
         return result;
@@ -129,7 +139,7 @@ public class CalendarService {
     }
 
     @Transactional
-    public TimeBlockResponse create(UUID providerId, TimeBlockCreateRequest req) {
+    public TimeBlockBatchResponse create(UUID providerId, TimeBlockCreateRequest req) {
         if (req.getType() == TimeBlockType.BOOKED) {
             throw new ApiException("BOOKED blocks are system-managed and cannot be created manually.");
         }
@@ -138,20 +148,58 @@ public class CalendarService {
         Provider provider = providerRepository.findById(providerId)
             .orElseThrow(() -> new UserNotFoundException("Provider not found: " + providerId));
 
-        if (blockRepository.existsOverlap(providerId, req.getStartAt(), req.getEndAt(), null)) {
-            throw new ApiException("Time block overlaps an existing block in your calendar.");
+        // A non-recurring request is just a single occurrence. A recurring one is materialized
+        // into `count` occurrences, each shifted by the recurrence step.
+        TimeBlockCreateRequest.Recurrence recurrence = req.getRecurrence();
+        int count = recurrence != null ? recurrence.getCount() : 1;
+        UUID seriesId = recurrence != null ? UUID.randomUUID() : null;
+
+        List<ProviderTimeBlock> created = new ArrayList<>();
+        List<LocalDateTime> skipped = new ArrayList<>();
+
+        for (int i = 0; i < count; i++) {
+            LocalDateTime start = shift(req.getStartAt(), recurrence, i);
+            LocalDateTime end = shift(req.getEndAt(), recurrence, i);
+
+            if (blockRepository.existsOverlap(providerId, start, end, null)) {
+                // A one-off block overlapping is an error (preserves previous behavior); for a
+                // recurring series we skip the conflicting occurrence and report it instead.
+                if (recurrence == null) {
+                    throw new ApiException("Time block overlaps an existing block in your calendar.");
+                }
+                skipped.add(start);
+                continue;
+            }
+
+            created.add(blockRepository.save(ProviderTimeBlock.builder()
+                .provider(provider)
+                .startAt(start)
+                .endAt(end)
+                .type(req.getType())
+                .title(req.getTitle())
+                .notes(req.getNotes())
+                .seriesId(seriesId)
+                .build()));
         }
 
-        ProviderTimeBlock block = ProviderTimeBlock.builder()
-            .provider(provider)
-            .startAt(req.getStartAt())
-            .endAt(req.getEndAt())
-            .type(req.getType())
-            .title(req.getTitle())
-            .notes(req.getNotes())
-            .build();
+        if (created.isEmpty()) {
+            throw new ApiException("Every occurrence overlaps an existing block in your calendar.");
+        }
 
-        return TimeBlockResponse.from(blockRepository.save(block));
+        return TimeBlockBatchResponse.builder()
+            .created(created.stream().map(TimeBlockResponse::from).toList())
+            .skipped(skipped)
+            .build();
+    }
+
+    private LocalDateTime shift(LocalDateTime base, TimeBlockCreateRequest.Recurrence recurrence, int i) {
+        if (recurrence == null || i == 0) {
+            return base;
+        }
+        return switch (recurrence.getFrequency()) {
+            case DAILY -> base.plusDays(i);
+            case WEEKLY -> base.plusWeeks(i);
+        };
     }
 
     @Transactional
@@ -200,6 +248,25 @@ public class CalendarService {
             throw new ApiException("BOOKED blocks are removed automatically when their ticket is closed.");
         }
         blockRepository.delete(block);
+    }
+
+    /**
+     * Delete every block in a recurring series owned by the provider. BOOKED occurrences (a slot
+     * that has since been booked) are left in place, since those are managed by their ticket.
+     */
+    @Transactional
+    public void deleteSeries(UUID providerId, UUID seriesId) {
+        List<ProviderTimeBlock> blocks = blockRepository.findBySeriesId(seriesId);
+        if (blocks.isEmpty()) {
+            throw new ApiException("Series not found: " + seriesId);
+        }
+        if (blocks.stream().anyMatch(b -> !b.getProvider().getId().equals(providerId))) {
+            throw new AccessDeniedException("You cannot edit another provider's calendar.");
+        }
+        List<ProviderTimeBlock> deletable = blocks.stream()
+            .filter(b -> b.getType() != TimeBlockType.BOOKED)
+            .toList();
+        blockRepository.deleteAll(deletable);
     }
 
     /**

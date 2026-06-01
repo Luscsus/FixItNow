@@ -10,7 +10,7 @@ import {
 
 import type { AuthSession, UserRole } from "@/domain/auth";
 import { jwtUserInfo } from "@/lib/jwt";
-import { setAuthRefreshHandler } from "@/services/httpClient";
+import { setAuthRefreshHandler, ApiError } from "@/services/httpClient";
 import { refreshToken as refreshTokenApi } from "@/services/authService";
 
 type AuthState = {
@@ -144,9 +144,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return newSession.accessToken;
     } catch (error) {
       console.error("Token refresh failed:", error);
-      const nextState: AuthState = { accessToken: "", refreshToken: "", tempToken: "", role: null };
-      setState(nextState);
-      persistSession(nextState);
+      // Only clear the stored session when the refresh token is genuinely
+      // rejected (401/403). For transient failures — network blip, backend
+      // restarting, 5xx — keep the session so "remember me" survives and the
+      // next request can retry. Wiping on any error logged users out whenever
+      // the backend was briefly unreachable, which looked like "remember me
+      // doesn't work".
+      const status = error instanceof ApiError ? error.status : null;
+      if (status === 401 || status === 403) {
+        const nextState: AuthState = { accessToken: "", refreshToken: "", tempToken: "", role: null };
+        setState(nextState);
+        persistSession(nextState);
+      }
       return null;
     }
   }, [state.refreshToken]);

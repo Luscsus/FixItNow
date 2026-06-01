@@ -18,7 +18,18 @@ export function useNotifications() {
     enabled: Boolean(accessToken) && isAuthenticated,
   });
 
-  const notifications = query.data ?? [];
+  // Defensive de-duplication: collapse notifications that are logically the
+  // same event (same type + ticket + chat room + title + body). The list is
+  // ordered newest-first, so the first occurrence we keep is the most recent.
+  // Guards against any duplicate row sneaking into the feed.
+  const rawNotifications = query.data ?? [];
+  const seen = new Set<string>();
+  const notifications = rawNotifications.filter((n) => {
+    const key = `${n.type}|${n.ticketId ?? ""}|${n.chatRoomId ?? ""}|${n.title}|${n.body ?? ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
   const unreadCount = notifications.reduce((acc, n) => (n.read ? acc : acc + 1), 0);
 
   const markRead = useMutation({

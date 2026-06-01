@@ -8,6 +8,7 @@ import { useAcceptTicketMutation } from "@/hooks/useAcceptTicketMutation";
 import { useConfirmTicketMutation, useDeclineTicketMutation } from "@/hooks/useConfirmTicketMutation";
 import { TicketChatPanel } from "@/components/ticket/TicketChatPanel";
 import { IssueInvoicePanel } from "@/components/ticket/IssueInvoicePanel";
+import { LiveTrackingPanel } from "@/components/tracking/LiveTrackingPanel";
 import { generateInvoicePdf } from "@/utils/generateInvoicePdf";
 import type {
   Ticket,
@@ -888,6 +889,13 @@ export function TicketDetailPage() {
         <div>
           {/* Meta card */}
           <MetaCard ticket={ticket} />
+
+          {/* Live GPS tracking — only renders while the ticket is IN_TRANSIT */}
+          {ticket.status === "IN_TRANSIT" && (
+            <div style={{ marginBottom: 32 }}>
+              <LiveTrackingPanel ticket={ticket} isProvider={isProvider} />
+            </div>
+          )}
 
           {/* Description */}
           <div className="panel-title">

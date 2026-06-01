@@ -5,6 +5,7 @@ import { useAuth } from "@/context/auth";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useNotificationsSocket } from "@/hooks/useNotificationsSocket";
+import { primeNotificationSound } from "@/lib/notificationSound";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import type { AppNotification } from "@/domain/notification";
@@ -70,7 +71,7 @@ export function NotificationBell() {
   function handleItemClick(n: AppNotification) {
     setOpen(false);
     if (!n.read) markRead.mutate(n.id);
-    if (n.type === "TICKET_STATUS_CHANGE" && n.ticketId != null) {
+    if ((n.type === "TICKET_STATUS_CHANGE" || n.type === "PROVIDER_NEARBY") && n.ticketId != null) {
       navigate(`/tickets/${n.ticketId}`);
     } else if (n.type === "NEW_MESSAGE" && n.chatRoomId) {
       // Invalidate the rooms list and message cache so ChatPage shows fresh data.
@@ -125,7 +126,17 @@ export function NotificationBell() {
       {/* Bell button */}
       <button
         title="Notifications"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          // Request OS-notification permission here — inside a real user
+          // gesture — because Safari ignores requestPermission() called from
+          // an effect/on mount. No-op once the user has already answered.
+          if (typeof Notification !== "undefined" && Notification.permission === "default") {
+            Notification.requestPermission().catch(() => { /* dismissed — fine */ });
+          }
+          // Unlock the audio chime (browser autoplay policy needs a gesture).
+          primeNotificationSound();
+          setOpen((o) => !o);
+        }}
         style={{
           position: "relative",
           display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -209,44 +220,6 @@ export function NotificationBell() {
             )}
           </div>
           {notifList}
-
-          {/* List */}
-          <div style={{ maxHeight: 380, overflowY: "auto" }}>
-            {isLoading ? (
-              <div style={{ padding: "24px 16px", textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>
-                Loading…
-              </div>
-            ) : notifications.length === 0 ? (
-              <div style={{ padding: "28px 16px", textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>
-                You're all caught up.
-              </div>
-            ) : (
-              notifications.map((n) => (
-                <button
-                  key={n.id}
-                  onClick={() => handleItemClick(n)}
-                  style={{
-                    display: "flex", alignItems: "flex-start", gap: 10, width: "100%",
-                    padding: "12px 16px", textAlign: "left",
-                    background: n.read ? "transparent" : "rgba(59,130,246,0.05)",
-                    border: "none", borderBottom: "1px solid rgba(15,23,42,0.05)",
-                    cursor: "pointer", transition: "background 0.1s",
-                  }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(15,23,42,0.04)"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = n.read ? "transparent" : "rgba(59,130,246,0.05)"; }}
-                >
-                  {n.type === "NEW_MESSAGE" ? <MessageDot /> : <TicketDot />}
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{n.title}</span>
-                    {n.body && (
-                      <span style={{ display: "block", fontSize: 12.5, color: "var(--text-muted)", marginTop: 1 }}>{n.body}</span>
-                    )}
-                    <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>{formatRelativeTime(n.createdAt)}</span>
-                  </span>
-                </button>
-              ))
-            )}
-          </div>
         </div>
       )}
     </div>

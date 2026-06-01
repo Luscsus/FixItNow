@@ -8,6 +8,8 @@ import { useActiveCategoriesQuery } from "@/hooks/useActiveCategoriesQuery";
 import { useUploadImageMutation } from "@/hooks/useUploadImageMutation";
 import { useToast } from "@/components/ui/toast";
 import { ProviderAvailabilityPicker } from "@/components/ticket/ProviderAvailabilityPicker";
+import { AddressAutocomplete } from "@/components/tickets/AddressAutocomplete";
+import type { AddressSuggestion } from "@/services/geocodeService";
 
 type Urgency = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 type ProviderMode = "SPECIFIC" | "OPEN";
@@ -52,6 +54,9 @@ export function NewTicketPage() {
   );
   const [description, setDescription] = useState(savedForm?.description ?? "");
   const [location, setLocation] = useState(savedForm?.location ?? "");
+  // Exact coordinates, set when the customer picks an address suggestion.
+  // Cleared whenever they edit the text again, so we never send stale coords.
+  const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [urgency, setUrgency] = useState<Urgency | "">(
     savedForm?.urgency ?? "",
   );
@@ -166,6 +171,8 @@ export function NewTicketPage() {
       category: category as ServiceCategory,
       description: description.trim(),
       location: location.trim(),
+      latitude: locationCoords?.lat ?? null,
+      longitude: locationCoords?.lng ?? null,
       priority: urgency as TicketPriority,
       assignedProviderId:
         providerMode === "SPECIFIC" && selectedProvider
@@ -384,19 +391,28 @@ export function NewTicketPage() {
             <div className="form-grid">
               <div className="field">
                 <label className="field-label">Location</label>
-                <div className="input-wrap">
-                  <input
-                    className="input"
-                    value={location}
-                    placeholder="e.g. Oakwood HQ · Bldg C · Floor 2 · Kitchen"
-                    onChange={(e) => setLocation(e.target.value)}
-                  />
-                </div>
+                <AddressAutocomplete
+                  value={location}
+                  resolved={locationCoords !== null}
+                  hasError={submitAttempted && !location.trim()}
+                  placeholder="Start typing…"
+                  onTextChange={(text) => {
+                    setLocation(text);
+                    // Editing the text invalidates any previously-picked coords.
+                    setLocationCoords(null);
+                  }}
+                  onSelect={(s: AddressSuggestion) => {
+                    setLocation(s.displayName);
+                    setLocationCoords({ lat: s.lat, lng: s.lng });
+                  }}
+                />
                 {submitAttempted && !location.trim() ? (
                   <span className="field-error">Location is required.</span>
                 ) : (
                   <span className="field-hint">
-                    Be as specific as you can — building, floor, room.
+                    {locationCoords
+                      ? "✓ Address pinned — navigation will be accurate."
+                      : "Pick a suggestion so we can pin the exact spot for your provider."}
                   </span>
                 )}
               </div>

@@ -65,6 +65,9 @@ export type CreateTicketRequestDto = {
   category: ServiceCategoryDto;
   description: string;
   location: string;
+  /** Exact coordinates from address autocomplete (optional). */
+  latitude?: number | null;
+  longitude?: number | null;
   priority: TicketPriorityDto;
   assignedProviderId?: string | null;
   requestedStartAt?: string | null;

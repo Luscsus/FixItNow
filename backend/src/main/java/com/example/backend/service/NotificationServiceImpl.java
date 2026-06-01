@@ -26,10 +26,18 @@ public class NotificationServiceImpl implements NotificationService {
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
+    // De-dup window: if an identical notification was created within this span,
+    // skip creating another (guards against the endpoint being hit twice in
+    // quick succession, double-submits, retries, etc.).
+    private static final java.time.Duration DEDUP_WINDOW = java.time.Duration.ofMinutes(2);
+
     @Override
     @Transactional
     public void notifyTicketStatusChange(Long ticketId, UUID recipientId, String title, String body) {
         if (recipientId == null || body == null || !isEnabled(recipientId, NotificationType.TICKET_STATUS_CHANGE)) {
+            return;
+        }
+        if (isRecentDuplicate(recipientId, NotificationType.TICKET_STATUS_CHANGE, ticketId, body)) {
             return;
         }
         Notification n = new Notification();
@@ -40,6 +48,31 @@ public class NotificationServiceImpl implements NotificationService {
         n.setTicketId(ticketId);
         n.setCreatedAt(LocalDateTime.now());
         broadcast(notificationRepository.save(n));
+    }
+
+    @Override
+    @Transactional
+    public void notifyProviderNearby(Long ticketId, UUID recipientId, String title, String body) {
+        if (recipientId == null || body == null || !isEnabled(recipientId, NotificationType.PROVIDER_NEARBY)) {
+            return;
+        }
+        if (isRecentDuplicate(recipientId, NotificationType.PROVIDER_NEARBY, ticketId, body)) {
+            return;
+        }
+        Notification n = new Notification();
+        n.setRecipientId(recipientId);
+        n.setType(NotificationType.PROVIDER_NEARBY);
+        n.setTitle(title);
+        n.setBody(body);
+        n.setTicketId(ticketId);
+        n.setCreatedAt(LocalDateTime.now());
+        broadcast(notificationRepository.save(n));
+    }
+
+    private boolean isRecentDuplicate(UUID recipientId, NotificationType type, Long ticketId, String body) {
+        if (ticketId == null) return false;
+        return notificationRepository.existsRecentDuplicate(
+            recipientId, type, ticketId, body, LocalDateTime.now().minus(DEDUP_WINDOW));
     }
 
     @Override
@@ -120,6 +153,9 @@ public class NotificationServiceImpl implements NotificationService {
         String key = switch (type) {
             case TICKET_STATUS_CHANGE -> isProvider ? "jobStatusChanges" : "statusChanges";
             case NEW_MESSAGE          -> isProvider ? "customerReplies" : "providerReplies";
+            // Proximity alerts are customer-facing and ride along with the
+            // customer's status-change preference.
+            case PROVIDER_NEARBY      -> "statusChanges";
         };
         return prefs == null || prefs.getOrDefault(key, true);
     }

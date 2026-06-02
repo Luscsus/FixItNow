@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   useAdminUsers,
   useChangeUserRoleMutation,
@@ -19,7 +20,7 @@ const AVATAR_COLORS = [
 
 function avatarColor(id: string): string {
   let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < id.length; i++) hash = id.codePointAt(i)! + ((hash << 5) - hash);
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
@@ -36,7 +37,7 @@ const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
   PENDING_VERIFICATION: { bg: "var(--navy-50, #EEF2FB)", color: "var(--navy-700, #142C5E)" },
 };
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status }: { readonly status: string }) {
   const s = STATUS_STYLES[status] ?? { bg: "var(--slate-50, #F8FAFC)", color: "var(--text-muted)" };
   return (
     <span style={{
@@ -45,12 +46,13 @@ function StatusBadge({ status }: { status: string }) {
       padding: "3px 8px", borderRadius: 5, letterSpacing: "0.04em",
       textTransform: "uppercase",
     }}>
-      {status.replace(/_/g, " ")}
+      {status.replaceAll("_", " ")}
     </span>
   );
 }
 
 export function AdminUsersPage() {
+  const { t } = useTranslation();
   const { data: users = [], isLoading, error } = useAdminUsers();
   const { notify } = useToast();
   const [query, setQuery] = useState("");
@@ -75,7 +77,7 @@ export function AdminUsersPage() {
       { id: user.id, role },
       {
         onSuccess: (msg) => notify(msg.text, "success"),
-        onError: () => notify("Failed to change role.", "error"),
+        onError: () => notify(t("admin.failedRole"), "error"),
       },
     );
   }
@@ -83,14 +85,14 @@ export function AdminUsersPage() {
   function handleSuspend(user: AdminUser) {
     suspend.mutate(user.id, {
       onSuccess: (msg) => notify(msg.text, "success"),
-      onError: () => notify("Failed to suspend user.", "error"),
+      onError: () => notify(t("admin.failedSuspend"), "error"),
     });
   }
 
   function handleReactivate(user: AdminUser) {
     reactivate.mutate(user.id, {
       onSuccess: (msg) => notify(msg.text, "success"),
-      onError: () => notify("Failed to reactivate user.", "error"),
+      onError: () => notify(t("admin.failedReactivate"), "error"),
     });
   }
 
@@ -102,7 +104,7 @@ export function AdminUsersPage() {
         notify(msg.text, "success");
         setConfirmDelete(null);
       },
-      onError: () => notify("Failed to delete user.", "error"),
+      onError: () => notify(t("admin.failedDelete"), "error"),
     });
   }
 
@@ -113,22 +115,22 @@ export function AdminUsersPage() {
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "flex-end", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
           <div>
-            <span className="eyebrow">Console · User management</span>
+            <span className="eyebrow">Console · {t("admin.userMgmt")}</span>
             <h1 style={{ fontSize: "clamp(22px, 2.4vw, 30px)", fontWeight: 700, letterSpacing: "-0.025em", margin: "6px 0 0" }}>
-              All users <span style={{ color: "var(--text-muted)", fontWeight: 500 }}>· {users.length}</span>
+              {t("admin.allUsers")} <span style={{ color: "var(--text-muted)", fontWeight: 500 }}>· {users.length}</span>
             </h1>
           </div>
           <span style={{ flex: 1 }} />
           <SearchField
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search name, email, role…"
+            placeholder={t("admin.searchUsers")}
             containerStyle={{ maxWidth: 320, minWidth: 220 }}
           />
         </div>
 
-        {isLoading && <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>Loading users…</div>}
-        {error && <div style={{ padding: 40, textAlign: "center", color: "var(--red-600)" }}>Failed to load users.</div>}
+        {isLoading && <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>{t("admin.loadingUsers")}</div>}
+        {error && <div style={{ padding: 40, textAlign: "center", color: "var(--red-600)" }}>{t("admin.failedUsers")}</div>}
 
         {!isLoading && !error && (
           <div className="admin-table" style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
@@ -141,15 +143,15 @@ export function AdminUsersPage() {
               fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 700,
               color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase",
             }}>
-              <div>User</div>
-              <div>Email</div>
-              <div>Role</div>
-              <div>Status</div>
-              <div style={{ textAlign: "right" }}>Actions</div>
+              <div>{t("admin.colUser")}</div>
+              <div>{t("admin.colEmail")}</div>
+              <div>{t("admin.colRole")}</div>
+              <div>{t("admin.colStatus")}</div>
+              <div style={{ textAlign: "right" }}>{t("admin.colActions")}</div>
             </div>
 
             {filtered.length === 0 && (
-              <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>No users match your search.</div>
+              <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>{t("admin.noUsersMatch")}</div>
             )}
 
             {filtered.map((u) => {
@@ -165,7 +167,6 @@ export function AdminUsersPage() {
                   alignItems: "center",
                   opacity: isDeleted ? 0.55 : 1,
                 }}>
-                  {/* User */}
                   <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
                     <div style={{
                       width: 36, height: 36, borderRadius: "50%",
@@ -184,19 +185,17 @@ export function AdminUsersPage() {
                     </div>
                   </div>
 
-                  {/* Email */}
                   <div style={{ fontFamily: "var(--font-mono)", fontSize: 12.5, color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {u.email}
                   </div>
 
-                  {/* Role */}
                   <div>
                     {isProvider ? (
                       <span style={{
                         background: "var(--navy-50, #EEF2FB)", color: "var(--navy-700, #142C5E)",
                         fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 700,
                         padding: "5px 10px", borderRadius: 6, letterSpacing: "0.06em",
-                      }} title="Provider role changes are managed through provider approvals.">
+                      }} title={t("admin.providerLocked")}>
                         PROVIDER 🔒
                       </span>
                     ) : (
@@ -205,20 +204,18 @@ export function AdminUsersPage() {
                         disabled={busy || isDeleted}
                         onChange={(e) => handleRoleChange(u, e.target.value)}
                       >
-                        <option value="CUSTOMER">Customer</option>
-                        <option value="ADMIN">Admin</option>
+                        <option value="CUSTOMER">{t("admin.roleCustomer")}</option>
+                        <option value="ADMIN">{t("admin.roleAdmin")}</option>
                       </StyledSelect>
                     )}
                   </div>
 
-                  {/* Status */}
                   <div><StatusBadge status={u.status} /></div>
 
-                  {/* Actions */}
                   <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
                     {u.status === "SUSPENDED" ? (
                       <button className="btn btn-sm btn-secondary" disabled={busy} onClick={() => handleReactivate(u)}>
-                        Reactivate
+                        {t("admin.reactivate")}
                       </button>
                     ) : (
                       <button
@@ -226,7 +223,7 @@ export function AdminUsersPage() {
                         disabled={busy || isDeleted}
                         onClick={() => handleSuspend(u)}
                       >
-                        Suspend
+                        {t("admin.suspend")}
                       </button>
                     )}
                     <button
@@ -235,7 +232,7 @@ export function AdminUsersPage() {
                       onClick={() => setConfirmDelete(u)}
                       style={{ background: "var(--red-100)", color: "var(--red-700)", border: "1px solid #FCA5A5" }}
                     >
-                      Delete
+                      {t("common.delete")}
                     </button>
                   </div>
                 </div>
@@ -245,25 +242,25 @@ export function AdminUsersPage() {
         )}
 
         <p style={{ marginTop: 14, fontSize: 12.5, color: "var(--text-muted)" }}>
-          Changing a user's role signs them out of active sessions; they must sign in again for the new role to take effect.
+          {t("admin.roleChangeNote")}
         </p>
       </div>
 
       <ConfirmDialog
         open={confirmDelete !== null}
-        title="Delete this user?"
-        confirmLabel="Delete user"
-        loadingLabel="Deleting…"
+        title={t("admin.deleteUser_title")}
+        confirmLabel={t("admin.deleteUser_label")}
+        loadingLabel={t("admin.deleteUser_loading")}
         loading={remove.isPending}
         onConfirm={confirmDeleteUser}
         onCancel={() => setConfirmDelete(null)}
       >
         {confirmDelete && (
           <>
-            You're about to delete{" "}
+            {t("admin.deleteUser_about")}{" "}
             <strong style={{ color: "var(--text)" }}>{confirmDelete.firstName} {confirmDelete.lastName}</strong>{" "}
-            (<span style={{ fontFamily: "var(--font-mono)", fontSize: 13 }}>{confirmDelete.email}</span>).
-            Their account will be marked as deleted and they'll be signed out immediately. This can't be undone from here.
+            (<span style={{ fontFamily: "var(--font-mono)", fontSize: 13 }}>{confirmDelete.email}</span>).{" "}
+            {t("admin.deleteUser_body")}
           </>
         )}
       </ConfirmDialog>

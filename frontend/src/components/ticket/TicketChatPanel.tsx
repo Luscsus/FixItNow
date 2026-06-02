@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/auth';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { getChatRoom, getChatMessages } from '@/services/chatService';
@@ -46,26 +47,27 @@ function getInitials(name: string): string {
   return name.split(' ').filter(Boolean).map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
 }
 
-function formatMsgTime(timestamp: string): string {
-  return new Date(timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+function formatMsgTime(timestamp: string, locale: string): string {
+  return new Date(timestamp).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
-function formatDayLabel(timestamp: string): string {
+function formatDayLabel(timestamp: string, locale: string, todayLabel: string, yesterdayLabel: string): string {
   const date = new Date(timestamp);
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const msgDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const diff = Math.floor((today.getTime() - msgDay.getTime()) / 86_400_000);
-  if (diff === 0) return `Today · ${date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`;
-  if (diff === 1) return 'Yesterday';
-  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  if (diff === 0) return `${todayLabel} · ${date.toLocaleDateString(locale, { month: 'long', day: 'numeric' })}`;
+  if (diff === 1) return yesterdayLabel;
+  return date.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function StatusTicks({ status }: { status: ChatMessage['status'] }) {
+  const { t } = useTranslation();
   const glyph = status === 'SENT' ? '✓' : '✓✓';
-  const label = status === 'SENT' ? 'Sent' : status === 'DELIVERED' ? 'Delivered' : 'Read';
+  const label = status === 'SENT' ? t('chat.sent') : status === 'DELIVERED' ? t('chat.delivered') : t('chat.read');
   return (
     <span className="bubble-status" title={label}>
       <span className={`ticks ${status.toLowerCase()}`}>{glyph}</span>
@@ -77,10 +79,14 @@ function MessageBubble({
   msg,
   isMine,
   senderName,
+  locale,
+  youLabel,
 }: {
   msg: ChatMessage;
   isMine: boolean;
   senderName: string;
+  locale: string;
+  youLabel: string;
 }) {
   if (msg.type === 'SYSTEM') {
     return <div className="sys-msg"><span>{msg.content}</span></div>;
@@ -103,7 +109,7 @@ function MessageBubble({
 
   const meta = (
     <div className="bubble-meta">
-      {isMine ? 'You' : senderName} · {formatMsgTime(msg.timestamp)}
+      {isMine ? youLabel : senderName} · {formatMsgTime(msg.timestamp, locale)}
       {isMine && <> · <StatusTicks status={msg.status} /></>}
     </div>
   );
@@ -160,10 +166,11 @@ function MessageBubble({
 }
 
 function TypingIndicator({ name }: { name: string }) {
+  const { t } = useTranslation();
   return (
     <div className="typing-indicator">
       <span className="typing-dots"><span /><span /><span /></span>
-      {name} is typing
+      {name} {t('chat.isTyping')}
     </div>
   );
 }
@@ -171,6 +178,8 @@ function TypingIndicator({ name }: { name: string }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language;
   const queryClient = useQueryClient();
   const { accessToken, refreshSession, role } = useAuth();
   const isProvider = role === 'PROVIDER';
@@ -178,29 +187,21 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
   const currentUserId = currentUserQuery.data?.id ?? '';
   const currentUserName = currentUserQuery.data
     ? `${currentUserQuery.data.firstName} ${currentUserQuery.data.lastName}`
-    : 'You';
+    : t('chat.you');
 
   const chatRoomId = ticket.chatRoomId ?? null;
   const providerName = ticket.assignedServiceProviderName;
-  // The "other" person depends on who is viewing:
-  //   - Provider views  → other is the customer
-  //   - Customer views  → other is the provider
   const otherName = isProvider
-    ? (ticket.submittedByName ?? 'Customer')
-    : (providerName ?? 'Provider');
+    ? (ticket.submittedByName ?? t('chat.categoryCustomer'))
+    : (providerName ?? t('chat.categoryProvider'));
   const otherPic = isProvider
     ? (ticket.submittedByProfilePictureUrl ?? null)
     : (ticket.assignedServiceProviderProfilePictureUrl ?? null);
-  // The provider profile route only exists for providers, so only the customer
-  // (looking at a provider) gets a clickable name in the header.
   const otherProfileHref =
     !isProvider && ticket.assignedServiceProviderId
       ? `/providers/${ticket.assignedServiceProviderId}`
       : null;
-  const otherRoleLabel = isProvider ? 'Customer · Chat' : 'Provider · Chat';
-  // True when the header should show a "person assigned" state. For the customer
-  // view this means a provider exists; for the provider view it's always true
-  // (the customer is always present — they submitted the ticket).
+  const otherRoleLabel = `${isProvider ? t('chat.categoryCustomer') : t('chat.categoryProvider')} · ${t('chat.roleLabel')}`;
   const hasOther = isProvider ? Boolean(ticket.submittedByName) : Boolean(providerName);
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const [text, setText] = useState('');
@@ -213,7 +214,6 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
   const attachInputRef = useRef<HTMLInputElement>(null);
   const ackedRef = useRef<Set<number>>(new Set());
 
-  // Resolve the other participant's ID from the room
   const roomQuery = useQuery({
     queryKey: ['chatRoom', chatRoomId],
     queryFn: () => getChatRoom(chatRoomId!, accessToken),
@@ -227,23 +227,17 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
       : roomQuery.data.customerId;
   }, [roomQuery.data, currentUserId]);
 
-  // Fetch message history
   const messagesQuery = useQuery({
     queryKey: ['chatMessages', chatRoomId],
     queryFn: () => getChatMessages(chatRoomId!, accessToken),
     enabled: Boolean(chatRoomId && accessToken),
   });
 
-  // Derive messages from the React Query cache — single source of truth.
-  // REST returns DESC (newest first); we reverse to ASC for display.
-  // WS handlers below write into the same cache via setQueryData, eliminating
-  // any race condition between REST seeding and live WS updates.
   const messages = useMemo<ChatMessage[]>(() => {
     if (!messagesQuery.data) return [];
     return [...messagesQuery.data].reverse();
   }, [messagesQuery.data]);
 
-  // WebSocket handlers — write directly to the React Query cache.
   const upsertMessage = useCallback((incoming: ChatMessage) => {
     queryClient.setQueryData<ChatMessage[]>(
       ['chatMessages', incoming.chatRoomId],
@@ -255,7 +249,6 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
           next[idx] = { ...next[idx], ...incoming };
           return next;
         }
-        // REST returns DESC (newest first), so prepend
         return [incoming, ...old];
       },
     );
@@ -296,7 +289,6 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
     refreshSession,
   });
 
-  // Auto-acknowledge incoming messages as READ when the chat is open
   useEffect(() => {
     if (!wsConnected || !currentUserId || !chatRoomId) return;
     for (const msg of messages) {
@@ -309,27 +301,28 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
     }
   }, [messages, wsConnected, currentUserId, chatRoomId, sendStatus]);
 
-  // Auto-scroll to bottom
   useEffect(() => {
     if (threadRef.current) {
       threadRef.current.scrollTop = threadRef.current.scrollHeight;
     }
   }, [messages.length, isOtherTyping]);
 
-  // Group messages by day
+  const todayLabel = t('chat.today');
+  const yesterdayLabel = t('chat.yesterday');
+
   const messageGroups = useMemo(() => {
     const groups: Array<{ dayLabel: string; messages: ChatMessage[] }> = [];
     let currentDay = '';
     for (const msg of messages) {
-      const day = new Date(msg.timestamp).toLocaleDateString('en-US');
+      const day = new Date(msg.timestamp).toLocaleDateString(locale);
       if (day !== currentDay) {
         currentDay = day;
-        groups.push({ dayLabel: formatDayLabel(msg.timestamp), messages: [] });
+        groups.push({ dayLabel: formatDayLabel(msg.timestamp, locale, todayLabel, yesterdayLabel), messages: [] });
       }
       groups[groups.length - 1].messages.push(msg);
     }
     return groups;
-  }, [messages]);
+  }, [messages, locale, todayLabel, yesterdayLabel]);
 
   const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -388,7 +381,7 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
           });
           if (!result.ok) { setSendError(`Send failed: ${result.reason}`); setIsUploading(false); return; }
         } catch {
-          setSendError('Upload failed — check your connection and try again.');
+          setSendError(t('chat.uploadFailed'));
           setIsUploading(false);
           return;
         }
@@ -490,7 +483,7 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
               </Link>
             ) : (
               <b style={{ fontSize: 14, letterSpacing: '-0.01em' }}>
-                {hasOther ? otherName : (isProvider ? 'Awaiting customer' : 'No provider yet')}
+                {hasOther ? otherName : (isProvider ? t('chat.awaitingCustomer') : t('chat.noProviderYet'))}
               </b>
             )}
             {hasOther && wsConnected && (
@@ -498,7 +491,7 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
             )}
           </div>
           <div className="mono muted" style={{ fontSize: 10.5, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            {hasOther ? otherRoleLabel : 'Awaiting assignment'}
+            {hasOther ? otherRoleLabel : t('chat.awaitingAssignment')}
           </div>
         </div>
         <span className="grow" />
@@ -522,7 +515,7 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
               background: wsConnected ? 'var(--emerald-600)' : 'var(--slate-400)',
             }}
           />
-          {chatRoomId ? (wsConnected ? 'Live' : 'Connecting…') : 'No chat'}
+          {chatRoomId ? (wsConnected ? t('chat.live') : t('chat.connecting')) : t('chat.noRoom')}
         </span>
       </div>
 
@@ -567,22 +560,22 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
             >
               💬
             </div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>No chat yet</div>
-            <div style={{ fontSize: 13 }}>Messaging will be available once a provider is assigned.</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{t('chat.noChat')}</div>
+            <div style={{ fontSize: 13 }}>{t('chat.noRoomDesc')}</div>
           </div>
         )}
 
         {/* Loading */}
         {chatRoomId && messagesQuery.isLoading && (
           <div style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', margin: 'auto' }}>
-            Loading messages…
+            {t('chat.loadingMessages')}
           </div>
         )}
 
         {/* Empty */}
         {chatRoomId && !messagesQuery.isLoading && messages.length === 0 && (
           <div style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', margin: 'auto' }}>
-            No messages yet — say hello!
+            {t('chat.noMessages')}
           </div>
         )}
 
@@ -596,6 +589,8 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
                 msg={msg}
                 isMine={msg.senderId === currentUserId}
                 senderName={msg.senderId === currentUserId ? currentUserName : otherName}
+                locale={locale}
+                youLabel={t('chat.you')}
               />
             ))}
           </div>
@@ -670,10 +665,10 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
           <textarea
             placeholder={
               !chatRoomId
-                ? 'Messaging unavailable — no provider yet'
+                ? t('chat.messagingUnavailable')
                 : !wsConnected
-                ? 'Connecting…'
-                : 'Type a message… (Enter to send)'
+                ? t('chat.connecting')
+                : t('chat.typeMsgTicket')
             }
             rows={2}
             value={text}
@@ -699,8 +694,8 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
               <button
                 className="icon-btn"
                 type="button"
-                title="Attach file"
-                aria-label="Attach file"
+                title={t('chat.attachFile')}
+                aria-label={t('chat.attachFile')}
                 disabled={stagedFiles.length >= MAX_ATTACHMENTS || isUploading}
                 onClick={() => attachInputRef.current?.click()}
               >
@@ -711,8 +706,8 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
               <button
                 className="icon-btn"
                 type="button"
-                title="Take photo"
-                aria-label="Take photo"
+                title={t('chat.takePhoto')}
+                aria-label={t('chat.takePhoto')}
                 disabled={stagedFiles.length >= MAX_ATTACHMENTS || isUploading}
                 onClick={() => cameraInputRef.current?.click()}
               >
@@ -727,7 +722,7 @@ export function TicketChatPanel({ ticket }: { ticket: Ticket }) {
               onClick={handleSend}
               disabled={!canSend}
             >
-              {isUploading ? 'Sending…' : 'Send'}
+              {isUploading ? t('chat.sending') : t('chat.send')}
             </button>
           </div>
         </div>

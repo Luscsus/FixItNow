@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import type { ProviderDto } from "@/services/providerService";
-import { CATEGORY_LABEL, avatarColor, initials } from "./browseConstants";
+import { CATEGORY_LABEL, avatarColor, initials, useBrowseI18n } from "./browseConstants";
 import { SaveProviderButton } from "./SaveProviderButton";
 import { useAuth } from "@/context/auth";
 import { useTicketsQuery } from "@/hooks/useTicketsQuery";
@@ -54,6 +55,8 @@ export function ProviderCard({
   routerState,
 }: Readonly<ProviderCardProps>) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { categoryLabels } = useBrowseI18n();
   const { isAuthenticated } = useAuth();
   // Customer's own tickets — used to find an existing chat with this provider
   // when they click "Message". Empty for non-customers (query disabled).
@@ -185,7 +188,7 @@ export function ProviderCard({
               borderRadius: 4,
             }}
           >
-            ✓ Verified
+            {t("providerCard.verified")}
           </span>
         </div>
         <div
@@ -196,8 +199,8 @@ export function ProviderCard({
             fontFamily: "var(--font-mono)",
           }}
         >
-          {p.yearsOfExperience} yr exp
-          {p.serviceRadiusKm ? ` · serves within ${p.serviceRadiusKm} km` : ""}
+          {t("providerCard.yrExp", { n: p.yearsOfExperience })}
+          {p.serviceRadiusKm ? ` · ${t("providerCard.servesWithin", { km: p.serviceRadiusKm })}` : ""}
         </div>
         <div
           style={{
@@ -219,7 +222,7 @@ export function ProviderCard({
                 borderRadius: 999,
               }}
             >
-              {CATEGORY_LABEL[cat] ?? cat}
+              {categoryLabels[cat] ?? CATEGORY_LABEL[cat] ?? cat}
             </span>
           ))}
         </div>
@@ -236,9 +239,9 @@ export function ProviderCard({
         >
           <span>
             <b style={{ color: "var(--text)", fontWeight: 600 }}>
-              {p.yearsOfExperience} yr
+              {p.yearsOfExperience} {t("profile.yr")}
             </b>{" "}
-            experience
+            {t("providerCard.experience")}
           </span>
           {showDist && (
             <span>
@@ -246,7 +249,7 @@ export function ProviderCard({
               <b style={{ color: "var(--text)", fontWeight: 600 }}>
                 {p.distanceKm!.toFixed(1)} km
               </b>{" "}
-              away
+              {t("providerCard.away")}
             </span>
           )}
         </div>
@@ -295,7 +298,7 @@ export function ProviderCard({
               textTransform: "uppercase",
             }}
           >
-            Active
+            {t("providerCard.active")}
           </span>
         </div>
         <span
@@ -306,10 +309,10 @@ export function ProviderCard({
             fontWeight: 500,
           }}
         >
-          from <b>${p.pricePerHour}</b>
+          {t("providerCard.from")} <b>${p.pricePerHour}</b>
           <small style={{ color: "var(--text-muted)", fontWeight: 400 }}>
             {" "}
-            /hr
+            {t("common.perHour")}
           </small>
         </span>
         {selectionMode ? (
@@ -322,7 +325,7 @@ export function ProviderCard({
               })
             }
           >
-            Select →
+            {t("providerCard.select")}
           </button>
         ) : (
           <>
@@ -331,7 +334,7 @@ export function ProviderCard({
               type="button"
               onClick={handleBook}
             >
-              Book →
+              {t("providerCard.book")}
             </button>
             <button
               className="btn btn-ghost btn-sm"
@@ -339,7 +342,7 @@ export function ProviderCard({
               style={{ fontSize: 12, padding: "4px 8px" }}
               onClick={handleMessage}
             >
-              Message
+              {t("providerCard.message")}
             </button>
           </>
         )}

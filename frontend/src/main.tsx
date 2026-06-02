@@ -7,6 +7,7 @@ import { registerSW } from "virtual:pwa-register";
 
 import App from "./App.tsx";
 import "./index.css";
+import "./i18n/i18n.ts";
 import { ToastProvider } from "./components/ui/toast.tsx";
 import { AuthProvider } from "./context/auth.tsx";
 import { queryClient } from "./config/queryClient.ts";

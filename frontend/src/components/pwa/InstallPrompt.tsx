@@ -49,7 +49,7 @@ export function InstallPrompt() {
   );
 
   useEffect(() => {
-    // Never show if already installed or user recently dismissed, or on iOS
+    // Never show if already installed, user recently dismissed, or on iOS
     if (isInStandaloneMode() || isDismissed() || isIos()) return;
 
     // Chrome / Android path

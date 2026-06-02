@@ -1,8 +1,9 @@
+import { useTranslation } from "react-i18next";
 import type { ProviderDto } from "@/services/providerService";
 import { IconChevron } from "./BrowseIcons";
 import { BrowsePagination } from "./BrowsePagination";
 import { ProviderCard } from "./ProviderCard";
-import { type Segment, SORT_OPTIONS, DROPDOWN } from "./browseConstants";
+import { type Segment, DROPDOWN, useBrowseI18n } from "./browseConstants";
 
 function SkeletonCard() {
   return (
@@ -79,18 +80,18 @@ export function ResultsSection({
   selectionMode,
   routerState,
 }: Readonly<ResultsSectionProps>) {
-  const sortLabel =
-    SORT_OPTIONS.find((o) => o.value === sortBy)?.label ?? "Best match";
+  const { t } = useTranslation();
+  const { sortOptions } = useBrowseI18n();
+  const sortLabel = sortOptions.find((o) => o.value === sortBy)?.label ?? t("filterSidebar.bestMatch");
 
   let countDisplay: React.ReactNode = null;
   if (isLoading) {
-    countDisplay = "Searching…";
+    countDisplay = t("common.loading");
   } else if (sortedResults !== null) {
-    const plural = totalElements === 1 ? "" : "s";
     countDisplay = (
       <>
         <b style={{ color: "var(--text)", fontWeight: 700 }}>{totalElements}</b>{" "}
-        provider{plural} found
+        {t("browse.providersFound")}
       </>
     );
   }
@@ -147,7 +148,7 @@ export function ResultsSection({
                 flexShrink: 0,
               }}
             >
-              Sort
+              {t("browse.sort")}
             </span>
             {sortLabel}
             <span style={{ color: "var(--text-muted)", marginLeft: 2 }}>
@@ -165,7 +166,7 @@ export function ResultsSection({
                 padding: "4px 0",
               }}
             >
-              {SORT_OPTIONS.filter(
+              {sortOptions.filter(
                 (o) => o.value !== "distance_asc" || coords,
               ).map((opt) => (
                 <button
@@ -252,8 +253,7 @@ export function ResultsSection({
             color: "var(--text-muted)",
           }}
         >
-          No providers match your current filters. Try broadening the radius,
-          removing a trade filter, or clearing the experience requirement.
+          {t("browse.noProvidersMatch")}
         </div>
       )}
 

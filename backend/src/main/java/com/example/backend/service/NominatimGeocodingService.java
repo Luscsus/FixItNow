@@ -62,6 +62,42 @@ public class NominatimGeocodingService implements GeocodingService {
         }
     }
 
+    @Override
+    public java.util.List<AddressSuggestion> search(String query, int limit) {
+        if (query == null || query.isBlank()) {
+            return java.util.List.of();
+        }
+        String uri = UriComponentsBuilder.fromPath("/search")
+            .queryParam("format", "json")
+            .queryParam("addressdetails", 0)
+            .queryParam("limit", Math.max(1, Math.min(limit, 8)))
+            .queryParam("q", query.trim())
+            .build()
+            .toUriString();
+
+        try {
+            NominatimSearchResult[] results = restClient.get()
+                .uri(uri)
+                .retrieve()
+                .body(NominatimSearchResult[].class);
+
+            if (results == null) return java.util.List.of();
+            java.util.List<AddressSuggestion> out = new java.util.ArrayList<>(results.length);
+            for (NominatimSearchResult r : results) {
+                try {
+                    out.add(new AddressSuggestion(
+                        r.display_name(),
+                        Double.parseDouble(r.lat()),
+                        Double.parseDouble(r.lon())));
+                } catch (NumberFormatException ignored) { /* skip malformed row */ }
+            }
+            return out;
+        } catch (Exception e) {
+            log.warn("Nominatim search failed for '{}': {}", query, e.getMessage());
+            return java.util.List.of();
+        }
+    }
+
     private String buildStreetParam(String streetName, String streetNumber) {
         if (streetName == null || streetName.isBlank()) return null;
         if (streetNumber != null && !streetNumber.isBlank()) {
@@ -72,4 +108,7 @@ public class NominatimGeocodingService implements GeocodingService {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     private record NominatimResult(String lat, String lon) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record NominatimSearchResult(String lat, String lon, String display_name) {}
 }

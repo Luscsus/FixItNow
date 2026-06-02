@@ -1,14 +1,16 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/context/auth";
 
-const TABS = [
-  { to: "/dashboard/admin/providers", label: "Providers" },
-  { to: "/dashboard/admin/users", label: "Users" },
-  { to: "/dashboard/admin/tickets", label: "Tickets" },
-];
-
 export function AdminLayout() {
+  const { t } = useTranslation();
   const { clearSession } = useAuth();
+
+  const TABS = [
+    { to: "/dashboard/admin/providers", label: t("admin.providers") },
+    { to: "/dashboard/admin/users",     label: t("admin.users") },
+    { to: "/dashboard/admin/tickets",   label: t("admin.tickets") },
+  ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "var(--bg)" }}>
@@ -25,7 +27,7 @@ export function AdminLayout() {
       }}>
         <div className="admin-strip-inner" style={{ maxWidth: 1280, margin: "0 auto", padding: "0 32px", display: "flex", alignItems: "center", gap: 14 }}>
           <span style={{ width: 6, height: 6, borderRadius: 3, background: "var(--navy-900)", display: "inline-block" }} />
-          <span>Admin console</span>
+          <span>{t("admin.console")}</span>
           <span style={{ flex: 1 }} />
           <button
             onClick={clearSession}
@@ -36,7 +38,7 @@ export function AdminLayout() {
               color: "var(--navy-900)", opacity: 0.7, padding: 0,
             }}
           >
-            Sign out
+            {t("admin.signOut")}
           </button>
         </div>
       </div>

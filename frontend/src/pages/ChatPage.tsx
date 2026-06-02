@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 
 import { useAuth } from '@/context/auth';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -17,29 +18,29 @@ import { useNotifications } from '@/hooks/useNotifications';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function formatInboxTime(timestamp: string): string {
+function formatInboxTime(timestamp: string, locale: string, yesterdayLabel: string): string {
   const date = new Date(timestamp);
   const now = new Date();
   const days = Math.floor((now.getTime() - date.getTime()) / 86_400_000);
-  if (days === 0) return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-  if (days === 1) return 'Yesterday';
-  if (days < 7) return date.toLocaleDateString('en-US', { weekday: 'short' });
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  if (days === 0) return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false });
+  if (days === 1) return yesterdayLabel;
+  if (days < 7) return date.toLocaleDateString(locale, { weekday: 'short' });
+  return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
 }
 
-function formatDayLabel(timestamp: string): string {
+function formatDayLabel(timestamp: string, locale: string, todayLabel: string, yesterdayLabel: string): string {
   const date = new Date(timestamp);
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const msgDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const diff = Math.floor((today.getTime() - msgDay.getTime()) / 86_400_000);
-  if (diff === 0) return `Today · ${date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`;
-  if (diff === 1) return 'Yesterday';
-  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  if (diff === 0) return `${todayLabel} · ${date.toLocaleDateString(locale, { month: 'long', day: 'numeric' })}`;
+  if (diff === 1) return yesterdayLabel;
+  return date.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
-function formatMsgTime(timestamp: string): string {
-  return new Date(timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+function formatMsgTime(timestamp: string, locale: string): string {
+  return new Date(timestamp).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
 function getInitials(name: string): string {
@@ -60,18 +61,18 @@ function formatTicketId(id: number | null): string {
 }
 
 // Map ticket lifecycle status to the phase shown on the right of the context bar.
-type Phase = { num: string; label: string; tone: 'idle' | 'live' | 'done' };
+type Phase = { num: string; labelKey: string; tone: 'idle' | 'live' | 'done' };
 function statusToPhase(status: TicketStatus | null): Phase {
-  if (!status) return { num: '—', label: '—', tone: 'idle' };
+  if (!status) return { num: '—', labelKey: '', tone: 'idle' };
   const map: Record<TicketStatus, Phase> = {
-    PENDING_APPROVAL:         { num: '01', label: 'Awaiting approval', tone: 'idle' },
-    DECLINED:                 { num: '—',  label: 'Declined',          tone: 'idle' },
-    APPROVED:                 { num: '02', label: 'Scheduled',         tone: 'live' },
-    IN_TRANSIT:               { num: '03', label: 'On site',           tone: 'live' },
-    PENDING_PROVIDER_INVOICE: { num: '04', label: 'Awaiting invoice',  tone: 'live' },
-    PENDING_PAYMENT:          { num: '04', label: 'Awaiting payment',  tone: 'live' },
-    COMPLETED:                { num: '05', label: 'Complete',          tone: 'done' },
-    CANCELLED:                { num: '—',  label: 'Cancelled',         tone: 'idle' },
+    PENDING_APPROVAL:         { num: '01', labelKey: 'chat.phase_PENDING_APPROVAL',         tone: 'idle' },
+    DECLINED:                 { num: '—',  labelKey: 'chat.phase_DECLINED',                  tone: 'idle' },
+    APPROVED:                 { num: '02', labelKey: 'chat.phase_APPROVED',                  tone: 'live' },
+    IN_TRANSIT:               { num: '03', labelKey: 'chat.phase_IN_TRANSIT',                tone: 'live' },
+    PENDING_PROVIDER_INVOICE: { num: '04', labelKey: 'chat.phase_PENDING_PROVIDER_INVOICE',  tone: 'live' },
+    PENDING_PAYMENT:          { num: '04', labelKey: 'chat.phase_PENDING_PAYMENT',           tone: 'live' },
+    COMPLETED:                { num: '05', labelKey: 'chat.phase_COMPLETED',                 tone: 'done' },
+    CANCELLED:                { num: '—',  labelKey: 'chat.phase_CANCELLED',                 tone: 'idle' },
   };
   return map[status];
 }
@@ -118,10 +119,13 @@ function fileIcon(name: string): string {
 // ✓✓  = DELIVERED  (the recipient's client received it)
 // ✓✓  = READ       (recipient actually opened the chat) — same glyph, blue color
 
-function StatusTicks({ status }: { status: MessageStatus }) {
+function StatusTicks({ status }: { readonly status: MessageStatus }) {
+  const { t } = useTranslation();
   const cls = status.toLowerCase();
   const glyph = status === 'SENT' ? '✓' : '✓✓';
-  const label = status === 'SENT' ? 'Sent' : status === 'DELIVERED' ? 'Delivered' : 'Read';
+  let label = t('chat.sent');
+  if (status === 'DELIVERED') label = t('chat.delivered');
+  else if (status === 'READ') label = t('chat.read');
   return (
     <span className="bubble-status" title={label}>
       <span className={`ticks ${cls}`}>{glyph}</span>
@@ -143,16 +147,18 @@ type Conversation = {
   otherProfilePictureUrl: string | null;
 };
 
-const QUICK_REPLIES = ['👍 Sounds good', 'Thanks!', 'On my way', 'Can you send a photo?'];
+const QUICK_REPLY_KEYS = ['chat.quick_0', 'chat.quick_1', 'chat.quick_2', 'chat.quick_3'];
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function InboxRow({ conv, selected, lastMsg, hasUnread, onSelect }: {
+function InboxRow({ conv, selected, lastMsg, hasUnread, onSelect, locale, yesterdayLabel }: {
   conv: Conversation;
   selected: boolean;
   lastMsg: ChatMessage | null;
   hasUnread: boolean;
   onSelect: () => void;
+  locale: string;
+  yesterdayLabel: string;
 }) {
   return (
     <div className={`inbox-row${selected ? ' selected' : ''}${hasUnread ? ' unread' : ''}`} onClick={onSelect}>
@@ -171,14 +177,14 @@ function InboxRow({ conv, selected, lastMsg, hasUnread, onSelect }: {
         </div>
       </div>
       <div className="inbox-time-col">
-        {lastMsg && <div className="inbox-time">{formatInboxTime(lastMsg.timestamp)}</div>}
+        {lastMsg && <div className="inbox-time">{formatInboxTime(lastMsg.timestamp, locale, yesterdayLabel)}</div>}
         {hasUnread && <span className="unread-dot" />}
       </div>
     </div>
   );
 }
 
-function MessageBubble({ msg, isMine, senderName, profilePictureUrl }: { msg: ChatMessage; isMine: boolean; senderName: string; profilePictureUrl?: string | null }) {
+function MessageBubble({ msg, isMine, senderName, profilePictureUrl, locale, youLabel }: { msg: ChatMessage; isMine: boolean; senderName: string; profilePictureUrl?: string | null; locale: string; youLabel: string }) {
   if (msg.type === 'SYSTEM') {
     return <div className="sys-msg"><span>{msg.content}</span></div>;
   }
@@ -193,7 +199,7 @@ function MessageBubble({ msg, isMine, senderName, profilePictureUrl }: { msg: Ch
 
   const meta = (
     <div className="bubble-meta">
-      {isMine ? 'You' : senderName} · {formatMsgTime(msg.timestamp)}
+      {isMine ? youLabel : senderName} · {formatMsgTime(msg.timestamp, locale)}
       {isMine && <> · <StatusTicks status={msg.status} /></>}
     </div>
   );
@@ -249,11 +255,12 @@ function MessageBubble({ msg, isMine, senderName, profilePictureUrl }: { msg: Ch
   );
 }
 
-function TypingIndicator({ name }: { name: string }) {
+function TypingIndicator({ name }: { readonly name: string }) {
+  const { t } = useTranslation();
   return (
     <div className="typing-indicator">
       <span className="typing-dots"><span /><span /><span /></span>
-      {name} is typing
+      {name} {t('chat.isTyping')}
     </div>
   );
 }
@@ -261,6 +268,11 @@ function TypingIndicator({ name }: { name: string }) {
 // ─── Main component ──────────────────────────────────────────────────────────
 
 export function ChatPage() {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language;
+  const todayLabel = t('chat.today');
+  const yesterdayLabel = t('chat.yesterday');
+  const youLabel = t('chat.you');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isMobile } = useBreakpoint();
@@ -270,12 +282,11 @@ export function ChatPage() {
   const currentUserId = currentUserQuery.data?.id ?? '';
   const currentUserName = currentUserQuery.data
     ? `${currentUserQuery.data.firstName} ${currentUserQuery.data.lastName}`
-    : 'You';
+    : youLabel;
   const currentUserProfilePicUrl = currentUserQuery.data?.profilePictureUrl ?? null;
 
   const [searchParams, setSearchParams] = useSearchParams();
-  // Deep-link support: selectedRoomId is derived from the URL `room` param so
-  // navigating to ?room=X (e.g. from a notification) automatically selects it.
+  // Derived from URL — deep-link and in-page navigation both work without separate state.
   const selectedRoomId = searchParams.get('room');
 
   const [isOtherTyping, setIsOtherTyping] = useState(false);
@@ -464,7 +475,7 @@ export function ChatPage() {
       return {
         roomId: room.id,
         ticketId: null,
-        description: 'Conversation',
+        description: t('chat.conversation'),
         status: null,
         priority: 'LOW',
         otherName: room.otherParticipantName,
@@ -563,7 +574,7 @@ export function ChatPage() {
           });
           if (!result.ok) { setSendError(`Send failed: ${result.reason}`); setIsUploading(false); return; }
         } catch {
-          setSendError('Upload failed — check your connection and try again.');
+          setSendError(t('chat.uploadFailed'));
           setIsUploading(false);
           return;
         }
@@ -643,15 +654,15 @@ export function ChatPage() {
     const groups: Array<{ dayLabel: string; messages: ChatMessage[] }> = [];
     let currentDay = '';
     for (const msg of messages) {
-      const day = new Date(msg.timestamp).toLocaleDateString('en-US');
+      const day = new Date(msg.timestamp).toLocaleDateString(locale);
       if (day !== currentDay) {
         currentDay = day;
-        groups.push({ dayLabel: formatDayLabel(msg.timestamp), messages: [] });
+        groups.push({ dayLabel: formatDayLabel(msg.timestamp, locale, todayLabel, yesterdayLabel), messages: [] });
       }
       groups[groups.length - 1].messages.push(msg);
     }
     return groups;
-  }, [messages]);
+  }, [messages, locale, todayLabel, yesterdayLabel]);
 
   const canSend = (text.trim().length > 0 || stagedFiles.length > 0) && !isUploading;
 
@@ -661,35 +672,35 @@ export function ChatPage() {
       {/* ── Inbox sidebar ── */}
       <aside className="inbox">
         <div className="inbox-head">
-          <h2>Inbox</h2>
+          <h2>{t("chat.inbox")}</h2>
           <div className="inbox-search">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ color: 'var(--text-muted)', flexShrink: 0 }}>
               <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" />
               <path d="M11 11l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
-            <input placeholder="Search messages…" value={search} onChange={e => setSearch(e.target.value)} />
+            <input placeholder={t("chat.messagePlaceholder")} value={search} onChange={e => setSearch(e.target.value)} />
           </div>
         </div>
 
         <div className="inbox-tabs">
           <button aria-pressed={tab === 'all'} onClick={() => setTab('all')}>
-            All
+            {t('chat.tabAll')}
             <span className="mono" style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginLeft: 4 }}>
               {(roomsQuery.data?.length ?? 0).toString().padStart(2, '0')}
             </span>
           </button>
-          <button aria-pressed={tab === 'active'} onClick={() => setTab('active')}>Active</button>
+          <button aria-pressed={tab === 'active'} onClick={() => setTab('active')}>{t('chat.tabActive')}</button>
           <button aria-pressed={tab === 'unread'} onClick={() => setTab('unread')}>
-            Unread {hasUnreadInSelectedRoom && <span className="unread-dot" style={{ marginLeft: 6 }} />}
+            {t('chat.tabUnread')} {hasUnreadInSelectedRoom && <span className="unread-dot" style={{ marginLeft: 6 }} />}
           </button>
         </div>
 
         <div className="inbox-list">
           {(ticketsQuery.isLoading || roomsQuery.isLoading) && (
-            <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>Loading…</div>
+            <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>{t('common.loading')}</div>
           )}
           {!ticketsQuery.isLoading && !roomsQuery.isLoading && conversations.length === 0 && (
-            <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>No conversations yet</div>
+            <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>{t("chat.noConversations")}</div>
           )}
           {conversations.map(conv => (
             <InboxRow
@@ -699,6 +710,8 @@ export function ChatPage() {
               lastMsg={conv.roomId === selectedRoomId ? lastMsgForRoom : null}
               hasUnread={unreadRoomIds.has(conv.roomId)}
               onSelect={() => selectRoom(conv.roomId)}
+              locale={locale}
+              yesterdayLabel={yesterdayLabel}
             />
           ))}
         </div>
@@ -707,7 +720,7 @@ export function ChatPage() {
       {/* ── Right side: back button + conv/empty panel ── */}
       <div className="chat-right">
         <button className="conv-back-btn" type="button" onClick={handleBack}>
-          ← Inbox
+          ← {t("chat.inbox")}
         </button>
 
       {/* ── Conversation panel ── */}
@@ -721,17 +734,17 @@ export function ChatPage() {
             // backend uses uppercase enums like "PLUMBING" so we title-case it.
             const categoryLabel = profile?.categories?.[0]
               ? profile.categories[0].charAt(0) + profile.categories[0].slice(1).toLowerCase().replace(/_/g, ' ')
-              : (isProvider ? 'Customer' : 'Service Provider');
+              : (isProvider ? t('chat.categoryCustomer') : t('chat.categoryProvider'));
             // Sub-line bits we can actually compute from backend data
             const subBits: string[] = [];
             if (profile?.yearsOfExperience != null) {
-              subBits.push(`${profile.yearsOfExperience} yr${profile.yearsOfExperience === 1 ? '' : 's'} experience`);
+              subBits.push(`${profile.yearsOfExperience} ${t('profile.yr')} ${t('providerCard.experience')}`);
             }
             if (profile?.pricePerHour != null) {
-              subBits.push(`$${profile.pricePerHour}/hr`);
+              subBits.push(`$${profile.pricePerHour}${t('common.perHour')}`);
             }
             if (profile?.serviceRadiusKm != null) {
-              subBits.push(`${profile.serviceRadiusKm} km radius`);
+              subBits.push(`${profile.serviceRadiusKm} ${t('profile.kmRadius')}`);
             }
             const subLine = subBits.length > 0 ? subBits.join(' · ') : null;
 
@@ -752,7 +765,7 @@ export function ChatPage() {
                   <div className="sub">
                     {/* Presence/rating aren't tracked yet — show only computed bits.
                         TODO: presence service + ratings aggregate. */}
-                    {wsConnected && <><span style={{ color: 'var(--emerald-700)' }}>● Online</span>{subLine && ' · '}</>}
+                    {wsConnected && <><span style={{ color: 'var(--emerald-700)' }}>● {t('chat.online')}</span>{subLine && ' · '}</>}
                     {subLine}
                   </div>
                 </div>
@@ -763,7 +776,7 @@ export function ChatPage() {
                     type="button"
                     onClick={() => navigate(`/providers/${otherParticipantId}`)}
                   >
-                    Go to Profile
+                    {t('chat.goToProfile')}
                   </button>
                 )}
               </div>
@@ -787,10 +800,10 @@ export function ChatPage() {
                 <span style={{ flex: 1 }} />
                 <span className={`ctx-phase${phase.tone === 'done' ? ' done' : phase.tone === 'idle' ? ' idle' : ''}`}>
                   <span className="dot" />
-                  Phase {phase.num} · {phase.label}
+                  {t('chat.phaseLabel')} {phase.num}{phase.labelKey ? ` · ${t(phase.labelKey)}` : ''}
                 </span>
                 <a href={`/tickets/${selectedConv.ticketId}`} className="btn btn-secondary btn-sm">
-                  Open ticket →
+                  {t('chat.openTicketBtn')}
                 </a>
               </div>
             );
@@ -799,7 +812,7 @@ export function ChatPage() {
           {/* Message thread (scrolls internally) */}
           <div className="conv-thread" ref={threadRef}>
             {messagesQuery.isLoading && (
-              <div style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center' }}>Loading messages…</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center' }}>{t('chat.loadingMessages')}</div>
             )}
 
             {messageGroups.map((group, gi) => (
@@ -812,6 +825,8 @@ export function ChatPage() {
                     isMine={msg.senderId === currentUserId}
                     senderName={msg.senderId === currentUserId ? currentUserName : selectedConv.otherName}
                     profilePictureUrl={msg.senderId === currentUserId ? currentUserProfilePicUrl : selectedConv.otherProfilePictureUrl}
+                    locale={locale}
+                    youLabel={youLabel}
                   />
                 ))}
               </div>
@@ -819,7 +834,7 @@ export function ChatPage() {
 
             {messages.length === 0 && !messagesQuery.isLoading && (
               <div style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', marginTop: 'auto' }}>
-                No messages yet — say hello!
+                {t('chat.noMessages')}
               </div>
             )}
 
@@ -847,11 +862,14 @@ export function ChatPage() {
           {/* Composer */}
           <div className="composer">
             <div className="quick-replies">
-              {QUICK_REPLIES.map(reply => (
-                <button key={reply} className="quick" onClick={() => handleTextChange(text ? `${text} ${reply}` : reply)}>
-                  {reply}
-                </button>
-              ))}
+              {QUICK_REPLY_KEYS.map(key => {
+                const reply = t(key);
+                return (
+                  <button key={key} className="quick" onClick={() => handleTextChange(text ? `${text} ${reply}` : reply)}>
+                    {reply}
+                  </button>
+                );
+              })}
             </div>
             <div className="composer-wrap">
               {/* Staged files preview strip */}
@@ -886,7 +904,7 @@ export function ChatPage() {
                 </div>
               )}
               <textarea
-                placeholder={isMobile ? "Type a message…" : "Type a message… (Enter to send, Shift + Enter for newline)"}
+                placeholder={isMobile ? t('chat.typeMessage') : t('chat.typeMessageDesktop')}
                 rows={isMobile ? 1 : 2}
                 value={text}
                 onChange={e => handleTextChange(e.target.value)}
@@ -896,8 +914,8 @@ export function ChatPage() {
                 <button
                   className="icon-btn"
                   type="button"
-                  title="Attach file"
-                  aria-label="Attach file"
+                  title={t('chat.attachFile')}
+                  aria-label={t('chat.attachFile')}
                   disabled={stagedFiles.length >= MAX_ATTACHMENTS || isUploading}
                   onClick={() => attachInputRef.current?.click()}
                 >
@@ -908,8 +926,8 @@ export function ChatPage() {
                 <button
                   className="icon-btn"
                   type="button"
-                  title="Take photo"
-                  aria-label="Take photo"
+                  title={t('chat.takePhoto')}
+                  aria-label={t('chat.takePhoto')}
                   disabled={stagedFiles.length >= MAX_ATTACHMENTS || isUploading}
                   onClick={() => cameraInputRef.current?.click()}
                 >
@@ -919,18 +937,18 @@ export function ChatPage() {
                   </svg>
                 </button>
                 <span className="muted mono" style={{ fontSize: '11px', letterSpacing: '0.05em' }}>
-                  {selectedConv.ticketId !== null
-                    ? <>REPLYING TO <span style={{ color: 'var(--text)' }}>{formatTicketId(selectedConv.ticketId)}</span></>
-                    : <>REPLYING TO <span style={{ color: 'var(--text)' }}>{selectedConv.otherName}</span></>
-                  }
+                  {t('chat.replyingTo')}{' '}
+                  <span style={{ color: 'var(--text)' }}>
+                    {selectedConv.ticketId !== null ? formatTicketId(selectedConv.ticketId) : selectedConv.otherName}
+                  </span>
                 </span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontFamily: 'var(--font-mono)', color: wsConnected ? 'var(--emerald-700)' : 'var(--text-muted)' }}>
                   <span style={{ width: 6, height: 6, borderRadius: 3, background: wsConnected ? 'var(--emerald-600)' : 'var(--slate-400)' }} />
-                  {wsConnected ? 'LIVE' : 'CONNECTING…'}
+                  {wsConnected ? t('chat.live') : t('chat.connecting')}
                 </span>
                 <span style={{ flex: 1 }} />
                 <button className="btn btn-primary btn-sm" onClick={handleSend} disabled={!canSend}>
-                  {isUploading ? 'Sending…' : 'Send'}
+                  {isUploading ? t("common.loading") : t("chat.send")}
                   {!isUploading && (
                     <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
                       <path d="M14 8L2 2l3.5 6L2 14l12-6z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
@@ -948,7 +966,7 @@ export function ChatPage() {
         </section>
       ) : selectedRoomId && roomsQuery.isLoading ? (
         <div className="chat-empty">
-          <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Loading conversation…</div>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('chat.loadingConversation')}</div>
         </div>
       ) : (
         <div className="chat-empty">
@@ -957,8 +975,8 @@ export function ChatPage() {
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Select a conversation</div>
-          <div style={{ fontSize: 13 }}>Choose a ticket from the inbox to start chatting</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{t('chat.selectConversation')}</div>
+          <div style={{ fontSize: 13 }}>{t('chat.selectConversationHint')}</div>
         </div>
       )}
       </div>{/* end .chat-right */}

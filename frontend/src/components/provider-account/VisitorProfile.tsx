@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import type { ProviderDto } from "@/services/providerService";
-import { CATEGORY_LABEL, avatarColor, initials } from "@/components/browse/browseConstants";
+import { CATEGORY_LABEL, avatarColor, initials, useBrowseI18n } from "@/components/browse/browseConstants";
 import { SaveProviderButton } from "@/components/browse/SaveProviderButton";
 import { WeekSchedule } from "@/components/provider-account/WeekSchedule";
 import { ReviewsSection } from "@/components/reviews/ReviewsSection";
@@ -12,6 +13,8 @@ interface VisitorProfileProps {
 }
 
 export function VisitorProfile({ provider }: Readonly<VisitorProfileProps>) {
+  const { t } = useTranslation();
+  const { categoryLabels } = useBrowseI18n();
   const navigate = useNavigate();
   const { isAuthenticated, role } = useAuth();
   // Customer's own tickets — used to find an existing chat with this provider
@@ -104,9 +107,9 @@ export function VisitorProfile({ provider }: Readonly<VisitorProfileProps>) {
         <div className="pro-hero-grid" />
         <div className="container">
           <div className="crumbs" style={{ color: "rgba(255,255,255,0.55)", marginBottom: 18 }}>
-            <Link to="/" style={{ color: "rgba(255,255,255,0.55)" }}>Home</Link>
+            <Link to="/" style={{ color: "rgba(255,255,255,0.55)" }}>{t("profile.home")}</Link>
             <span className="sep">/</span>
-            <Link to="/browse" style={{ color: "rgba(255,255,255,0.55)" }}>Browse providers</Link>
+            <Link to="/browse" style={{ color: "rgba(255,255,255,0.55)" }}>{t("profile.browse")}</Link>
             <span className="sep">/</span>
             <span style={{ color: "rgba(255,255,255,0.85)" }}>
               {provider.firstName} {provider.lastName}
@@ -134,7 +137,7 @@ export function VisitorProfile({ provider }: Readonly<VisitorProfileProps>) {
               <h1>
                 {provider.firstName} {provider.lastName}
                 {provider.emailVerified && (
-                  <span className="verified-md">✓ Verified</span>
+                  <span className="verified-md">{t("providerCard.verified")}</span>
                 )}
                 <span style={{ marginLeft: 12, display: "inline-flex", verticalAlign: "middle" }}>
                   <SaveProviderButton providerId={provider.id} variant="full" />
@@ -154,7 +157,7 @@ export function VisitorProfile({ provider }: Readonly<VisitorProfileProps>) {
                       textTransform: "uppercase",
                     }}
                   >
-                    {CATEGORY_LABEL[cat] ?? cat}
+                    {categoryLabels[cat] ?? CATEGORY_LABEL[cat] ?? cat}
                   </span>
                 ))}
               </div>
@@ -163,33 +166,33 @@ export function VisitorProfile({ provider }: Readonly<VisitorProfileProps>) {
 
           <div className="rev-strip">
             <div className="rev-cell amber">
-              <div className="lbl">Rate</div>
+              <div className="lbl">{t("profile.rate")}</div>
               <div className="val">
                 ${provider.pricePerHour}
-                <span className="unit">/hr</span>
+                <span className="unit">{t("common.perHour")}</span>
               </div>
             </div>
             <div className="rev-cell">
-              <div className="lbl">Experience</div>
+              <div className="lbl">{t("profile.experience")}</div>
               <div className="val">
                 {provider.yearsOfExperience}
-                <span className="unit">yr</span>
+                <span className="unit">{t("profile.yr")}</span>
               </div>
             </div>
             {provider.serviceRadiusKm > 0 && (
               <div className="rev-cell">
-                <div className="lbl">Service radius</div>
+                <div className="lbl">{t("profile.serviceRadius")}</div>
                 <div className="val">
                   {provider.serviceRadiusKm}
-                  <span className="unit">km</span>
+                  <span className="unit">{t("common.km")}</span>
                 </div>
               </div>
             )}
             <div className="rev-cell">
-              <div className="lbl">Status</div>
+              <div className="lbl">{t("profile.status")}</div>
               <div className="val" style={{ fontSize: 16 }}>
                 <span style={{ color: "#34D399" }}>●</span>
-                <span className="unit">Active</span>
+                <span className="unit">{t("profile.active")}</span>
               </div>
             </div>
           </div>
@@ -202,7 +205,7 @@ export function VisitorProfile({ provider }: Readonly<VisitorProfileProps>) {
             <>
               <div className="panel-title">
                 <span className="num">01</span>
-                <span className="label">About</span>
+                <span className="label">{t("profile.about")}</span>
                 <span className="rule" />
               </div>
               <div className="card card-pad" style={{ marginBottom: 32 }}>
@@ -215,7 +218,7 @@ export function VisitorProfile({ provider }: Readonly<VisitorProfileProps>) {
 
           <div className="panel-title">
             <span className="num">{provider.bio ? "02" : "01"}</span>
-            <span className="label">Trades &amp; specialties</span>
+            <span className="label">{t("profile.tradesSpecialties")}</span>
             <span className="rule" />
           </div>
           <div className="card card-pad" style={{ marginBottom: 32 }}>
@@ -241,26 +244,26 @@ export function VisitorProfile({ provider }: Readonly<VisitorProfileProps>) {
         <aside>
           <div className="rail-card">
             <div className="rail-head">
-              <span className="label">Book {provider.firstName}</span>
+              <span className="label">{t("profile.book", { name: provider.firstName })}</span>
             </div>
             <div className="rail-row">
-              <span className="k">Hourly rate</span>
+              <span className="k">{t("profile.hourlyRate")}</span>
               <span className="v mono" style={{ fontSize: 14 }}>
-                ${provider.pricePerHour} <span className="muted">/ hr</span>
+                ${provider.pricePerHour} <span className="muted">{t("common.perHour")}</span>
               </span>
             </div>
             {provider.serviceRadiusKm > 0 && (
               <div className="rail-row">
-                <span className="k">Service area</span>
+                <span className="k">{t("profile.serviceArea")}</span>
                 <span className="v mono" style={{ fontSize: 14 }}>
-                  {provider.serviceRadiusKm} km radius
+                  {provider.serviceRadiusKm} {t("profile.kmRadius")}
                 </span>
               </div>
             )}
             <div className="rail-row">
-              <span className="k">Experience</span>
+              <span className="k">{t("profile.experience")}</span>
               <span className="v mono" style={{ fontSize: 14 }}>
-                {provider.yearsOfExperience} yr
+                {provider.yearsOfExperience} {t("profile.yr")}
               </span>
             </div>
             {showBookingRail && (
@@ -271,7 +274,7 @@ export function VisitorProfile({ provider }: Readonly<VisitorProfileProps>) {
                   style={{ marginTop: 16 }}
                   onClick={goToNewTicketWithProvider}
                 >
-                  Book now →
+                  {t("profile.bookNow")}
                 </button>
                 <button
                   type="button"
@@ -279,7 +282,7 @@ export function VisitorProfile({ provider }: Readonly<VisitorProfileProps>) {
                   style={{ marginTop: 8 }}
                   onClick={goToMessageProvider}
                 >
-                  Send message
+                  {t("profile.sendMessage")}
                 </button>
               </>
             )}

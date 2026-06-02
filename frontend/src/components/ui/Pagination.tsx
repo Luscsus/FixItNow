@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 export function Pagination({
   page,
   total,
@@ -7,6 +9,7 @@ export function Pagination({
   total: number;
   onChange: (p: number) => void;
 }) {
+  const { t } = useTranslation();
   if (total <= 1) return null;
 
   const pages: (number | "…")[] = [];
@@ -63,7 +66,7 @@ export function Pagination({
           paddingLeft: 12,
         }}
       >
-        ← Prev
+        {t("pagination.prev")}
       </button>
 
       {pages.map((p, i) =>
@@ -109,7 +112,7 @@ export function Pagination({
           paddingRight: 12,
         }}
       >
-        Next →
+        {t("pagination.next")}
       </button>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { LandingSwitch, type LandingView } from "@/components/landing/LandingSwitch";
 import { UserLanding } from "@/components/landing/UserLanding";
@@ -15,10 +15,15 @@ function readInitialView(searchView: string | null): LandingView {
   return "user";
 }
 
+function computeDirection(from: LandingView, to: LandingView): "forward" | "back" {
+  if (to === "provider" && from === "user") return "forward";
+  if (to === "user" && from === "provider") return "back";
+  return "forward";
+}
+
 export function HomePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [view, setView] = useState<LandingView>(() => readInitialView(searchParams.get("view")));
-  const prevViewRef = useRef<LandingView>(view);
   const [direction, setDirection] = useState<"forward" | "back">("forward");
 
   // Sync URL + storage when view changes
@@ -36,17 +41,14 @@ export function HomePage() {
     }
   }, [view, searchParams, setSearchParams]);
 
-  useEffect(() => {
-    // Direction of transition (provider sits to the right of user)
-    let next: "forward" | "back" = "forward";
-    if (view === "user" && prevViewRef.current === "provider") next = "back";
-    setDirection(next);
-    prevViewRef.current = view;
-  }, [view]);
+  function handleViewChange(newView: LandingView) {
+    setDirection(computeDirection(view, newView));
+    setView(newView);
+  }
 
   return (
     <div className="landing-root">
-      <LandingSwitch value={view} onChange={setView} />
+      <LandingSwitch value={view} onChange={handleViewChange} />
 
       <div className="landing-stage">
         <div

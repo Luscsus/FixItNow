@@ -1,13 +1,68 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/context/auth";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useNotificationsSocket } from "@/hooks/useNotificationsSocket";
+import { primeNotificationSound } from "@/lib/notificationSound";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import type { AppNotification } from "@/domain/notification";
+
+interface NotifListBodyProps {
+  readonly pad: string;
+  readonly isLoading: boolean;
+  readonly notifications: AppNotification[];
+  readonly onItemClick: (n: AppNotification) => void;
+}
+
+function NotifListBody({ pad, isLoading, notifications, onItemClick }: NotifListBodyProps) {
+  const { t } = useTranslation();
+  if (isLoading) {
+    return (
+      <div style={{ padding: pad, textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>
+        {t("common.loading")}
+      </div>
+    );
+  }
+  if (notifications.length === 0) {
+    return (
+      <div style={{ padding: pad, textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>
+        {t("notifications.allCaughtUp")}
+      </div>
+    );
+  }
+  return (
+    <>
+      {notifications.map((n) => (
+        <button
+          key={n.id}
+          onClick={() => onItemClick(n)}
+          style={{
+            display: "flex", alignItems: "flex-start", gap: 10, width: "100%",
+            padding: "13px 16px", textAlign: "left",
+            background: n.read ? "transparent" : "rgba(59,130,246,0.05)",
+            border: "none", borderBottom: "1px solid rgba(15,23,42,0.05)",
+            cursor: "pointer", transition: "background 0.1s",
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(15,23,42,0.04)"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = n.read ? "transparent" : "rgba(59,130,246,0.05)"; }}
+        >
+          {n.type === "NEW_MESSAGE" ? <MessageDot /> : <TicketDot />}
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{n.title}</span>
+            {n.body && (
+              <span style={{ display: "block", fontSize: 12.5, color: "var(--text-muted)", marginTop: 1 }}>{n.body}</span>
+            )}
+            <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>{formatRelativeTime(n.createdAt)}</span>
+          </span>
+        </button>
+      ))}
+    </>
+  );
+}
 
 function BellIcon() {
   return (
@@ -41,6 +96,7 @@ function formatRelativeTime(iso: string): string {
 }
 
 export function NotificationBell() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { accessToken, refreshSession } = useAuth();
@@ -70,7 +126,7 @@ export function NotificationBell() {
   function handleItemClick(n: AppNotification) {
     setOpen(false);
     if (!n.read) markRead.mutate(n.id);
-    if (n.type === "TICKET_STATUS_CHANGE" && n.ticketId != null) {
+    if ((n.type === "TICKET_STATUS_CHANGE" || n.type === "PROVIDER_NEARBY") && n.ticketId != null) {
       navigate(`/tickets/${n.ticketId}`);
     } else if (n.type === "NEW_MESSAGE" && n.chatRoomId) {
       // Invalidate the rooms list and message cache so ChatPage shows fresh data.
@@ -80,43 +136,14 @@ export function NotificationBell() {
     }
   }
 
-  // Shared notification list content used in both dropdown and BottomSheet
   const notifList = (
     <div style={{ overflowY: "auto", maxHeight: isMobile ? "60vh" : 380 }}>
-      {isLoading ? (
-        <div style={{ padding: "24px 16px", textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>
-          Loading…
-        </div>
-      ) : notifications.length === 0 ? (
-        <div style={{ padding: "28px 16px", textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>
-          You're all caught up.
-        </div>
-      ) : (
-        notifications.map((n) => (
-          <button
-            key={n.id}
-            onClick={() => handleItemClick(n)}
-            style={{
-              display: "flex", alignItems: "flex-start", gap: 10, width: "100%",
-              padding: "14px 16px", textAlign: "left",
-              background: n.read ? "transparent" : "rgba(59,130,246,0.05)",
-              border: "none", borderBottom: "1px solid rgba(15,23,42,0.05)",
-              cursor: "pointer", transition: "background 0.1s",
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(15,23,42,0.04)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = n.read ? "transparent" : "rgba(59,130,246,0.05)"; }}
-          >
-            {n.type === "NEW_MESSAGE" ? <MessageDot /> : <TicketDot />}
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{n.title}</span>
-              {n.body && (
-                <span style={{ display: "block", fontSize: 12.5, color: "var(--text-muted)", marginTop: 1 }}>{n.body}</span>
-              )}
-              <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>{formatRelativeTime(n.createdAt)}</span>
-            </span>
-          </button>
-        ))
-      )}
+      <NotifListBody
+        pad={isMobile ? "28px 16px" : "24px 16px"}
+        isLoading={isLoading}
+        notifications={notifications}
+        onItemClick={handleItemClick}
+      />
     </div>
   );
 
@@ -125,7 +152,17 @@ export function NotificationBell() {
       {/* Bell button */}
       <button
         title="Notifications"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          // Request OS-notification permission here — inside a real user
+          // gesture — because Safari ignores requestPermission() called from
+          // an effect/on mount. No-op once the user has already answered.
+          if (typeof Notification !== "undefined" && Notification.permission === "default") {
+            Notification.requestPermission().catch(() => { /* dismissed — fine */ });
+          }
+          // Unlock the audio chime (browser autoplay policy needs a gesture).
+          primeNotificationSound();
+          setOpen((o) => !o);
+        }}
         style={{
           position: "relative",
           display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -156,7 +193,7 @@ export function NotificationBell() {
         <BottomSheet
           open={open}
           onClose={() => setOpen(false)}
-          title="Notifications"
+          title={t("notifications.title")}
           desktopAsModal={false}
           maxHeight="80vh"
         >
@@ -167,7 +204,7 @@ export function NotificationBell() {
                 disabled={markAllRead.isPending}
                 style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 500, color: "var(--navy-700)", padding: 0 }}
               >
-                Mark all read
+                {t("notifications.markAllRead")}
               </button>
             </div>
           )}
@@ -193,7 +230,7 @@ export function NotificationBell() {
             padding: "12px 16px",
             borderBottom: "1px solid rgba(15,23,42,0.07)",
           }}>
-            <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text)" }}>Notifications</span>
+            <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text)" }}>{t("notifications.title")}</span>
             {unreadCount > 0 && (
               <button
                 onClick={() => markAllRead.mutate()}
@@ -204,49 +241,11 @@ export function NotificationBell() {
                   padding: 0,
                 }}
               >
-                Mark all read
+                {t("notifications.markAllRead")}
               </button>
             )}
           </div>
           {notifList}
-
-          {/* List */}
-          <div style={{ maxHeight: 380, overflowY: "auto" }}>
-            {isLoading ? (
-              <div style={{ padding: "24px 16px", textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>
-                Loading…
-              </div>
-            ) : notifications.length === 0 ? (
-              <div style={{ padding: "28px 16px", textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>
-                You're all caught up.
-              </div>
-            ) : (
-              notifications.map((n) => (
-                <button
-                  key={n.id}
-                  onClick={() => handleItemClick(n)}
-                  style={{
-                    display: "flex", alignItems: "flex-start", gap: 10, width: "100%",
-                    padding: "12px 16px", textAlign: "left",
-                    background: n.read ? "transparent" : "rgba(59,130,246,0.05)",
-                    border: "none", borderBottom: "1px solid rgba(15,23,42,0.05)",
-                    cursor: "pointer", transition: "background 0.1s",
-                  }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(15,23,42,0.04)"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = n.read ? "transparent" : "rgba(59,130,246,0.05)"; }}
-                >
-                  {n.type === "NEW_MESSAGE" ? <MessageDot /> : <TicketDot />}
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{n.title}</span>
-                    {n.body && (
-                      <span style={{ display: "block", fontSize: 12.5, color: "var(--text-muted)", marginTop: 1 }}>{n.body}</span>
-                    )}
-                    <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>{formatRelativeTime(n.createdAt)}</span>
-                  </span>
-                </button>
-              ))
-            )}
-          </div>
         </div>
       )}
     </div>

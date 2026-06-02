@@ -38,9 +38,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public class TicketController {
 
     private final TicketService ticketService;
+    private final com.example.backend.service.TrackingService trackingService;
 
-    public TicketController(TicketService ticketService) {
+    public TicketController(TicketService ticketService,
+                            com.example.backend.service.TrackingService trackingService) {
         this.ticketService = ticketService;
+        this.trackingService = trackingService;
     }
 
     @PostMapping
@@ -63,6 +66,17 @@ public class TicketController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<TicketResponse> getTicketDetails(@PathVariable Long ticketId) {
         return ResponseEntity.ok(ticketService.getTicketDetails(ticketId));
+    }
+
+    /** Last-known live-tracking snapshot for a ticket (customer or assigned provider). */
+    @GetMapping("/{ticketId}/tracking")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<com.example.backend.dto.TrackingUpdateResponse> getTracking(
+        @PathVariable Long ticketId,
+        @AuthenticationPrincipal UserPrincipal userDetails
+    ) {
+        return ResponseEntity.ok(
+            trackingService.getSnapshot(userDetails.getUser().getId(), ticketId));
     }
 
     @PutMapping("/{ticketId}/status")

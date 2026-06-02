@@ -1,28 +1,11 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   useApproveProviderMutation,
   useDeclineProviderMutation,
   usePendingProviders,
 } from "@/hooks/useAdminProviders";
 import type { Provider, ServiceCategory } from "@/domain/admin";
-
-const CATEGORY_LABELS: Record<ServiceCategory, string> = {
-  PLUMBING: "Plumbing",
-  ELECTRICAL: "Electrical",
-  CARPENTRY: "Carpentry",
-  PAINTING: "Painting",
-  CLEANING: "Cleaning",
-  GARDENING: "Gardening",
-  MOVING: "Moving",
-  APPLIANCE_REPAIR: "Appliance Repair",
-  HVAC: "HVAC",
-  ROOFING: "Roofing",
-  LOCKSMITH: "Locksmith",
-  PEST_CONTROL: "Pest Control",
-  TUTORING: "Tutoring",
-  IT_SUPPORT: "IT Support",
-  OTHER: "Other",
-};
 
 function initials(p: Provider) {
   return `${p.firstName[0] ?? ""}${p.lastName[0] ?? ""}`.toUpperCase();
@@ -45,11 +28,12 @@ const AVATAR_COLORS = [
 
 function avatarColor(id: string): string {
   let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < id.length; i++) hash = (id.codePointAt(i) ?? 0) + ((hash << 5) - hash);
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
 export function AdminProvidersPage() {
+  const { t } = useTranslation();
   const { data: providers = [], isLoading, error } = usePendingProviders();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -61,6 +45,8 @@ export function AdminProvidersPage() {
 
   const selected: Provider | null =
     providers.find((p) => p.id === selectedId) ?? providers[0] ?? null;
+
+  const categoryLabel = (c: ServiceCategory) => t(`categories.${c}`, c);
 
   function handleApprove() {
     if (!selected) return;
@@ -99,12 +85,13 @@ export function AdminProvidersPage() {
           backgroundSize: "56px 56px", pointerEvents: "none",
         }} />
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 32px", position: "relative" }}>
-          <span className="eyebrow" style={{ color: "var(--amber-500)" }}>Console · Provider review</span>
+          <span className="eyebrow" style={{ color: "var(--amber-500)" }}>Console · {t("admin.providerReview")}</span>
           <h1 style={{ fontSize: "clamp(28px, 3vw, 40px)", fontWeight: 700, letterSpacing: "-0.025em", margin: "6px 0 8px", color: "#fff", lineHeight: 1.05 }}>
-            <b style={{ color: "var(--amber-500)" }}>{providers.length}</b> provider{providers.length !== 1 ? "s" : ""} waiting on review
+            <b style={{ color: "var(--amber-500)" }}>{providers.length}</b>{" "}
+            {t("admin.waitingReview", { count: providers.length })}
           </h1>
           <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, margin: 0, maxWidth: 560 }}>
-            Review provider applications and approve or decline them. Approved providers become immediately active on the platform.
+            {t("admin.reviewDesc")}
           </p>
         </div>
       </section>
@@ -125,7 +112,6 @@ export function AdminProvidersPage() {
           flexDirection: "column",
           overflowY: "auto",
         }}>
-          {/* Queue header */}
           <div style={{
             position: "sticky", top: 0,
             background: "var(--card)",
@@ -135,7 +121,7 @@ export function AdminProvidersPage() {
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <h2 style={{ margin: 0, fontSize: 13, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                Pending applications
+                {t("admin.pendingApps")}
               </h2>
               <span style={{
                 background: "var(--amber-500)", color: "var(--navy-900)",
@@ -147,20 +133,19 @@ export function AdminProvidersPage() {
             </div>
           </div>
 
-          {/* Queue items */}
           {isLoading && (
             <div style={{ padding: 32, textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>
-              Loading applications…
+              {t("admin.loadingApps")}
             </div>
           )}
           {error && (
             <div style={{ padding: 32, textAlign: "center", color: "var(--red-600)", fontSize: 14 }}>
-              Failed to load applications.
+              {t("admin.failedApps")}
             </div>
           )}
           {!isLoading && providers.length === 0 && (
             <div style={{ padding: 32, textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>
-              No pending applications.
+              {t("admin.noPendingApps")}
             </div>
           )}
           {providers.map((p) => {
@@ -202,12 +187,12 @@ export function AdminProvidersPage() {
                     {p.firstName} {p.lastName}
                   </div>
                   <div style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase", marginTop: 4 }}>
-                    {p.categories.slice(0, 2).map((c) => CATEGORY_LABELS[c]).join(" · ")}
+                    {p.categories.slice(0, 2).map((c) => categoryLabel(c)).join(" · ")}
                     {p.categories.length > 2 && ` +${p.categories.length - 2}`}
-                    {p.yearsOfExperience != null && ` · ${p.yearsOfExperience} yr${p.yearsOfExperience !== 1 ? "s" : ""}`}
+                    {p.yearsOfExperience != null && ` · ${p.yearsOfExperience} ${t("profile.yr")}`}
                   </div>
                   <div style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--text-muted)", letterSpacing: "0.04em", marginTop: 6 }}>
-                    Submitted {timeAgo(p.createdAt)}
+                    {t("admin.submitted")} {timeAgo(p.createdAt)}
                   </div>
                 </div>
               </button>
@@ -222,19 +207,17 @@ export function AdminProvidersPage() {
               type="button"
               className="admin-back-btn mobile-only"
               onClick={() => setSelectedId(null)}
-              aria-label="Back to applications"
+              aria-label={t("admin.backToQueue")}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-              Back to queue
+              {t("admin.backToQueue")}
             </button>
-            {/* Breadcrumbs */}
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--text-muted)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 18 }}>
-              <span>Provider applications</span>
+              <span>{t("admin.providerApps")}</span>
               <span style={{ margin: "0 8px", opacity: 0.5 }}>/</span>
               <span style={{ color: "var(--text)" }}>{selected.firstName} {selected.lastName}</span>
             </div>
 
-            {/* Provider header */}
             <div style={{ display: "grid", gridTemplateColumns: "64px 1fr", gap: 18, alignItems: "center" }}>
               <div style={{
                 width: 64, height: 64, borderRadius: 14,
@@ -253,11 +236,11 @@ export function AdminProvidersPage() {
                 </h2>
                 <div style={{ display: "flex", gap: 14, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
-                    {selected.categories.map((c) => CATEGORY_LABELS[c]).join(", ")}
+                    {selected.categories.map((c) => categoryLabel(c)).join(", ")}
                   </span>
                   <span style={{ width: 3, height: 3, background: "var(--slate-300)", borderRadius: 2, display: "inline-block" }} />
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)" }}>
-                    Submitted {timeAgo(selected.createdAt)}
+                    {t("admin.submitted")} {timeAgo(selected.createdAt)}
                   </span>
                 </div>
               </div>
@@ -266,7 +249,7 @@ export function AdminProvidersPage() {
             {/* Section 01: Personal details */}
             <div className="panel-title" style={{ marginTop: 32 }}>
               <span className="num">01</span>
-              <span className="label">Personal details</span>
+              <span className="label">{t("admin.personalDetails")}</span>
               <span className="rule" />
             </div>
             <div className="admin-detail-grid" style={{
@@ -275,9 +258,9 @@ export function AdminProvidersPage() {
               borderRadius: 14, overflow: "hidden",
             }}>
               {[
-                { label: "Full name", value: `${selected.firstName} ${selected.lastName}` },
-                { label: "Email", value: selected.email, mono: true },
-                { label: "Phone", value: selected.phoneNumber ?? "—", mono: true },
+                { label: t("admin.colFullName"), value: `${selected.firstName} ${selected.lastName}` },
+                { label: t("admin.colEmail"), value: selected.email, mono: true },
+                { label: t("admin.colPhone"), value: selected.phoneNumber ?? "—", mono: true },
               ].map((f, i) => (
                 <div key={i} style={{
                   padding: "16px 20px",
@@ -296,7 +279,7 @@ export function AdminProvidersPage() {
             {/* Section 02: Service details */}
             <div className="panel-title" style={{ marginTop: 32 }}>
               <span className="num">02</span>
-              <span className="label">Service details</span>
+              <span className="label">{t("admin.serviceDetails")}</span>
               <span className="rule" />
             </div>
             <div className="admin-detail-grid" style={{
@@ -305,47 +288,15 @@ export function AdminProvidersPage() {
               borderRadius: 14, overflow: "hidden",
             }}>
               {[
-                {
-                  label: "Trades",
-                  value: selected.categories.map((c) => CATEGORY_LABELS[c]).join(", "),
-                },
-                {
-                  label: "Experience",
-                  value: selected.yearsOfExperience != null
-                    ? `${selected.yearsOfExperience} year${selected.yearsOfExperience !== 1 ? "s" : ""}`
-                    : "—",
-                },
-                {
-                  label: "Price / hour",
-                  value: selected.pricePerHour != null ? `$${selected.pricePerHour}/hr` : "—",
-                  mono: true,
-                },
-                {
-                  label: "Service radius",
-                  value: selected.serviceRadiusKm != null ? `${selected.serviceRadiusKm} km` : "—",
-                },
-                {
-                  label: "Street",
-                  value: [selected.locationStreetName, selected.locationStreetNumber].filter(Boolean).join(" ") || "—",
-                },
-                {
-                  label: "City",
-                  value: [selected.locationCity, selected.locationPostalCode].filter(Boolean).join(" ") || "—",
-                },
-                {
-                  label: "Country",
-                  value: selected.locationCountry ?? "—",
-                },
-                {
-                  label: "Location (lat)",
-                  value: selected.locationLat != null ? String(selected.locationLat) : "—",
-                  mono: true,
-                },
-                {
-                  label: "Location (lon)",
-                  value: selected.locationLon != null ? String(selected.locationLon) : "—",
-                  mono: true,
-                },
+                { label: t("admin.colTrades"), value: selected.categories.map((c) => categoryLabel(c)).join(", ") },
+                { label: t("admin.colExperience"), value: selected.yearsOfExperience != null ? t("admin.colYears", { count: selected.yearsOfExperience }) : "—" },
+                { label: t("admin.colPricePerHour"), value: selected.pricePerHour != null ? `$${selected.pricePerHour}/hr` : "—", mono: true },
+                { label: t("admin.colServiceRadius"), value: selected.serviceRadiusKm != null ? `${selected.serviceRadiusKm} km` : "—" },
+                { label: t("admin.colStreet"), value: [selected.locationStreetName, selected.locationStreetNumber].filter(Boolean).join(" ") || "—" },
+                { label: t("admin.colCity"), value: [selected.locationCity, selected.locationPostalCode].filter(Boolean).join(" ") || "—" },
+                { label: t("admin.colCountry"), value: selected.locationCountry ?? "—" },
+                { label: t("admin.colLat"), value: selected.locationLat != null ? String(selected.locationLat) : "—", mono: true },
+                { label: t("admin.colLon"), value: selected.locationLon != null ? String(selected.locationLon) : "—", mono: true },
               ].map((f, i) => {
                 const col = i % 3;
                 const row = Math.floor(i / 3);
@@ -372,7 +323,7 @@ export function AdminProvidersPage() {
               <>
                 <div className="panel-title" style={{ marginTop: 32 }}>
                   <span className="num">03</span>
-                  <span className="label">About the provider</span>
+                  <span className="label">{t("admin.aboutProvider")}</span>
                   <span className="rule" />
                 </div>
                 <div className="card card-pad" style={{ background: "var(--slate-50)" }}>
@@ -380,7 +331,7 @@ export function AdminProvidersPage() {
                     "{selected.bio}"
                   </p>
                   <div style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
-                    Bio · {selected.bio.length} chars
+                    {t("admin.bioChars", { count: selected.bio.length })}
                   </div>
                 </div>
               </>
@@ -400,7 +351,7 @@ export function AdminProvidersPage() {
             }}>
               <div>
                 <div style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600, color: "var(--text-muted)" }}>
-                  Decision
+                  {t("admin.decision")}
                 </div>
                 <div style={{ fontSize: 14.5, fontWeight: 500, marginTop: 4 }}>
                   {selected.firstName} {selected.lastName} · {selected.email}
@@ -413,7 +364,7 @@ export function AdminProvidersPage() {
                 disabled={isPending}
                 style={{ background: "var(--red-100)", color: "var(--red-700)", border: "1px solid #FCA5A5" }}
               >
-                ✕ Decline
+                {t("admin.decline")}
               </button>
               <button
                 className="btn btn-lg"
@@ -421,14 +372,14 @@ export function AdminProvidersPage() {
                 disabled={isPending}
                 style={{ background: "var(--emerald-600)", color: "#fff", boxShadow: "0 1px 0 rgba(255,255,255,0.08) inset, 0 1px 2px rgba(5,150,105,0.3)" }}
               >
-                {approve.isPending ? "Approving…" : "✓ Approve & activate →"}
+                {approve.isPending ? t("admin.approving") : t("admin.approve")}
               </button>
             </div>
           </section>
         ) : (
           !isLoading && (
             <section style={{ display: "grid", placeItems: "center", color: "var(--text-muted)", fontSize: 15 }}>
-              No pending applications to review.
+              {t("admin.noPendingToReview")}
             </section>
           )
         )}
@@ -453,18 +404,18 @@ export function AdminProvidersPage() {
             boxShadow: "var(--shadow-lg)",
           }}>
             <h3 style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em" }}>
-              Decline application
+              {t("admin.declineApp_title")}
             </h3>
             <p style={{ margin: "0 0 20px", fontSize: 14, color: "var(--text-muted)", lineHeight: 1.5 }}>
-              Provide a reason for declining <strong>{selected.firstName} {selected.lastName}</strong>'s application. This will be sent to the applicant by email.
+              {t("admin.declineApp_body", { name: `${selected.firstName} ${selected.lastName}` })}
             </p>
             <div className="field">
-              <label className="field-label" htmlFor="decline-reason">Reason for declining</label>
+              <label className="field-label" htmlFor="decline-reason">{t("admin.declineReason")}</label>
               <textarea
                 id="decline-reason"
                 className="textarea"
                 rows={4}
-                placeholder="e.g. Missing required insurance documentation…"
+                placeholder={t("admin.declinePlaceholder")}
                 value={declineReason}
                 onChange={(e) => setDeclineReason(e.target.value)}
                 maxLength={1000}
@@ -477,7 +428,7 @@ export function AdminProvidersPage() {
                 onClick={() => setDeclineOpen(false)}
                 disabled={decline.isPending}
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 className="btn"
@@ -485,7 +436,7 @@ export function AdminProvidersPage() {
                 disabled={!declineReason.trim() || decline.isPending}
                 style={{ background: "var(--red-100)", color: "var(--red-700)", border: "1px solid #FCA5A5" }}
               >
-                {decline.isPending ? "Declining…" : "Decline application"}
+                {decline.isPending ? t("admin.declining") : t("admin.declineApp_submit")}
               </button>
             </div>
           </div>

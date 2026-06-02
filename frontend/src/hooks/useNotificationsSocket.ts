@@ -5,9 +5,34 @@ import { useQueryClient } from '@tanstack/react-query';
 import { env } from '@/config/env';
 import { isTokenExpired } from '@/lib/jwt';
 import { NOTIFICATIONS_QUERY_KEY } from '@/hooks/useNotifications';
+import { playNotificationSound } from '@/lib/notificationSound';
 import type { AppNotification } from '@/domain/notification';
 
 const TOKEN_REFRESH_THRESHOLD_MS = 60_000;
+
+/**
+ * Show a native OS notification (which plays the platform's system sound on
+ * macOS / Windows / Android / iOS). No-ops when the API is unavailable or the
+ * user hasn't granted permission. The `tag` makes the OS replace a same-id
+ * notification instead of stacking duplicates.
+ */
+function showNativeNotification(n: AppNotification) {
+  if (typeof Notification === 'undefined') return;
+  if (Notification.permission !== 'granted') return;
+  // Don't pop a toast for things the user has already read (e.g. a read-clear frame).
+  if (n.read) return;
+  try {
+    new Notification(n.title, {
+      body: n.body ?? undefined,
+      tag: `fixitnow-notif-${n.id}`,
+      icon: '/icons/icon-192.png',
+    });
+  } catch { /* some browsers block construction off the main gesture — ignore */ }
+}
+
+/** Track the highest notification id we've already chimed for, so we only play
+ *  the sound for genuinely new notifications (not read-clears or re-deliveries). */
+let lastChimedId = 0;
 
 interface UseNotificationsSocketOptions {
   userId: string | null;
@@ -27,6 +52,13 @@ export function useNotificationsSocket({ userId, accessToken, refreshSession }: 
 
   useEffect(() => {
     if (!userId || !accessToken) return;
+
+    // Ask for OS-notification permission once (so new notifications can play
+    // the native system sound). Safe to call repeatedly — it's a no-op once
+    // the user has answered.
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => { /* user dismissed — fine */ });
+    }
 
     // Refresh a near-expired token before connecting (mirrors the chat socket).
     if (isTokenExpired(accessToken, TOKEN_REFRESH_THRESHOLD_MS)) {
@@ -50,6 +82,16 @@ export function useNotificationsSocket({ userId, accessToken, refreshSession }: 
             } else if (n.type === 'NEW_MESSAGE' && n.chatRoomId != null) {
               queryClient.invalidateQueries({ queryKey: ['chatMessages', n.chatRoomId] });
               queryClient.invalidateQueries({ queryKey: ['chatRoomsList'] });
+            }
+            // Fire a native OS notification (plays the system sound when the tab
+            // is backgrounded). The `tag` de-dupes repeated deliveries.
+            showNativeNotification(n);
+            // Also play an in-page chime — audible even when the tab is focused,
+            // which the OS notification sound is not. Only for genuinely new,
+            // unread notifications (ignore read-clears / re-deliveries of old ids).
+            if (!n.read && n.id > lastChimedId) {
+              lastChimedId = n.id;
+              playNotificationSound();
             }
           } catch { /* ignore malformed frames */ }
         });

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type {
   RecurrenceFrequency,
   TimeBlock,
@@ -36,7 +37,8 @@ function fromLocalInputValue(local: string): string {
   return local.length === 16 ? `${local}:00` : local;
 }
 
-export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTimeModalProps) {
+export function BlockTimeModal({ open, onClose, initial, defaultDate }: Readonly<BlockTimeModalProps>) {
+  const { t } = useTranslation();
   const isEdit = Boolean(initial);
   const createMut = useCreateTimeBlockMutation();
   const updateMut = useUpdateTimeBlockMutation();
@@ -86,6 +88,12 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
 
   if (!open) return null;
 
+  function typeLabel(tp: TimeBlockType): string {
+    if (tp === "AVAILABLE") return t("providerAccount.blockModal_available");
+    if (tp === "BREAK") return t("providerAccount.blockModal_break");
+    return t("providerAccount.blockModal_off");
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -103,15 +111,15 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
       } else {
         const result = await createMut.mutateAsync(payload);
         if (result.skipped.length > 0) {
-          notify(
-            `Added ${result.created.length} block${result.created.length === 1 ? "" : "s"}; skipped ${result.skipped.length} that overlapped existing blocks.`,
-            "info",
-          );
+          const key = frequency === "WEEKLY"
+            ? "providerAccount.blockModal_createsDesc_week"
+            : "providerAccount.blockModal_createsDesc_day";
+          notify(t(key, { count: result.created.length }), "info");
         }
       }
       onClose();
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Failed to save block.";
+      const msg = e instanceof Error ? e.message : t("common.error");
       setError(msg);
     }
   }
@@ -123,7 +131,7 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
       await deleteMut.mutateAsync(initial.id);
       onClose();
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Failed to delete block.";
+      const msg = e instanceof Error ? e.message : t("common.error");
       setError(msg);
     }
   }
@@ -135,7 +143,7 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
       await deleteSeriesMut.mutateAsync(initial.seriesId);
       onClose();
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Failed to delete series.";
+      const msg = e instanceof Error ? e.message : t("common.error");
       setError(msg);
     }
   }
@@ -176,25 +184,23 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
         }}
       >
         <h3 style={{ margin: "0 0 18px", fontSize: 18 }}>
-          {isEdit ? "Edit time block" : "Block time"}
+          {isEdit ? t("providerAccount.blockModal_editTitle") : t("providerAccount.blockModal_addTitle")}
         </h3>
 
-        <label style={{ display: "block", fontSize: 13, marginBottom: 4 }}>Type</label>
+        <label style={{ display: "block", fontSize: 13, marginBottom: 4 }}>{t("providerAccount.blockModal_type")}</label>
         <select
           value={type}
           onChange={(e) => setType(e.target.value as TimeBlockType)}
           style={{ width: "100%", padding: "8px 10px", marginBottom: 14, border: "1px solid var(--border, #e2e8f0)", borderRadius: 6 }}
         >
-          {SELECTABLE_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {t === "AVAILABLE" ? "Available" : t === "BREAK" ? "Break" : "Off"}
-            </option>
+          {SELECTABLE_TYPES.map((tp) => (
+            <option key={tp} value={tp}>{typeLabel(tp)}</option>
           ))}
         </select>
 
         <div className="block-time-modal__times" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
           <div>
-            <label style={{ display: "block", fontSize: 13, marginBottom: 4 }}>Start</label>
+            <label style={{ display: "block", fontSize: 13, marginBottom: 4 }}>{t("providerAccount.blockModal_start")}</label>
             <input
               type="datetime-local"
               value={startAt}
@@ -204,7 +210,7 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
             />
           </div>
           <div>
-            <label style={{ display: "block", fontSize: 13, marginBottom: 4 }}>End</label>
+            <label style={{ display: "block", fontSize: 13, marginBottom: 4 }}>{t("providerAccount.blockModal_end")}</label>
             <input
               type="datetime-local"
               value={endAt}
@@ -223,25 +229,25 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
                 checked={repeat}
                 onChange={(e) => setRepeat(e.target.checked)}
               />
-              Repeat this block
+              {t("providerAccount.blockModal_repeat")}
             </label>
 
             {repeat && (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
                 <div>
-                  <label style={{ display: "block", fontSize: 13, marginBottom: 4 }}>Frequency</label>
+                  <label style={{ display: "block", fontSize: 13, marginBottom: 4 }}>{t("providerAccount.blockModal_frequency")}</label>
                   <select
                     value={frequency}
                     onChange={(e) => setFrequency(e.target.value as RecurrenceFrequency)}
                     style={{ width: "100%", padding: "8px 10px", border: "1px solid var(--border, #e2e8f0)", borderRadius: 6 }}
                   >
-                    <option value="WEEKLY">Weekly</option>
-                    <option value="DAILY">Daily</option>
+                    <option value="WEEKLY">{t("providerAccount.blockModal_weekly")}</option>
+                    <option value="DAILY">{t("providerAccount.blockModal_daily")}</option>
                   </select>
                 </div>
                 <div>
                   <label style={{ display: "block", fontSize: 13, marginBottom: 4 }}>
-                    Occurrences
+                    {t("providerAccount.blockModal_occurrences")}
                   </label>
                   <input
                     type="number"
@@ -253,7 +259,9 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
                   />
                 </div>
                 <div style={{ gridColumn: "1 / -1", fontSize: 12, color: "var(--muted-foreground, #64748b)" }}>
-                  Creates {count} blocks, one every {frequency === "WEEKLY" ? "week" : "day"}. Occurrences that overlap existing blocks are skipped.
+                  {frequency === "WEEKLY"
+                    ? t("providerAccount.blockModal_createsDesc_week", { count })
+                    : t("providerAccount.blockModal_createsDesc_day", { count })}
                 </div>
               </div>
             )}
@@ -273,7 +281,7 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
                 disabled={submitting}
                 className="btn btn-danger btn-sm"
               >
-                {initial?.seriesId ? "Delete this" : "Delete"}
+                {initial?.seriesId ? t("providerAccount.blockModal_deleteThis") : t("providerAccount.blockModal_delete")}
               </button>
             )}
             {isEdit && initial?.seriesId && (
@@ -283,16 +291,16 @@ export function BlockTimeModal({ open, onClose, initial, defaultDate }: BlockTim
                 disabled={submitting}
                 className="btn btn-danger btn-sm"
               >
-                Delete series
+                {t("providerAccount.blockModal_deleteSeries")}
               </button>
             )}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button" onClick={onClose} disabled={submitting} className="btn btn-secondary btn-sm">
-              Cancel
+              {t("providerAccount.blockModal_cancel")}
             </button>
             <button type="submit" disabled={submitting} className="btn btn-primary btn-sm">
-              {isEdit ? "Save" : "Add"}
+              {isEdit ? t("providerAccount.blockModal_save") : t("providerAccount.blockModal_add")}
             </button>
           </div>
         </div>

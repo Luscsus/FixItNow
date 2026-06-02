@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTicketQuery } from "@/hooks/useTicketQuery";
 import { useAuth } from "@/context/auth";
@@ -11,350 +12,90 @@ import {
 } from "@/hooks/useConfirmTicketMutation";
 import { TicketChatPanel } from "@/components/ticket/TicketChatPanel";
 import { IssueInvoicePanel } from "@/components/ticket/IssueInvoicePanel";
+import { LiveTrackingPanel } from "@/components/tracking/LiveTrackingPanel";
 import { generateInvoicePdf } from "@/utils/generateInvoicePdf";
-import type {
-  Ticket,
-  TicketPriority,
-  TicketStatus,
-  StatusHistoryEntry,
-} from "@/domain/ticket";
+import { getErrorMessage } from "@/lib/errorMessage";
+import type { Ticket, TicketPriority, TicketStatus, StatusHistoryEntry } from "@/domain/ticket";
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function fmt(d: Date): string {
-  return d.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
+function fmt(d: Date, locale: string): string {
+  return d.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit", hour12: false });
 }
-
-function fmtDate(d: Date): string {
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+function fmtDate(d: Date, locale: string): string {
+  return d.toLocaleDateString(locale, { month: "short", day: "numeric", year: "numeric" });
 }
-
 function initials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 }
 
 function priorityBadgeClass(priority: TicketPriority | null) {
   if (priority === "CRITICAL") return "urgency urgency-critical";
-  if (priority === "HIGH") return "urgency urgency-high";
-  if (priority === "MEDIUM") return "urgency urgency-medium";
+  if (priority === "HIGH")     return "urgency urgency-high";
+  if (priority === "MEDIUM")   return "urgency urgency-medium";
   return "urgency urgency-low";
 }
-
-function priorityLabel(priority: TicketPriority | null) {
-  if (priority === "CRITICAL") return "Critical";
-  if (priority === "HIGH") return "High";
-  if (priority === "MEDIUM") return "Medium";
-  return "Low";
+function priorityKey(priority: TicketPriority | null): string {
+  const p = (priority ?? "LOW").toLowerCase();
+  return `providerAccount.inbound_priority_${p}`;
 }
 
-// ─── Phase rail ───────────────────────────────────────────────────────────────
-
-const STEPS: { label: string; status: TicketStatus }[] = [
-  { label: "Pending Approval", status: "PENDING_APPROVAL" },
-  { label: "Approved", status: "APPROVED" },
-  { label: "In Transit", status: "IN_TRANSIT" },
-  { label: "Pending Provider Invoice", status: "PENDING_PROVIDER_INVOICE" },
-  { label: "Pending Payment", status: "PENDING_PAYMENT" },
-  { label: "Completed", status: "COMPLETED" },
-];
-
 const STATUS_ORDER: TicketStatus[] = [
-  "PENDING_APPROVAL",
-  "APPROVED",
-  "IN_TRANSIT",
-  "PENDING_PROVIDER_INVOICE",
-  "PENDING_PAYMENT",
-  "COMPLETED",
+  "PENDING_APPROVAL", "APPROVED", "IN_TRANSIT",
+  "PENDING_PROVIDER_INVOICE", "PENDING_PAYMENT", "COMPLETED",
 ];
 
-const NEXT_STATUS: Partial<
-  Record<TicketStatus, { status: TicketStatus; label: string }>
-> = {
-  APPROVED: { status: "IN_TRANSIT", label: "Mark as In Transit →" },
-  IN_TRANSIT: {
-    status: "PENDING_PROVIDER_INVOICE",
-    label: "Mark as Work Complete →",
-  },
-  // PENDING_PROVIDER_INVOICE is handled by IssueInvoicePanel — not a simple button
-};
-
-function stepState(
-  stepStatus: TicketStatus,
-  ticketStatus: TicketStatus,
-): "done" | "current" | "pending" {
-  const stepIdx = STATUS_ORDER.indexOf(stepStatus);
-  const ticketIdx = STATUS_ORDER.indexOf(ticketStatus);
-  if (ticketIdx > stepIdx) return "done";
-  if (ticketIdx === stepIdx) return "current";
+function stepState(stepStatus: TicketStatus, ticketStatus: TicketStatus): "done" | "current" | "pending" {
+  const si = STATUS_ORDER.indexOf(stepStatus);
+  const ti = STATUS_ORDER.indexOf(ticketStatus);
+  if (ti > si) return "done";
+  if (ti === si) return "current";
   return "pending";
 }
 
-function statusPill(status: TicketStatus): {
-  label: string;
-  pillClass: string;
-} {
-  switch (status) {
-    case "PENDING_APPROVAL":
-      return { label: "Awaiting provider", pillClass: "pill-pending" };
-    case "APPROVED":
-      return { label: "Accepted", pillClass: "pill-assigned" };
-    case "IN_TRANSIT":
-      return { label: "On site", pillClass: "pill-enroute" };
-    case "PENDING_PROVIDER_INVOICE":
-      return { label: "Pending invoice", pillClass: "pill-inprogress" };
-    case "PENDING_PAYMENT":
-      return { label: "Pending payment", pillClass: "pill-inprogress" };
-    case "COMPLETED":
-      return { label: "Completed", pillClass: "pill-resolved" };
-    case "DECLINED":
-      return { label: "Declined", pillClass: "pill-closed" };
-    case "CANCELLED":
-      return { label: "Cancelled", pillClass: "pill-closed" };
-    default:
-      return { label: status, pillClass: "pill-pending" };
-  }
-}
-
-function headlineText(
-  ticket: Ticket,
-  isProvider: boolean,
-): { main: string; highlight: string | null } {
-  const name = ticket.assignedServiceProviderName;
-  switch (ticket.status) {
-    case "PENDING_APPROVAL":
-      return isProvider
-        ? { main: "A new ticket is waiting for acceptance.", highlight: null }
-        : {
-            main: "Waiting for a provider to accept your ticket.",
-            highlight: null,
-          };
-    case "APPROVED":
-      return isProvider
-        ? {
-            main: "You have accepted this ticket.",
-            highlight: "Scheduling in progress.",
-          }
-        : {
-            main: name
-              ? `${name} has accepted your ticket.`
-              : "A provider has accepted your ticket.",
-            highlight: "Scheduling in progress.",
-          };
-    case "IN_TRANSIT":
-      return isProvider
-        ? {
-            main: "You're on your way.",
-            highlight: "The customer is waiting for you.",
-          }
-        : {
-            main: name
-              ? `${name} is on the way.`
-              : "Your provider is on the way.",
-            highlight: null,
-          };
-    case "PENDING_PROVIDER_INVOICE":
-      return {
-        main: "Work is complete.",
-        highlight: "Waiting for the invoice.",
-      };
-    case "PENDING_PAYMENT":
-      return { main: "Invoice received.", highlight: "Payment pending." };
-    case "COMPLETED":
-      return { main: "Ticket resolved and closed.", highlight: null };
-    case "DECLINED":
-      return { main: "Your ticket was declined.", highlight: null };
-    case "CANCELLED":
-      return { main: "This ticket has been cancelled.", highlight: null };
-    default:
-      return { main: ticket.serviceType, highlight: null };
-  }
-}
-
-// ─── Activity log entries ─────────────────────────────────────────────────────
-
-type LogEntry = {
-  time: string;
-  date: string;
-  text: React.ReactNode;
-};
-
-const STATUS_EVENT_LABEL: Record<TicketStatus, string> = {
-  PENDING_APPROVAL: "Ticket filed and awaiting provider.",
-  APPROVED: "Provider accepted — ticket approved.",
-  IN_TRANSIT: "Provider marked as in transit.",
-  PENDING_PROVIDER_INVOICE: "Work completed — awaiting invoice.",
-  PENDING_PAYMENT: "Invoice received — payment pending.",
-  COMPLETED: "Ticket resolved and closed.",
-  DECLINED: "Ticket was declined.",
-  CANCELLED: "Ticket was cancelled.",
-};
-
-function buildActivityLog(ticket: Ticket): LogEntry[] {
-  const history: StatusHistoryEntry[] = ticket.statusHistory ?? [];
-
-  if (history.length > 0) {
-    return [...history].reverse().map((entry) => ({
-      time: fmt(entry.changedAt),
-      date: fmtDate(entry.changedAt),
-      text: (
-        <>
-          <b style={{ textTransform: "capitalize" }}>
-            {entry.status.replace(/_/g, " ").toLowerCase()}
-          </b>
-          {" — "}
-          {STATUS_EVENT_LABEL[entry.status] ?? entry.status}
-        </>
-      ),
-    }));
-  }
-
-  // Fallback for tickets with no history yet
-  return [
-    {
-      time: fmt(ticket.createdAt),
-      date: fmtDate(ticket.createdAt),
-      text: (
-        <>
-          <b>{ticket.submittedByName ?? "You"}</b> filed{" "}
-          <b>FIX-{String(ticket.id).padStart(4, "0")}</b> — {ticket.serviceType}
-          .
-        </>
-      ),
-    },
-  ];
-}
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function PhaseRail({ ticketStatus }: { ticketStatus: TicketStatus }) {
+function PhaseRail({ ticketStatus, labels }: { readonly ticketStatus: TicketStatus; readonly labels: Record<TicketStatus, string> }) {
+  const steps = STATUS_ORDER.filter((s) => s !== "PENDING_PROVIDER_INVOICE" ? true : true).slice(0, 6);
   return (
     <div className="steprail" style={{ marginTop: 28 }}>
       <div className="steprail-bars">
-        {STEPS.map((step) => {
-          const state = stepState(step.status, ticketStatus);
+        {steps.map((status) => {
+          const state = stepState(status, ticketStatus);
           return (
-            <span
-              key={step.status}
-              className={`steprail-bar${state === "done" ? " done" : state === "current" ? " current" : ""}`}
-              style={
-                state === "pending"
-                  ? { background: "rgba(255,255,255,0.12)" }
-                  : undefined
-              }
-            />
+            <span key={status} className={`steprail-bar${state === "done" ? " done" : state === "current" ? " current" : ""}`}
+              style={state === "pending" ? { background: "rgba(255,255,255,0.12)" } : undefined} />
           );
         })}
       </div>
       <div className="steprail-labels">
-        {STEPS.map((step) => {
-          const state = stepState(step.status, ticketStatus);
-          const color =
-            state === "done"
-              ? "var(--emerald-400)"
-              : state === "current"
-                ? "var(--amber-400)"
-                : "rgba(255,255,255,0.4)";
-          return (
-            <span key={step.status} style={{ color }}>
-              {step.label}
-            </span>
-          );
+        {steps.map((status) => {
+          const state = stepState(status, ticketStatus);
+          const color = state === "done" ? "var(--emerald-400)" : state === "current" ? "var(--amber-400)" : "rgba(255,255,255,0.4)";
+          return <span key={status} style={{ color }}>{labels[status]}</span>;
         })}
       </div>
     </div>
   );
 }
 
-function MetaCard({ ticket }: { ticket: Ticket }) {
-  const providerPic = ticket.assignedServiceProviderProfilePictureUrl ?? null;
+function MetaCard({ ticket, labels }: { readonly ticket: Ticket; readonly labels: { provider: string; location: string; submittedBy: string; quoted: string; unassigned: string; estimatedCost: string; notYetQuoted: string } }) {
+  const { i18n } = useTranslation();
+  const locale = i18n.language;
+  const providerPic  = ticket.assignedServiceProviderProfilePictureUrl ?? null;
   const submitterPic = ticket.submittedByProfilePictureUrl ?? null;
 
   const cells = [
     {
-      label: "Provider",
+      label: labels.provider,
       value: ticket.assignedServiceProviderName ? (
         ticket.assignedServiceProviderId ? (
-          <Link
-            to={`/providers/${ticket.assignedServiceProviderId}`}
-            className="row gap-8"
-            style={{ marginTop: 8, textDecoration: "none", color: "inherit" }}
-          >
-            <div
-              className="avatar"
-              style={{
-                width: 28,
-                height: 28,
-                fontSize: 11,
-                background: "var(--navy-900)",
-                color: "var(--amber-500)",
-                ...(providerPic ? { padding: 0, overflow: "hidden" } : {}),
-              }}
-            >
-              {providerPic ? (
-                <img
-                  src={providerPic}
-                  alt={ticket.assignedServiceProviderName}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                    display: "block",
-                  }}
-                />
-              ) : (
-                initials(ticket.assignedServiceProviderName)
-              )}
+          <Link to={`/providers/${ticket.assignedServiceProviderId}`} className="row gap-8" style={{ marginTop: 8, textDecoration: "none", color: "inherit" }}>
+            <div className="avatar" style={{ width: 28, height: 28, fontSize: 11, background: "var(--navy-900)", color: "var(--amber-500)", ...(providerPic ? { padding: 0, overflow: "hidden" } : {}) }}>
+              {providerPic ? <img src={providerPic} alt={ticket.assignedServiceProviderName} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : initials(ticket.assignedServiceProviderName)}
             </div>
-            <span
-              style={{
-                fontSize: 14,
-                fontWeight: 600,
-                letterSpacing: "-0.01em",
-              }}
-            >
-              {ticket.assignedServiceProviderName}
-            </span>
+            <span style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em" }}>{ticket.assignedServiceProviderName}</span>
           </Link>
         ) : (
           <div className="row gap-8" style={{ marginTop: 8 }}>
-            <div
-              className="avatar"
-              style={{
-                width: 28,
-                height: 28,
-                fontSize: 11,
-                background: "var(--navy-900)",
-                color: "var(--amber-500)",
-                ...(providerPic ? { padding: 0, overflow: "hidden" } : {}),
-              }}
-            >
-              {providerPic ? (
-                <img
-                  src={providerPic}
-                  alt={ticket.assignedServiceProviderName}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                    display: "block",
-                  }}
-                />
-              ) : (
-                initials(ticket.assignedServiceProviderName)
-              )}
+            <div className="avatar" style={{ width: 28, height: 28, fontSize: 11, background: "var(--navy-900)", color: "var(--amber-500)", ...(providerPic ? { padding: 0, overflow: "hidden" } : {}) }}>
+              {providerPic ? <img src={providerPic} alt={ticket.assignedServiceProviderName} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : initials(ticket.assignedServiceProviderName)}
             </div>
             <span
               style={{
@@ -368,171 +109,62 @@ function MetaCard({ ticket }: { ticket: Ticket }) {
           </div>
         )
       ) : (
-        <div style={{ marginTop: 8, fontSize: 14, color: "var(--text-muted)" }}>
-          Unassigned
-        </div>
+        <div style={{ marginTop: 8, fontSize: 14, color: "var(--text-muted)" }}>{labels.unassigned}</div>
       ),
       mini: null,
     },
     {
-      label: "Location",
-      value: (
-        <div style={{ marginTop: 6, fontSize: 15, fontWeight: 500 }}>
-          {ticket.location || "—"}
-        </div>
-      ),
+      label: labels.location,
+      value: <div style={{ marginTop: 6, fontSize: 15, fontWeight: 500 }}>{ticket.location || "—"}</div>,
       mini: ticket.category.replace(/_/g, " "),
     },
     {
-      label: "Submitted by",
+      label: labels.submittedBy,
       value: (
         <>
           {ticket.submittedByName && (
             <div className="row gap-8" style={{ marginTop: 8 }}>
-              <div
-                className="avatar"
-                style={{
-                  width: 28,
-                  height: 28,
-                  fontSize: 11,
-                  background: "var(--navy-900)",
-                  color: "var(--amber-500)",
-                  ...(submitterPic ? { padding: 0, overflow: "hidden" } : {}),
-                }}
-              >
-                {submitterPic ? (
-                  <img
-                    src={submitterPic}
-                    alt={ticket.submittedByName}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      display: "block",
-                    }}
-                  />
-                ) : (
-                  initials(ticket.submittedByName)
-                )}
+              <div className="avatar" style={{ width: 28, height: 28, fontSize: 11, background: "var(--navy-900)", color: "var(--amber-500)", ...(submitterPic ? { padding: 0, overflow: "hidden" } : {}) }}>
+                {submitterPic ? <img src={submitterPic} alt={ticket.submittedByName} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : initials(ticket.submittedByName)}
               </div>
-              <span
-                style={{
-                  fontSize: 14,
-                  fontWeight: 600,
-                  letterSpacing: "-0.01em",
-                }}
-              >
-                {ticket.submittedByName}
-              </span>
+              <span style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em" }}>{ticket.submittedByName}</span>
             </div>
           )}
-          <div
-            className="mono"
-            style={{ marginTop: 6, fontSize: 14, letterSpacing: "0.02em" }}
-          >
-            {fmt(ticket.createdAt)}
-          </div>
+          <div className="mono" style={{ marginTop: 6, fontSize: 14, letterSpacing: "0.02em" }}>{fmt(ticket.createdAt, locale)}</div>
         </>
       ),
-      mini: fmtDate(ticket.createdAt),
+      mini: fmtDate(ticket.createdAt, locale),
     },
     {
-      label: "Quoted",
-      value: (
-        <div
-          className="mono"
-          style={{ marginTop: 6, fontSize: 14, letterSpacing: "0.02em" }}
-        >
-          {ticket.estimatedCost != null
-            ? `$${ticket.estimatedCost.toFixed(2)}`
-            : "—"}
-        </div>
-      ),
-      mini: ticket.estimatedCost != null ? "estimated cost" : "not yet quoted",
+      label: labels.quoted,
+      value: <div className="mono" style={{ marginTop: 6, fontSize: 14, letterSpacing: "0.02em" }}>{ticket.estimatedCost != null ? `$${ticket.estimatedCost.toFixed(2)}` : "—"}</div>,
+      mini: ticket.estimatedCost != null ? labels.estimatedCost : labels.notYetQuoted,
     },
   ];
 
   return (
-    <div
-      className="ticket-meta-card"
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(4, 1fr)",
-        background: "var(--card)",
-        border: "1px solid var(--border)",
-        borderRadius: 14,
-        overflow: "hidden",
-        marginBottom: 24,
-        boxShadow: "var(--shadow-sm)",
-      }}
-    >
+    <div className="ticket-meta-card" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow-sm)" }}>
       {cells.map((cell, i) => (
-        <div
-          key={i}
-          style={{
-            padding: "18px 22px",
-            borderLeft: i === 0 ? "none" : "1px solid var(--border)",
-          }}
-        >
-          <div
-            className="mono"
-            style={{
-              fontSize: 10.5,
-              color: "var(--text-muted)",
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              fontWeight: 600,
-            }}
-          >
-            {cell.label}
-          </div>
+        <div key={i} style={{ padding: "18px 22px", borderLeft: i === 0 ? "none" : "1px solid var(--border)" }}>
+          <div className="mono" style={{ fontSize: 10.5, color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600 }}>{cell.label}</div>
           {cell.value}
-          {cell.mini && (
-            <div
-              style={{
-                fontSize: 11.5,
-                color: "var(--text-muted)",
-                marginTop: 4,
-              }}
-            >
-              {cell.mini}
-            </div>
-          )}
+          {cell.mini && <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 4 }}>{cell.mini}</div>}
         </div>
       ))}
     </div>
   );
 }
 
-function ActivityLog({ entries }: { entries: LogEntry[] }) {
+type LogEntry = { time: string; date: string; text: React.ReactNode };
+
+function ActivityLog({ entries }: { readonly entries: LogEntry[] }) {
   return (
     <div className="card card-pad">
       {entries.map((entry, i) => (
-        <div
-          key={i}
-          style={{
-            display: "grid",
-            gridTemplateColumns: "100px 1fr",
-            gap: 16,
-            padding: "18px 0",
-            borderBottom:
-              i < entries.length - 1 ? "1px solid var(--border)" : "none",
-          }}
-        >
-          <div
-            className="mono"
-            style={{
-              fontSize: 11,
-              color: "var(--text-muted)",
-              letterSpacing: "0.06em",
-              paddingTop: 3,
-              lineHeight: 1.6,
-            }}
-          >
+        <div key={i} style={{ display: "grid", gridTemplateColumns: "100px 1fr", gap: 16, padding: "18px 0", borderBottom: i < entries.length - 1 ? "1px solid var(--border)" : "none" }}>
+          <div className="mono" style={{ fontSize: 11, color: "var(--text-muted)", letterSpacing: "0.06em", paddingTop: 3, lineHeight: 1.6 }}>
             <div>{entry.date}</div>
-            <div style={{ color: "var(--text-muted)", opacity: 0.7 }}>
-              {entry.time}
-            </div>
+            <div style={{ color: "var(--text-muted)", opacity: 0.7 }}>{entry.time}</div>
           </div>
           <div style={{ fontSize: 14.5, lineHeight: 1.55 }}>{entry.text}</div>
         </div>
@@ -541,9 +173,7 @@ function ActivityLog({ entries }: { entries: LogEntry[] }) {
   );
 }
 
-// ─── Image gallery + lightbox ─────────────────────────────────────────────────
-
-function ImageGallery({ urls }: { urls: string[] }) {
+function ImageGallery({ urls }: { readonly urls: string[] }) {
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   useEffect(() => {
@@ -714,372 +344,241 @@ function ImageGallery({ urls }: { urls: string[] }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export function TicketDetailPage() {
+  const { t, i18n } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const ticketId = id ? parseInt(id, 10) : NaN;
   const { role } = useAuth();
   const queryClient = useQueryClient();
-  const updateMut = useUpdateTicketStatusMutation();
-  const acceptMut = useAcceptTicketMutation();
+  const updateMut  = useUpdateTicketStatusMutation();
+  const acceptMut  = useAcceptTicketMutation();
   const confirmMut = useConfirmTicketMutation();
   const declineMut = useDeclineTicketMutation();
+  const [acceptError, setAcceptError] = useState<string | null>(null);
 
   const { data: ticket, isLoading, isError } = useTicketQuery(ticketId);
 
-  if (isLoading) {
-    return (
-      <div
-        style={{
-          padding: "80px 0",
-          textAlign: "center",
-          color: "var(--text-muted)",
-        }}
-      >
-        Loading ticket…
-      </div>
-    );
+  const stepLabels: Record<TicketStatus, string> = {
+    PENDING_APPROVAL:       t("ticket.status.PENDING_APPROVAL"),
+    APPROVED:               t("ticket.status.APPROVED"),
+    IN_TRANSIT:             t("ticket.status.IN_TRANSIT"),
+    PENDING_PROVIDER_INVOICE: t("ticket.status.PENDING_PROVIDER_INVOICE"),
+    PENDING_PAYMENT:        t("ticket.status.PENDING_PAYMENT"),
+    COMPLETED:              t("ticket.status.COMPLETED"),
+    DECLINED:               t("ticket.status.COMPLETED"),
+    CANCELLED:              t("ticket.status.COMPLETED"),
+  };
+
+  const activityLabels: Record<TicketStatus, string> = {
+    PENDING_APPROVAL:       t("ticket.activityLog.PENDING_APPROVAL"),
+    APPROVED:               t("ticket.activityLog.APPROVED"),
+    IN_TRANSIT:             t("ticket.activityLog.IN_TRANSIT"),
+    PENDING_PROVIDER_INVOICE: t("ticket.activityLog.PENDING_PROVIDER_INVOICE"),
+    PENDING_PAYMENT:        t("ticket.activityLog.PENDING_PAYMENT"),
+    COMPLETED:              t("ticket.activityLog.COMPLETED"),
+    DECLINED:               t("ticket.activityLog.DECLINED"),
+    CANCELLED:              t("ticket.activityLog.CANCELLED"),
+  };
+
+  function statusPill(status: TicketStatus): { label: string; pillClass: string } {
+    switch (status) {
+      case "PENDING_APPROVAL":       return { label: t("ticket.pills.awaitingProvider"), pillClass: "pill-pending" };
+      case "APPROVED":               return { label: t("ticket.pills.accepted"),         pillClass: "pill-assigned" };
+      case "IN_TRANSIT":             return { label: t("ticket.pills.onSite"),            pillClass: "pill-enroute" };
+      case "PENDING_PROVIDER_INVOICE": return { label: t("ticket.pills.pendingInvoice"), pillClass: "pill-inprogress" };
+      case "PENDING_PAYMENT":        return { label: t("ticket.pills.pendingPayment"),   pillClass: "pill-inprogress" };
+      case "COMPLETED":              return { label: t("ticket.pills.completed"),        pillClass: "pill-resolved" };
+      case "DECLINED":               return { label: t("ticket.pills.declined"),         pillClass: "pill-closed" };
+      case "CANCELLED":              return { label: t("ticket.pills.cancelled"),        pillClass: "pill-closed" };
+      default:                       return { label: status, pillClass: "pill-pending" };
+    }
   }
 
+  if (isLoading) {
+    return <div style={{ padding: "80px 0", textAlign: "center", color: "var(--text-muted)" }}>{t("ticket.loadingTicket")}</div>;
+  }
   if (isError || !ticket) {
     return (
-      <div
-        style={{
-          padding: "80px 0",
-          textAlign: "center",
-          color: "var(--text-muted)",
-        }}
-      >
-        Ticket not found.{" "}
-        <Link
-          to="/dashboard/user"
-          style={{ color: "var(--navy-700)", fontWeight: 600 }}
-        >
-          Back to dashboard
-        </Link>
+      <div style={{ padding: "80px 0", textAlign: "center", color: "var(--text-muted)" }}>
+        {t("ticket.ticketNotFound")}{" "}
+        <Link to="/dashboard/user" style={{ color: "var(--navy-700)", fontWeight: 600 }}>{t("ticket.backToDashboard")}</Link>
       </div>
     );
   }
 
   const ticketIdStr = `FIX-${String(ticket.id).padStart(4, "0")}`;
-  const pill = statusPill(ticket.status);
-  const isProvider = role === "PROVIDER";
+  const pill        = statusPill(ticket.status);
+  const isProvider  = role === "PROVIDER";
+  const isTerminal  = ticket.status === "DECLINED" || ticket.status === "CANCELLED";
+
+  function headlineText(tk: Ticket, isP: boolean): { main: string; highlight: string | null } {
+    const name = tk.assignedServiceProviderName;
+    switch (tk.status) {
+      case "PENDING_APPROVAL":
+        return isP
+          ? { main: t("ticketHeadline.pendingApproval_provider"), highlight: null }
+          : { main: t("ticketHeadline.pendingApproval_customer"), highlight: null };
+      case "APPROVED":
+        return isP
+          ? { main: t("ticketHeadline.approved_provider_main"), highlight: t("ticketHeadline.approved_provider_highlight") }
+          : { main: name ? t("ticketHeadline.approved_customer_main", { name }) : t("ticketHeadline.approved_customer_main_generic"), highlight: t("ticketHeadline.approved_highlight") };
+      case "IN_TRANSIT":
+        return isP
+          ? { main: t("ticketHeadline.inTransit_provider_main"), highlight: t("ticketHeadline.inTransit_provider_highlight") }
+          : { main: name ? t("ticketHeadline.inTransit_customer_main", { name }) : t("ticketHeadline.inTransit_customer_generic"), highlight: null };
+      case "PENDING_PROVIDER_INVOICE":
+        return { main: t("ticketHeadline.pendingInvoice_main"), highlight: t("ticketHeadline.pendingInvoice_highlight") };
+      case "PENDING_PAYMENT":
+        return { main: t("ticketHeadline.pendingPayment_main"), highlight: t("ticketHeadline.pendingPayment_highlight") };
+      case "COMPLETED":
+        return { main: t("ticketHeadline.completed"), highlight: null };
+      case "DECLINED":
+        return { main: t("ticketHeadline.declined"), highlight: null };
+      case "CANCELLED":
+        return { main: t("ticketHeadline.cancelled"), highlight: null };
+      default:
+        return { main: tk.serviceType, highlight: null };
+    }
+  }
+
   const headline = headlineText(ticket, isProvider);
-  const activityEntries = buildActivityLog(ticket);
-  const isTerminal =
-    ticket.status === "DECLINED" || ticket.status === "CANCELLED";
+
+  const locale = i18n.language;
+
+  function buildLog(tk: Ticket): LogEntry[] {
+    const history: StatusHistoryEntry[] = tk.statusHistory ?? [];
+    if (history.length > 0) {
+      return [...history].reverse().map((entry) => ({
+        time: fmt(entry.changedAt, locale), date: fmtDate(entry.changedAt, locale),
+        text: (
+          <>
+            <b style={{ textTransform: "capitalize" }}>{entry.status.replace(/_/g, " ").toLowerCase()}</b>
+            {" — "}
+            {activityLabels[entry.status] ?? entry.status}
+          </>
+        ),
+      }));
+    }
+    return [{
+      time: fmt(tk.createdAt, locale), date: fmtDate(tk.createdAt, locale),
+      text: (<><b>{tk.submittedByName ?? t("chat.you")}</b> {t("ticket.activityFiled")} <b>FIX-{String(tk.id).padStart(4, "0")}</b> — {tk.serviceType}.</>),
+    }];
+  }
+
+  const activityEntries = buildLog(ticket);
+  const NEXT_STATUS: Partial<Record<TicketStatus, { status: TicketStatus; label: string }>> = {
+    APPROVED:   { status: "IN_TRANSIT",               label: t("ticket.actions.markInTransit") },
+    IN_TRANSIT: { status: "PENDING_PROVIDER_INVOICE", label: t("ticket.actions.markWorkComplete") },
+  };
   const nextStatus = isProvider ? NEXT_STATUS[ticket.status] : undefined;
+
+  const metaLabels = {
+    provider: t("ticket.provider"), location: t("ticket.location"),
+    submittedBy: t("ticket.submittedBy"), quoted: t("ticket.quoted"),
+    unassigned: t("ticket.unassigned"), estimatedCost: t("ticket.estimatedCost"),
+    notYetQuoted: t("ticket.notYetQuoted"),
+  };
 
   return (
     <>
       <style>{`
-        @keyframes livesweep {
-          0%   { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-        @keyframes livepulse2 {
-          0%   { transform: scale(1); opacity: 0.5; }
-          100% { transform: scale(2.2); opacity: 0; }
-        }
+        @keyframes livesweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+        @keyframes livepulse2 { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(2.2); opacity: 0; } }
       `}</style>
 
-      {/* ── Live header ── */}
-      <section
-        className="ticket-live-header"
-        style={{
-          background: "var(--navy-900)",
-          backgroundImage:
-            "radial-gradient(ellipse at 90% 0%, rgba(245,158,11,0.2), transparent 55%)",
-          color: "#fff",
-          padding: "28px 0 36px",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        {/* grid overlay */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            backgroundImage:
-              "linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px)",
-            backgroundSize: "56px 56px",
-            pointerEvents: "none",
-          }}
-        />
+      <section className="ticket-live-header" style={{ background: "var(--navy-900)", backgroundImage: "radial-gradient(ellipse at 90% 0%, rgba(245,158,11,0.2), transparent 55%)", color: "#fff", padding: "28px 0 36px", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px)", backgroundSize: "56px 56px", pointerEvents: "none" }} />
 
         <div className="container" style={{ position: "relative" }}>
-          {/* Breadcrumb + live badge */}
-          <div
-            className="row"
-            style={{ marginBottom: 6, gap: 16, flexWrap: "wrap" }}
-          >
-            <Link
-              to="/dashboard/user"
-              className="mono"
-              style={{
-                color: "rgba(255,255,255,0.6)",
-                fontSize: 11.5,
-                letterSpacing: "0.05em",
-                textTransform: "uppercase",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
-              ← Dashboard
+          <div className="row" style={{ marginBottom: 6, gap: 16, flexWrap: "wrap" }}>
+            <Link to="/dashboard/user" className="mono" style={{ color: "rgba(255,255,255,0.6)", fontSize: 11.5, letterSpacing: "0.05em", textTransform: "uppercase", display: "inline-flex", alignItems: "center", gap: 6 }}>
+              {t("ticket.dashboard")}
             </Link>
-            <span
-              className="mono"
-              style={{ color: "rgba(255,255,255,0.4)", fontSize: 11.5 }}
-            >
-              /
-            </span>
-            <span
-              className="mono"
-              style={{
-                color: "rgba(255,255,255,0.85)",
-                fontSize: 11.5,
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-              }}
-            >
-              {ticketIdStr}
-            </span>
+            <span className="mono" style={{ color: "rgba(255,255,255,0.4)", fontSize: 11.5 }}>/</span>
+            <span className="mono" style={{ color: "rgba(255,255,255,0.85)", fontSize: 11.5, letterSpacing: "0.06em", textTransform: "uppercase" }}>{ticketIdStr}</span>
             <span className="grow" />
             {!isTerminal && (
-              <span
-                className="mono"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  fontSize: 11,
-                  color: "var(--amber-500)",
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  fontWeight: 600,
-                }}
-              >
-                <span
-                  style={{
-                    position: "relative",
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    background: "var(--amber-500)",
-                    display: "inline-block",
-                  }}
-                >
-                  <span
-                    style={{
-                      position: "absolute",
-                      inset: -4,
-                      borderRadius: 8,
-                      background: "var(--amber-500)",
-                      opacity: 0.4,
-                      animation: "livepulse2 1.6s ease-out infinite",
-                    }}
-                  />
+              <span className="mono" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 11, color: "var(--amber-500)", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 600 }}>
+                <span style={{ position: "relative", width: 8, height: 8, borderRadius: 4, background: "var(--amber-500)", display: "inline-block" }}>
+                  <span style={{ position: "absolute", inset: -4, borderRadius: 8, background: "var(--amber-500)", opacity: 0.4, animation: "livepulse2 1.6s ease-out infinite" }} />
                 </span>
-                Live
+                {t("ticket.live")}
               </span>
             )}
           </div>
 
-          {/* Urgency + status pill + category */}
-          <div
-            className="row"
-            style={{
-              gap: 14,
-              alignItems: "baseline",
-              flexWrap: "wrap",
-              marginTop: 4,
-            }}
-          >
-            <span
-              className={priorityBadgeClass(ticket.priority)}
-              style={{ height: 24, fontSize: 11, padding: "4px 9px" }}
-            >
-              {priorityLabel(ticket.priority)}
-            </span>
-            <span className={`pill ${pill.pillClass}`} style={{ fontSize: 12 }}>
-              <span className="dot" />
-              {pill.label}
-            </span>
-            <span
-              className="mono"
-              style={{
-                color: "rgba(255,255,255,0.6)",
-                fontSize: 12,
-                letterSpacing: "0.05em",
-                textTransform: "uppercase",
-              }}
-            >
-              {ticket.category.replace(/_/g, " ")}
-              {ticket.location ? ` · ${ticket.location}` : ""}
+          <div className="row" style={{ gap: 14, alignItems: "baseline", flexWrap: "wrap", marginTop: 4 }}>
+            <span className={priorityBadgeClass(ticket.priority)} style={{ height: 24, fontSize: 11, padding: "4px 9px" }}>{t(priorityKey(ticket.priority))}</span>
+            <span className={`pill ${pill.pillClass}`} style={{ fontSize: 12 }}><span className="dot" />{pill.label}</span>
+            <span className="mono" style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+              {ticket.category.replace(/_/g, " ")}{ticket.location ? ` · ${ticket.location}` : ""}
             </span>
           </div>
 
-          {/* Headline */}
-          <h1
-            style={{
-              fontSize: "clamp(28px, 3vw, 40px)",
-              fontWeight: 700,
-              letterSpacing: "-0.025em",
-              lineHeight: 1.1,
-              margin: "14px 0 0",
-              color: "#fff",
-              maxWidth: 920,
-            }}
-          >
+          <h1 style={{ fontSize: "clamp(28px, 3vw, 40px)", fontWeight: 700, letterSpacing: "-0.025em", lineHeight: 1.1, margin: "14px 0 0", color: "#fff", maxWidth: 920 }}>
             {headline.main}{" "}
-            {headline.highlight && (
-              <span style={{ color: "var(--amber-500)" }}>
-                {headline.highlight}
-              </span>
-            )}
+            {headline.highlight && <span style={{ color: "var(--amber-500)" }}>{headline.highlight}</span>}
           </h1>
 
-          {/* Phase rail */}
-          {!isTerminal && <PhaseRail ticketStatus={ticket.status} />}
+          {!isTerminal && <PhaseRail ticketStatus={ticket.status} labels={stepLabels} />}
 
-          {/* Terminal state indicator */}
           {isTerminal && (
             <div style={{ marginTop: 20 }}>
-              <span
-                className="pill"
-                style={{
-                  background:
-                    ticket.status === "DECLINED"
-                      ? "rgba(185,28,28,0.25)"
-                      : "rgba(100,116,139,0.25)",
-                  color:
-                    ticket.status === "DECLINED"
-                      ? "#FCA5A5"
-                      : "rgba(255,255,255,0.6)",
-                  fontSize: 13,
-                  padding: "6px 14px",
-                }}
-              >
-                <span
-                  className="dot"
-                  style={{
-                    background:
-                      ticket.status === "DECLINED"
-                        ? "#FCA5A5"
-                        : "rgba(255,255,255,0.4)",
-                  }}
-                />
-                {ticket.status === "DECLINED"
-                  ? "Ticket declined"
-                  : "Ticket cancelled"}
+              <span className="pill" style={{ background: ticket.status === "DECLINED" ? "rgba(185,28,28,0.25)" : "rgba(100,116,139,0.25)", color: ticket.status === "DECLINED" ? "#FCA5A5" : "rgba(255,255,255,0.6)", fontSize: 13, padding: "6px 14px" }}>
+                <span className="dot" style={{ background: ticket.status === "DECLINED" ? "#FCA5A5" : "rgba(255,255,255,0.4)" }} />
+                {ticket.status === "DECLINED" ? t("ticket.ticketDeclined") : t("ticket.ticketCancelled")}
               </span>
             </div>
           )}
         </div>
       </section>
 
-      {/* ── Body ── */}
-      <main
-        className="container ticket-detail-body"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 360px",
-          gap: 24,
-          padding: "24px 32px 64px",
-          maxWidth: 1280,
-          margin: "0 auto",
-        }}
-      >
-        {/* Left column */}
+      <main className="container ticket-detail-body" style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 24, padding: "24px 32px 64px", maxWidth: 1280, margin: "0 auto" }}>
         <div>
-          {/* Meta card */}
-          <MetaCard ticket={ticket} />
+          <MetaCard ticket={ticket} labels={metaLabels} />
+
+          {/* Live GPS tracking — only renders while the ticket is IN_TRANSIT */}
+          {ticket.status === "IN_TRANSIT" && (
+            <div style={{ marginBottom: 32 }}>
+              <LiveTrackingPanel ticket={ticket} isProvider={isProvider} />
+            </div>
+          )}
 
           {/* Description */}
           <div className="panel-title">
             <span className="num">01</span>
-            <span className="label">What&apos;s broken</span>
+            <span className="label">{t("ticket.whatsBroken")}</span>
             <span className="rule" />
           </div>
           <div className="card card-pad" style={{ marginBottom: 32 }}>
-            <p
-              style={{
-                fontSize: 16,
-                lineHeight: 1.6,
-                margin: 0,
-                color: "var(--text)",
-              }}
-            >
-              {ticket.description || "No description provided."}
+            <p style={{ fontSize: 16, lineHeight: 1.6, margin: 0, color: "var(--text)" }}>
+              {ticket.description || t("ticket.noDescription")}
             </p>
             {(ticket.requestedStartAt || ticket.requestedEndAt) && (
-              <div
-                style={{
-                  marginTop: 16,
-                  paddingTop: 16,
-                  borderTop: "1px solid var(--border)",
-                  display: "flex",
-                  gap: 24,
-                  flexWrap: "wrap",
-                }}
-              >
+              <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border)", display: "flex", gap: 24, flexWrap: "wrap" }}>
                 {ticket.requestedStartAt && (
                   <div>
-                    <div
-                      className="mono"
-                      style={{
-                        fontSize: 10.5,
-                        color: "var(--text-muted)",
-                        letterSpacing: "0.1em",
-                        textTransform: "uppercase",
-                        fontWeight: 600,
-                        marginBottom: 4,
-                      }}
-                    >
-                      Requested start
-                    </div>
-                    <div className="mono" style={{ fontSize: 14 }}>
-                      {fmtDate(ticket.requestedStartAt)} ·{" "}
-                      {fmt(ticket.requestedStartAt)}
-                    </div>
+                    <div className="mono" style={{ fontSize: 10.5, color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>{t("ticket.requestedStart")}</div>
+                    <div className="mono" style={{ fontSize: 14 }}>{fmtDate(ticket.requestedStartAt, locale)} · {fmt(ticket.requestedStartAt, locale)}</div>
                   </div>
                 )}
                 {ticket.requestedEndAt && (
                   <div>
-                    <div
-                      className="mono"
-                      style={{
-                        fontSize: 10.5,
-                        color: "var(--text-muted)",
-                        letterSpacing: "0.1em",
-                        textTransform: "uppercase",
-                        fontWeight: 600,
-                        marginBottom: 4,
-                      }}
-                    >
-                      Requested end
-                    </div>
-                    <div className="mono" style={{ fontSize: 14 }}>
-                      {fmtDate(ticket.requestedEndAt)} ·{" "}
-                      {fmt(ticket.requestedEndAt)}
-                    </div>
+                    <div className="mono" style={{ fontSize: 10.5, color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>{t("ticket.requestedEnd")}</div>
+                    <div className="mono" style={{ fontSize: 14 }}>{fmtDate(ticket.requestedEndAt, locale)} · {fmt(ticket.requestedEndAt, locale)}</div>
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          {/* Photos */}
           {ticket.imageUrls && ticket.imageUrls.length > 0 && (
             <>
               <div className="panel-title">
                 <span className="num">02</span>
-                <span className="label">Photos</span>
+                <span className="label">{t("ticket.photos")}</span>
                 <span className="rule" />
-                <span className="mono muted" style={{ fontSize: 11 }}>
-                  {ticket.imageUrls.length} attached
-                </span>
+                <span className="mono muted" style={{ fontSize: 11 }}>{t("ticket.attached", { count: ticket.imageUrls.length })}</span>
               </div>
               <div className="card card-pad" style={{ marginBottom: 32 }}>
                 <ImageGallery urls={ticket.imageUrls} />
@@ -1087,155 +586,89 @@ export function TicketDetailPage() {
             </>
           )}
 
-          {/* Activity log */}
           <div className="panel-title">
-            <span className="num">
-              {ticket.imageUrls && ticket.imageUrls.length > 0 ? "03" : "02"}
-            </span>
-            <span className="label">Activity</span>
+            <span className="num">{ticket.imageUrls && ticket.imageUrls.length > 0 ? "03" : "02"}</span>
+            <span className="label">{t("ticket.activity")}</span>
             <span className="rule" />
-            <span className="mono muted" style={{ fontSize: 11 }}>
-              {activityEntries.length} events
-            </span>
+            <span className="mono muted" style={{ fontSize: 11 }}>{t("ticket.events", { count: activityEntries.length })}</span>
           </div>
           <ActivityLog entries={activityEntries} />
 
-          {/* Issue Invoice panel — provider only, when work is done */}
           {isProvider && ticket.status === "PENDING_PROVIDER_INVOICE" && (
-            <div style={{ marginTop: 28 }}>
-              <IssueInvoicePanel ticket={ticket} />
+            <div style={{ marginTop: 28 }}><IssueInvoicePanel ticket={ticket} /></div>
+          )}
+
+          {(ticket.status === "PENDING_PAYMENT" || ticket.status === "COMPLETED") && ticket.estimatedCost != null && (
+            <div style={{ marginTop: 16 }}>
+              <button className="btn btn-secondary" onClick={async () => {
+                const blob = await generateInvoicePdf({
+                  ticketCode: `FIX-${String(ticket.id).padStart(4, "0")}`, serviceType: ticket.serviceType,
+                  category: ticket.category, description: ticket.description, location: ticket.location ?? "",
+                  providerName: ticket.assignedServiceProviderName ?? "Provider",
+                  customerName: ticket.submittedByName ?? "Customer", amount: ticket.estimatedCost ?? 0,
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url; a.download = `Invoice-FIX-${String(ticket.id).padStart(4, "0")}.pdf`; a.click();
+                setTimeout(() => URL.revokeObjectURL(url), 60_000);
+              }}>
+                {t("ticket.downloadInvoice")}
+              </button>
             </div>
           )}
 
-          {/* Download Invoice button — visible once invoice has been issued */}
-          {(ticket.status === "PENDING_PAYMENT" ||
-            ticket.status === "COMPLETED") &&
-            ticket.estimatedCost != null && (
-              <div style={{ marginTop: 16 }}>
-                <button
-                  className="btn btn-secondary"
-                  onClick={async () => {
-                    const blob = await generateInvoicePdf({
-                      ticketCode: `FIX-${String(ticket.id).padStart(4, "0")}`,
-                      serviceType: ticket.serviceType,
-                      category: ticket.category,
-                      description: ticket.description,
-                      location: ticket.location ?? "",
-                      providerName:
-                        ticket.assignedServiceProviderName ?? "Provider",
-                      customerName: ticket.submittedByName ?? "Customer",
-                      amount: ticket.estimatedCost ?? 0,
-                    });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = `Invoice-FIX-${String(ticket.id).padStart(4, "0")}.pdf`;
-                    a.click();
-                    setTimeout(() => URL.revokeObjectURL(url), 60_000);
-                  }}
-                >
-                  ↓ Download Invoice PDF
-                </button>
-              </div>
-            )}
+          {acceptError && (
+            <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 8, background: "var(--red-50, #fef2f2)", border: "1px solid var(--red-200, #fecaca)", color: "var(--red-700, #b91c1c)", fontSize: 13 }}>
+              {acceptError.toLowerCase().includes("payout") ? (
+                <>{t("ticket.acceptPayoutError")}{" "}<Link to="/profile/edit" style={{ color: "inherit", fontWeight: 600 }}>{t("ticket.acceptPayoutErrorLink")}</Link></>
+              ) : acceptError}
+            </div>
+          )}
 
-          {/* Actions */}
-          <div
-            className="row"
-            style={{ marginTop: 28, gap: 12, flexWrap: "wrap" }}
-          >
-            <button
-              className="btn btn-secondary"
-              onClick={() =>
-                navigate(isProvider ? "/dashboard/provider" : "/dashboard/user")
-              }
-            >
-              ← Back to dashboard
+          <div className="row" style={{ marginTop: 28, gap: 12, flexWrap: "wrap" }}>
+            <button className="btn btn-secondary" onClick={() => navigate(isProvider ? "/dashboard/provider" : "/dashboard/user")}>
+              {t("ticket.backToDashboardBtn")}
             </button>
             <span className="grow" />
-            {isProvider &&
-              ticket.status === "PENDING_APPROVAL" &&
-              (() => {
-                const isUnassigned = !ticket.assignedServiceProviderId;
-                const anyPending =
-                  acceptMut.isPending ||
-                  confirmMut.isPending ||
-                  declineMut.isPending;
-                const refreshTicket = () =>
-                  queryClient.invalidateQueries({
-                    queryKey: ["tickets", ticketId],
-                  });
+            {isProvider && ticket.status === "PENDING_APPROVAL" && (() => {
+              const isUnassigned = !ticket.assignedServiceProviderId;
+              const anyPending = acceptMut.isPending || confirmMut.isPending || declineMut.isPending;
+              const refreshTicket = () => queryClient.invalidateQueries({ queryKey: ["tickets", ticketId] });
 
-                const handleAccept = () => {
-                  if (isUnassigned) {
-                    acceptMut.mutate(ticket.id, { onSuccess: refreshTicket });
-                  } else if (ticket.requestedStartAt) {
-                    confirmMut.mutate(ticket.id, { onSuccess: refreshTicket });
-                  } else {
-                    updateMut.mutate({
-                      ticketId: ticket.id,
-                      status: "APPROVED",
-                    });
-                  }
-                };
+              const handleAccept = () => {
+                setAcceptError(null);
+                const onError = (err: unknown) => setAcceptError(getErrorMessage(err));
+                if (isUnassigned) { acceptMut.mutate(ticket.id, { onSuccess: refreshTicket, onError }); }
+                else if (ticket.requestedStartAt) { confirmMut.mutate(ticket.id, { onSuccess: refreshTicket, onError }); }
+                else { updateMut.mutate({ ticketId: ticket.id, status: "APPROVED" }, { onError }); }
+              };
 
-                const acceptLabel = isUnassigned
-                  ? "Accept & assign →"
-                  : ticket.requestedStartAt
-                    ? "Confirm & schedule →"
-                    : "Accept →";
+              const acceptLabel = isUnassigned ? t("ticket.actions.acceptAssign") : ticket.requestedStartAt ? t("ticket.actions.confirmSchedule") : t("ticket.actions.accept");
 
-                return (
-                  <>
-                    {!isUnassigned && (
-                      <button
-                        className="btn btn-secondary"
-                        disabled={anyPending}
-                        onClick={() =>
-                          declineMut.mutate(ticket.id, {
-                            onSuccess: () => {
-                              refreshTicket();
-                              navigate("/dashboard/provider");
-                            },
-                          })
-                        }
-                      >
-                        {declineMut.isPending ? "Declining…" : "Decline"}
-                      </button>
-                    )}
-                    <button
-                      className="btn btn-primary"
-                      disabled={anyPending}
-                      onClick={handleAccept}
-                    >
-                      {anyPending ? "Updating…" : acceptLabel}
+              return (
+                <>
+                  {!isUnassigned && (
+                    <button className="btn btn-secondary" disabled={anyPending} onClick={() => declineMut.mutate(ticket.id, { onSuccess: () => { refreshTicket(); navigate("/dashboard/provider"); } })}>
+                      {declineMut.isPending ? t("ticket.declining") : t("ticket.decline")}
                     </button>
-                  </>
-                );
-              })()}
+                  )}
+                  <button className="btn btn-primary" disabled={anyPending} onClick={handleAccept}>
+                    {anyPending ? t("ticket.updating") : acceptLabel}
+                  </button>
+                </>
+              );
+            })()}
             {nextStatus && (
-              <button
-                className="btn btn-primary"
-                disabled={updateMut.isPending}
-                onClick={() =>
-                  updateMut.mutate({
-                    ticketId: ticket.id,
-                    status: nextStatus.status,
-                  })
-                }
-              >
-                {updateMut.isPending ? "Updating…" : nextStatus.label}
+              <button className="btn btn-primary" disabled={updateMut.isPending} onClick={() => updateMut.mutate({ ticketId: ticket.id, status: nextStatus.status })}>
+                {updateMut.isPending ? t("ticket.updating") : nextStatus.label}
               </button>
             )}
             {!isTerminal && role !== "PROVIDER" && (
-              <button className="btn btn-danger" disabled title="Coming soon">
-                Cancel ticket
-              </button>
+              <button className="btn btn-danger" disabled title="Coming soon">{t("ticket.cancelTicket")}</button>
             )}
           </div>
         </div>
 
-        {/* Right column: chat */}
         <aside>
           <TicketChatPanel ticket={ticket} />
         </aside>

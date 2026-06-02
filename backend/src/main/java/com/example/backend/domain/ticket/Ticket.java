@@ -100,6 +100,22 @@ public class Ticket {
     @Column(name = "image_urls", columnDefinition = "jsonb")
     private List<String> imageUrls = new ArrayList<>();
 
+    // ─── Live GPS tracking (provider en route) ────────────────────────────────
+    // Latest known provider position while driving to this ticket. Overwritten
+    // on each location update; null until the provider starts sharing.
+    @Column(name = "provider_lat")
+    private Double providerLat;
+
+    @Column(name = "provider_lng")
+    private Double providerLng;
+
+    @Column(name = "provider_location_updated_at")
+    private LocalDateTime providerLocationUpdatedAt;
+
+    // One-shot guard so the "provider is nearby" notification fires once per trip.
+    @Column(name = "provider_nearby_notified", nullable = false)
+    private boolean providerNearbyNotified = false;
+
     public Ticket() {
     }
 

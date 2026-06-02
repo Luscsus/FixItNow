@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import type { Ticket, TicketPriority, TicketStatus } from "@/domain/ticket";
 import { useTicketsQuery } from "@/hooks/useTicketsQuery";
@@ -64,6 +65,7 @@ function statusToSteps(status: TicketStatus): StepState[] {
 const PHASE_LABELS = ["Filed", "Approved", "Working", "Invoice", "Done"] as const;
 
 function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick?: () => void }) {
+  const { t } = useTranslation();
   const isTerminal =
     ticket.status === "DECLINED" || ticket.status === "CANCELLED";
   const steps = statusToSteps(ticket.status);
@@ -97,7 +99,7 @@ function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick?: () => void 
               }}
             >
               <span className="dot" />
-              {ticket.status === "DECLINED" ? "Declined" : "Cancelled"}
+              {ticket.status === "DECLINED" ? t("ticket.pills.declined") : t("ticket.pills.cancelled")}
             </span>
           </div>
         ) : (
@@ -153,7 +155,7 @@ function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick?: () => void 
                   </div>
                   <div>
                     <div className="ticket-prov-name">{ticket.assignedServiceProviderName}</div>
-                    <div className="ticket-prov-role">Service provider</div>
+                    <div className="ticket-prov-role">{t("dashboard.serviceProvider")}</div>
                   </div>
                 </Link>
               ) : (
@@ -181,7 +183,7 @@ function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick?: () => void 
                   </div>
                   <div>
                     <div className="ticket-prov-name">{ticket.assignedServiceProviderName}</div>
-                    <div className="ticket-prov-role">Service provider</div>
+                    <div className="ticket-prov-role">{t("dashboard.serviceProvider")}</div>
                   </div>
                 </>
               )}
@@ -214,9 +216,9 @@ function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick?: () => void 
               </div>
               <div>
                 <div className="ticket-prov-name muted" style={{ fontWeight: 500 }}>
-                  Awaiting provider
+                  {t("dashboard.awaitingProvider")}
                 </div>
-                <div className="ticket-prov-role">Pending approval</div>
+                <div className="ticket-prov-role">{t("dashboard.pendingApprovalStatus")}</div>
               </div>
               <span className="grow" />
             </>
@@ -228,6 +230,7 @@ function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick?: () => void 
 }
 
 export function UserDashboardPage() {
+  const { t } = useTranslation();
   const { data: tickets = [], isLoading } = useTicketsQuery();
   const [{ filter, page }, setFilterPage] = useState({ filter: "active" as TicketFilter, page: 1 });
   const setFilter = (f: TicketFilter) => setFilterPage({ filter: f, page: 1 });
@@ -257,13 +260,17 @@ export function UserDashboardPage() {
   }, [tickets, filter]);
   const { pageItems: pagedTickets, totalPages, safePage } = usePaginatedItems(filteredTickets, page, TICKETS_PAGE_SIZE);
 
-  const panelLabel = filter === "active" ? "Your active tickets" : filter === "resolved" ? "Resolved tickets" : "All tickets";
-  const countLabel = filter === "active" ? "ACTIVE" : filter === "resolved" ? "RESOLVED" : "TOTAL";
-  const emptyMessage = filter === "active"
-    ? "No active tickets yet."
-    : filter === "resolved"
-      ? "No resolved tickets yet."
-      : "You haven't filed any tickets yet.";
+  let panelLabel = t("dashboard.allTickets");
+  if (filter === "active") panelLabel = t("dashboard.yourActiveTickets");
+  else if (filter === "resolved") panelLabel = t("dashboard.resolvedTickets");
+
+  let countLabel = t("dashboard.countTotal");
+  if (filter === "active") countLabel = t("dashboard.countActive");
+  else if (filter === "resolved") countLabel = t("dashboard.countResolved");
+
+  let emptyMessage = t("dashboard.noTicketsYet");
+  if (filter === "active") emptyMessage = t("dashboard.noActiveTickets");
+  else if (filter === "resolved") emptyMessage = t("dashboard.noResolvedTickets");
 
   return (
     <div>
@@ -276,40 +283,40 @@ export function UserDashboardPage() {
           </span>
           {openCount > 0 ? (
             <h1 className="dash-hero-headline">
-              You&apos;ve got{" "}
+              {t("dashboard.youveGot")}{" "}
               <span style={{ color: "var(--amber-500)" }}>
-                {openCount} open {openCount === 1 ? "ticket" : "tickets"}
+                {t("dashboard.openTicket", { count: openCount })}
               </span>
               .
             </h1>
           ) : (
             <h1 className="dash-hero-headline">
-              No open tickets.{" "}
+              {t("dashboard.noOpenTickets")}{" "}
               <Link to="/tickets/new" style={{ color: "var(--amber-500)" }}>
-                File one now →
+                {t("dashboard.fileOneNow")}
               </Link>
             </h1>
           )}
           <div className="hero-stats">
             <div className="hstat">
-              <div className="hstat-label">Open</div>
+              <div className="hstat-label">{t("dashboard.openTickets")}</div>
               <div className="hstat-num">{String(openCount).padStart(2, "0")}</div>
-              <div className="hstat-hint">pending approval</div>
+              <div className="hstat-hint">{t("dashboard.pendingApproval")}</div>
             </div>
             <div className="hstat">
-              <div className="hstat-label">In progress</div>
+              <div className="hstat-label">{t("dashboard.inProgress")}</div>
               <div className="hstat-num">{String(inProgressCount).padStart(2, "0")}</div>
-              <div className="hstat-hint">active jobs</div>
+              <div className="hstat-hint">{t("dashboard.activeJobsHint")}</div>
             </div>
             <div className="hstat accent">
-              <div className="hstat-label">Resolved · 30 days</div>
+              <div className="hstat-label">{t("dashboard.resolved30d")}</div>
               <div className="hstat-num">{String(resolvedCount).padStart(2, "0")}</div>
-              <div className="hstat-hint">completed tickets</div>
+              <div className="hstat-hint">{t("dashboard.completedTickets")}</div>
             </div>
             <div className="hstat danger">
-              <div className="hstat-label">High priority</div>
+              <div className="hstat-label">{t("dashboard.highPriority")}</div>
               <div className="hstat-num">{String(highPriorityCount).padStart(2, "0")}</div>
-              <div className="hstat-hint">high or critical</div>
+              <div className="hstat-hint">{t("dashboard.highOrCritical")}</div>
             </div>
           </div>
         </div>
@@ -320,12 +327,12 @@ export function UserDashboardPage() {
         {/* ── Action row ── */}
         <div className="row" style={{ marginBottom: 24, gap: 12 }}>
           <div className="segment">
-            <button aria-pressed={filter === "active"} onClick={() => setFilter("active")}>Active</button>
-            <button aria-pressed={filter === "resolved"} onClick={() => setFilter("resolved")}>Resolved</button>
-            <button aria-pressed={filter === "all"} onClick={() => setFilter("all")}>All</button>
+            <button aria-pressed={filter === "active"} onClick={() => { setFilter("active"); setPage(1); }}>{t("dashboard.active")}</button>
+            <button aria-pressed={filter === "resolved"} onClick={() => { setFilter("resolved"); setPage(1); }}>{t("dashboard.resolved")}</button>
+            <button aria-pressed={filter === "all"} onClick={() => { setFilter("all"); setPage(1); }}>{t("dashboard.all")}</button>
           </div>
           <span className="grow" />
-          <Link to="/tickets/new" className="btn btn-primary btn-sm">+ New ticket</Link>
+          <Link to="/tickets/new" className="btn btn-primary btn-sm">{t("dashboard.newTicket")}</Link>
         </div>
 
         {/* ── Panel 01: Tickets list ── */}
@@ -340,7 +347,7 @@ export function UserDashboardPage() {
 
         {isLoading ? (
           <div style={{ padding: "48px 0", textAlign: "center", color: "var(--slate-400)" }}>
-            Loading tickets…
+            {t("dashboard.loadingTickets")}
           </div>
         ) : filteredTickets.length === 0 ? (
           <div
@@ -352,7 +359,7 @@ export function UserDashboardPage() {
             </div>
             {filter !== "resolved" && (
               <Link to="/tickets/new" className="btn btn-primary btn-sm">
-                + File {tickets.length === 0 ? "your first" : "a new"} ticket
+                {tickets.length === 0 ? t("dashboard.fileFirst2") : t("dashboard.fileNew")}
               </Link>
             )}
           </div>
@@ -375,20 +382,20 @@ export function UserDashboardPage() {
         <div style={{ maxWidth: 420 }}>
           <div className="panel-title">
             <span className="num">02</span>
-            <span className="label">Find a provider</span>
+            <span className="label">{t("dashboard.findProvider")}</span>
             <span className="rule" />
           </div>
           <div className="card card-pad" style={{ padding: 22 }}>
             <p className="muted" style={{ fontSize: 13.5, lineHeight: 1.55, margin: "0 0 16px" }}>
-              Not sure where to start? Browse vetted providers in your area, or let us auto-match based on category and urgency.
+              {t("dashboard.findProviderDesc")}
             </p>
-            <Link to="/tickets/new" className="btn btn-primary btn-full">File a new ticket →</Link>
+            <Link to="/tickets/new" className="btn btn-primary btn-full">{t("dashboard.fileNewTicket")}</Link>
           </div>
 
           <div className="card card-pad" style={{ marginTop: 16, padding: 22 }}>
-            <span className="eyebrow-plain">Pro tip</span>
+            <span className="eyebrow-plain">{t("dashboard.proTip")}</span>
             <p style={{ fontSize: 14, lineHeight: 1.55, margin: "8px 0 0", color: "var(--text)" }}>
-              For critical issues, add a photo when you file. Providers accept critical tickets <b>3.2× faster</b> when there&apos;s visual context.
+              {t("dashboard.proTipBody")}
             </p>
           </div>
         </div>

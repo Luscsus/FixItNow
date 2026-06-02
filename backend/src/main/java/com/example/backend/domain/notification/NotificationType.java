@@ -2,5 +2,6 @@ package com.example.backend.domain.notification;
 
 public enum NotificationType {
     TICKET_STATUS_CHANGE,
-    NEW_MESSAGE
+    NEW_MESSAGE,
+    PROVIDER_NEARBY
 }

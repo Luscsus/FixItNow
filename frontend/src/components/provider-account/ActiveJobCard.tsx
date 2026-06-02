@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useProviderTicketsQuery } from "@/hooks/useProviderTicketsQuery";
 import { useUpdateTicketStatusMutation } from "@/hooks/useUpdateTicketStatusMutation";
 import { Pagination, usePaginatedItems } from "@/components/ui/Pagination";
@@ -12,37 +13,6 @@ const ACTIVE_STATUSES: TicketStatus[] = [
   "IN_TRANSIT",
   "PENDING_PROVIDER_INVOICE",
   "PENDING_PAYMENT",
-];
-
-const STATUS_CHIP: Record<string, { label: string; color: string; bg: string }> = {
-  APPROVED:                 { label: "ACCEPTED",         color: "var(--emerald-700)", bg: "var(--emerald-50)" },
-  IN_TRANSIT:               { label: "IN TRANSIT",       color: "var(--amber-700)",   bg: "var(--amber-50)"   },
-  PENDING_PROVIDER_INVOICE: { label: "AWAITING INVOICE", color: "var(--slate-600)",   bg: "var(--slate-100)"  },
-  PENDING_PAYMENT:          { label: "PENDING PAYMENT",  color: "var(--slate-600)",   bg: "var(--slate-100)"  },
-};
-
-const STATUS_PILL: Record<string, string> = {
-  APPROVED:                 "Accepted",
-  IN_TRANSIT:               "In Transit",
-  PENDING_PROVIDER_INVOICE: "Awaiting invoice",
-  PENDING_PAYMENT:          "Pending payment",
-};
-
-const NEXT_STATUS: Partial<Record<TicketStatus, { status: TicketStatus; label: string }>> = {
-  APPROVED:                 { status: "IN_TRANSIT",               label: "Mark as In Transit →"               },
-  IN_TRANSIT:               { status: "PENDING_PROVIDER_INVOICE", label: "Mark as Pending Provider Invoice →" },
-  PENDING_PROVIDER_INVOICE: { status: "PENDING_PAYMENT",          label: "Mark as Pending Payment →"          },
-};
-
-type Step = { label: string; status: TicketStatus };
-
-const STEPS: Step[] = [
-  { label: "Pending Approval",         status: "PENDING_APPROVAL"         },
-  { label: "Approved",                 status: "APPROVED"                 },
-  { label: "In Transit",               status: "IN_TRANSIT"               },
-  { label: "Pending Provider Invoice", status: "PENDING_PROVIDER_INVOICE" },
-  { label: "Pending Payment",          status: "PENDING_PAYMENT"          },
-  { label: "Completed",                status: "COMPLETED"                },
 ];
 
 const STATUS_ORDER: TicketStatus[] = [
@@ -70,8 +40,32 @@ function fmtTime(d: Date): string {
 }
 
 function ActiveJob({ ticket }: { ticket: Ticket }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const updateMut = useUpdateTicketStatusMutation();
+
+  const STATUS_PILL: Record<string, string> = {
+    APPROVED:                 t("ticket.pills.accepted"),
+    IN_TRANSIT:               t("ticket.status.IN_TRANSIT"),
+    PENDING_PROVIDER_INVOICE: t("ticket.pills.pendingInvoice"),
+    PENDING_PAYMENT:          t("ticket.pills.pendingPayment"),
+  };
+
+  const NEXT_STATUS: Partial<Record<TicketStatus, { status: TicketStatus; label: string }>> = {
+    APPROVED:                 { status: "IN_TRANSIT",               label: t("ticket.actions.markInTransit")      },
+    IN_TRANSIT:               { status: "PENDING_PROVIDER_INVOICE", label: t("ticket.actions.markWorkComplete")   },
+    PENDING_PROVIDER_INVOICE: { status: "PENDING_PAYMENT",          label: t("ticket.actions.markPendingPayment") },
+  };
+
+  const STEPS: { label: string; status: TicketStatus }[] = [
+    { label: t("ticket.status.PENDING_APPROVAL"),         status: "PENDING_APPROVAL"         },
+    { label: t("ticket.status.APPROVED"),                 status: "APPROVED"                 },
+    { label: t("ticket.status.IN_TRANSIT"),               status: "IN_TRANSIT"               },
+    { label: t("ticket.status.PENDING_PROVIDER_INVOICE"), status: "PENDING_PROVIDER_INVOICE" },
+    { label: t("ticket.status.PENDING_PAYMENT"),          status: "PENDING_PAYMENT"          },
+    { label: t("ticket.status.COMPLETED"),                status: "COMPLETED"                },
+  ];
+
   const next = NEXT_STATUS[ticket.status];
 
   return (
@@ -109,14 +103,16 @@ function ActiveJob({ ticket }: { ticket: Ticket }) {
             <>
               {(ticket.submittedByName || ticket.location) && <span>·</span>}
               <span>·</span>
-              <span className="mono">Scheduled {fmtTime(ticket.requestedStartAt)}</span>
+              <span className="mono">
+                {t("providerAccount.activeJobs_scheduled", { time: fmtTime(ticket.requestedStartAt) })}
+              </span>
             </>
           )}
           {ticket.estimatedCost != null && (
             <>
               {(ticket.submittedByName || ticket.location || ticket.requestedStartAt) && <span>·</span>}
               <span>·</span>
-              <span className="mono">${ticket.estimatedCost.toFixed(2)} quoted</span>
+              <span className="mono">${ticket.estimatedCost.toFixed(2)} {t("providerAccount.activeJobs_quoted")}</span>
             </>
           )}
         </div>
@@ -163,7 +159,7 @@ function ActiveJob({ ticket }: { ticket: Ticket }) {
               disabled={updateMut.isPending}
               onClick={(e) => { e.stopPropagation(); updateMut.mutate({ ticketId: ticket.id, status: next.status }); }}
             >
-              {updateMut.isPending ? "Updating…" : next.label}
+              {updateMut.isPending ? t("providerAccount.activeJobs_updating") : next.label}
             </button>
           )}
         </div>
@@ -173,10 +169,18 @@ function ActiveJob({ ticket }: { ticket: Ticket }) {
 }
 
 export function ActiveJobCard() {
+  const { t } = useTranslation();
   const { data: tickets = [], isLoading } = useProviderTicketsQuery();
   const active = tickets.filter((t) => (ACTIVE_STATUSES as TicketStatus[]).includes(t.status));
   const [page, setPage] = useState(1);
   const { pageItems, totalPages, safePage } = usePaginatedItems(active, page, PAGE_SIZE);
+
+  const STATUS_CHIP: Record<string, { label: string; color: string; bg: string }> = {
+    APPROVED:                 { label: t("ticket.pills.accepted").toUpperCase(),      color: "var(--emerald-700)", bg: "var(--emerald-50)" },
+    IN_TRANSIT:               { label: t("ticket.status.IN_TRANSIT").toUpperCase(),   color: "var(--amber-700)",   bg: "var(--amber-50)"   },
+    PENDING_PROVIDER_INVOICE: { label: t("ticket.pills.pendingInvoice").toUpperCase(),color: "var(--slate-600)",   bg: "var(--slate-100)"  },
+    PENDING_PAYMENT:          { label: t("ticket.pills.pendingPayment").toUpperCase(), color: "var(--slate-600)",   bg: "var(--slate-100)"  },
+  };
 
   const firstChip = active[0] ? STATUS_CHIP[active[0].status] : null;
 
@@ -184,7 +188,7 @@ export function ActiveJobCard() {
     <>
       <div className="panel-title">
         <span className="num">01</span>
-        <span className="label">Active right now</span>
+        <span className="label">{t("providerAccount.activeJobs_title")}</span>
         <span className="rule" />
         {firstChip && (
           <span
@@ -205,13 +209,13 @@ export function ActiveJobCard() {
 
       {isLoading && (
         <div className="card" style={{ marginBottom: 32, padding: "20px 24px", fontSize: 13, color: "var(--text-muted)" }}>
-          Loading…
+          {t("common.loading")}
         </div>
       )}
 
       {!isLoading && active.length === 0 && (
         <div className="card" style={{ marginBottom: 32, padding: "20px 24px", fontSize: 13, color: "var(--text-muted)" }}>
-          No active jobs right now.
+          {t("providerAccount.activeJobs_empty")}
         </div>
       )}
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/context/auth";
 import { upsertReview } from "@/services/reviewService";
 import { StarRating } from "./StarRating";
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function ReviewForm({ providerId, existing, onDone }: Readonly<Props>) {
+  const { t } = useTranslation();
   const { accessToken } = useAuth();
   const queryClient = useQueryClient();
   const [rating, setRating] = useState<number>(existing?.rating ?? 0);
@@ -20,7 +22,7 @@ export function ReviewForm({ providerId, existing, onDone }: Readonly<Props>) {
 
   const mutation = useMutation({
     mutationFn: async () => {
-      if (rating < 1 || rating > 5) throw new Error("Pick a rating from 1 to 5.");
+      if (rating < 1 || rating > 5) throw new Error(t("reviews.ratingError"));
       return upsertReview(providerId, { rating, comment: comment.trim() || null }, accessToken);
     },
     onSuccess: () => {
@@ -31,7 +33,7 @@ export function ReviewForm({ providerId, existing, onDone }: Readonly<Props>) {
     onError: (err: Error) => setError(err.message),
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     mutation.mutate();
@@ -51,7 +53,7 @@ export function ReviewForm({ providerId, existing, onDone }: Readonly<Props>) {
             marginBottom: 8,
           }}
         >
-          Your rating
+          {t("reviews.yourRating")}
         </div>
         <StarRating value={rating} interactive onChange={setRating} size={26} />
       </div>
@@ -70,14 +72,14 @@ export function ReviewForm({ providerId, existing, onDone }: Readonly<Props>) {
             display: "block",
           }}
         >
-          Comment (optional)
+          {t("reviews.commentOptional")}
         </label>
         <textarea
           id="review-comment"
           rows={4}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
-          placeholder="What was good? What could improve?"
+          placeholder={t("reviews.commentPlaceholder")}
           maxLength={2000}
           style={{
             width: "100%",
@@ -94,28 +96,13 @@ export function ReviewForm({ providerId, existing, onDone }: Readonly<Props>) {
             outline: "none",
           }}
         />
-        <div
-          style={{
-            fontSize: 11,
-            color: "var(--text-muted)",
-            textAlign: "right",
-            marginTop: 2,
-          }}
-        >
+        <div style={{ fontSize: 11, color: "var(--text-muted)", textAlign: "right", marginTop: 2 }}>
           {comment.length} / 2000
         </div>
       </div>
 
       {error && (
-        <div
-          style={{
-            fontSize: 12,
-            color: "#B91C1C",
-            background: "#FEE2E2",
-            padding: "6px 10px",
-            borderRadius: 6,
-          }}
-        >
+        <div style={{ fontSize: 12, color: "#B91C1C", background: "#FEE2E2", padding: "6px 10px", borderRadius: 6 }}>
           {error}
         </div>
       )}
@@ -128,7 +115,7 @@ export function ReviewForm({ providerId, existing, onDone }: Readonly<Props>) {
             onClick={onDone}
             disabled={mutation.isPending}
           >
-            Cancel
+            {t("common.cancel")}
           </button>
         )}
         <button
@@ -136,11 +123,11 @@ export function ReviewForm({ providerId, existing, onDone }: Readonly<Props>) {
           className="btn btn-primary btn-sm"
           disabled={mutation.isPending || rating < 1}
         >
-          {mutation.isPending
-            ? "Saving…"
-            : existing
-            ? "Update review"
-            : "Post review"}
+          {(() => {
+            if (mutation.isPending) return t("reviews.saving");
+            if (existing) return t("reviews.updateReview");
+            return t("reviews.postReview");
+          })()}
         </button>
       </div>
     </form>

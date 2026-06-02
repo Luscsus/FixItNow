@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { Ticket, TicketPriority, TicketStatus } from "@/domain/ticket";
 import { useAcceptTicketMutation } from "@/hooks/useAcceptTicketMutation";
 import {
@@ -116,13 +117,8 @@ interface RequestCardProps {
   isPending?: boolean;
 }
 
-function RequestCard({
-  ticket,
-  onAccept,
-  onDecline,
-  acceptLabel = "Accept →",
-  isPending,
-}: RequestCardProps) {
+function RequestCard({ ticket, onAccept, onDecline, acceptLabel = "Accept →", isPending }: RequestCardProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const pc = priorityClass(ticket.priority);
   return (
@@ -201,7 +197,7 @@ function RequestCard({
               }}
               disabled={isPending}
             >
-              Decline
+              {t("ticket.decline")}
             </button>
           )}
           <button
@@ -222,17 +218,18 @@ function RequestCard({
 }
 
 function ActiveJobCard({ ticket }: { ticket: Ticket }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const statusLabel: Record<TicketStatus, string> = {
-    APPROVED: "Accepted",
-    IN_TRANSIT: "En route",
-    PENDING_PROVIDER_INVOICE: "Awaiting invoice",
-    PENDING_PAYMENT: "Awaiting payment",
-    PENDING_APPROVAL: "Pending",
-    DECLINED: "Declined",
-    COMPLETED: "Completed",
-    CANCELLED: "Cancelled",
+    APPROVED:               t("ticket.pills.accepted"),
+    IN_TRANSIT:             t("ticket.pills.onSite"),
+    PENDING_PROVIDER_INVOICE: t("ticket.pills.pendingInvoice"),
+    PENDING_PAYMENT:        t("ticket.pills.pendingPayment"),
+    PENDING_APPROVAL:       t("ticket.pills.awaitingProvider"),
+    DECLINED:               t("ticket.pills.declined"),
+    COMPLETED:              t("ticket.pills.completed"),
+    CANCELLED:              t("ticket.pills.cancelled"),
   };
 
   return (
@@ -281,6 +278,7 @@ function ActiveJobCard({ ticket }: { ticket: Ticket }) {
 }
 
 export function ProviderDashboardPage() {
+  const { t } = useTranslation();
   const { data: provider } = useCurrentProvider();
   const { data: providerTickets = [], isLoading: loadingProvider } =
     useProviderTicketsQuery();
@@ -331,41 +329,20 @@ export function ProviderDashboardPage() {
           <div className="hero-top">
             <div>
               <span className="eyebrow" style={{ color: "var(--amber-500)" }}>
-                Provider dashboard · {providerName}
+                {t("dashboard.providerDashboard")} · {providerName}
               </span>
               <h1 className="dash-hero-headline">
                 {inboundTickets.length > 0 ? (
                   <>
-                    You&apos;ve got{" "}
-                    <b>
-                      {inboundTickets.length} inbound request
-                      {inboundTickets.length !== 1 ? "s" : ""}
-                    </b>
+                    {t("dashboard.gotInbound", { count: inboundTickets.length })}
                     {activeJobs.length > 0 && (
-                      <>
-                        {" "}
-                        and{" "}
-                        <b>
-                          {activeJobs.length} active job
-                          {activeJobs.length !== 1 ? "s" : ""}
-                        </b>
-                      </>
+                      <>{t("dashboard.andActiveJobs", { count: activeJobs.length })}</>
                     )}
-                    .
                   </>
                 ) : activeJobs.length > 0 ? (
-                  <>
-                    You have{" "}
-                    <b>
-                      {activeJobs.length} active job
-                      {activeJobs.length !== 1 ? "s" : ""}
-                    </b>{" "}
-                    in progress.
-                  </>
+                  t("dashboard.activeJobsInProgress", { count: activeJobs.length })
                 ) : (
-                  <>
-                    Welcome back, <b>{firstName}</b>. No requests right now.
-                  </>
+                  <>{t("dashboard.welcomeBackProvider")}, <b>{firstName}</b>. {t("dashboard.noRequestsNow")}</>
                 )}
               </h1>
             </div>
@@ -373,29 +350,11 @@ export function ProviderDashboardPage() {
             <div className="status-pod">
               <span className="status-pulse" />
               <div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 11,
-                    color: "#34D399",
-                    letterSpacing: "0.08em",
-                    textTransform: "uppercase",
-                    fontWeight: 700,
-                  }}
-                >
-                  Online · accepting
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#34D399", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 700 }}>
+                  {t("dashboard.onlineAccepting")}
                 </div>
-                <div
-                  style={{
-                    color: "#fff",
-                    fontSize: 13.5,
-                    fontWeight: 500,
-                    marginTop: 2,
-                    letterSpacing: "-0.01em",
-                  }}
-                >
-                  {openTickets.length} open ticket
-                  {openTickets.length !== 1 ? "s" : ""} available
+                <div style={{ color: "#fff", fontSize: 13.5, fontWeight: 500, marginTop: 2, letterSpacing: "-0.01em" }}>
+                  {t("dashboard.openTicketsAvailable", { count: openTickets.length })}
                 </div>
               </div>
             </div>
@@ -406,27 +365,19 @@ export function ProviderDashboardPage() {
             style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
           >
             <div className="hstat warn">
-              <div className="hstat-label">Requests waiting</div>
-              <div className="hstat-num">
-                {String(inboundTickets.length).padStart(2, "0")}
-              </div>
-              <div className="hstat-hint">
-                assigned to you · PENDING_APPROVAL
-              </div>
+              <div className="hstat-label">{t("dashboard.requestsWaiting")}</div>
+              <div className="hstat-num">{String(inboundTickets.length).padStart(2, "0")}</div>
+              <div className="hstat-hint">{t("dashboard.assignedPending")}</div>
             </div>
             <div className="hstat">
-              <div className="hstat-label">Active jobs</div>
-              <div className="hstat-num">
-                {String(activeJobs.length).padStart(2, "0")}
-              </div>
-              <div className="hstat-hint">in progress</div>
+              <div className="hstat-label">{t("dashboard.activeJobs")}</div>
+              <div className="hstat-num">{String(activeJobs.length).padStart(2, "0")}</div>
+              <div className="hstat-hint">{t("dashboard.inProgress")}</div>
             </div>
             <div className="hstat accent">
-              <div className="hstat-label">Open to anyone</div>
-              <div className="hstat-num">
-                {String(openTickets.length).padStart(2, "0")}
-              </div>
-              <div className="hstat-hint">no provider assigned yet</div>
+              <div className="hstat-label">{t("dashboard.openToAnyone")}</div>
+              <div className="hstat-num">{String(openTickets.length).padStart(2, "0")}</div>
+              <div className="hstat-hint">{t("dashboard.noProviderAssigned")}</div>
             </div>
           </div>
         </div>
@@ -436,42 +387,18 @@ export function ProviderDashboardPage() {
         {/* ── Panel 01: Inbound requests ── */}
         <div className="panel-title">
           <span className="num">01</span>
-          <span className="label">Inbound requests</span>
+          <span className="label">{t("dashboard.inboundRequests")}</span>
           <span className="rule" />
-          <span
-            className="mono"
-            style={{
-              fontSize: 11,
-              color: "var(--amber-700)",
-              background: "var(--amber-50)",
-              padding: "3px 8px",
-              borderRadius: 4,
-              letterSpacing: "0.05em",
-            }}
-          >
-            {inboundTickets.length} WAITING
+          <span className="mono" style={{ fontSize: 11, color: "var(--amber-700)", background: "var(--amber-50)", padding: "3px 8px", borderRadius: 4, letterSpacing: "0.05em" }}>
+            {inboundTickets.length} {t("dashboard.waiting")}
           </span>
         </div>
 
         {loadingProvider ? (
-          <div style={{ padding: "32px 0", color: "var(--slate-400)" }}>
-            Loading requests…
-          </div>
+          <div style={{ padding: "32px 0", color: "var(--slate-400)" }}>{t("common.loading")}</div>
         ) : inboundTickets.length === 0 ? (
-          <div
-            className="card card-pad"
-            style={{
-              textAlign: "center",
-              padding: "40px 24px",
-              marginBottom: 48,
-            }}
-          >
-            <div style={{ fontSize: 15, color: "var(--slate-500)" }}>
-              No inbound requests at the moment.
-            </div>
-            <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>
-              Tickets assigned specifically to you will appear here.
-            </div>
+          <div className="card card-pad" style={{ textAlign: "center", padding: "40px 24px", marginBottom: 48 }}>
+            <div style={{ fontSize: 15, color: "var(--slate-500)" }}>{t("dashboard.noInbound")}</div>
           </div>
         ) : (
           <>
@@ -480,26 +407,14 @@ export function ProviderDashboardPage() {
                 <RequestCard
                   key={ticket.id}
                   ticket={ticket}
-                  acceptLabel={
-                    ticket.requestedStartAt
-                      ? "Confirm & schedule →"
-                      : "Accept →"
-                  }
-                  isPending={
-                    confirmMut.isPending ||
-                    declineMut.isPending ||
-                    updateStatus.isPending
-                  }
-                  onAccept={() =>
-                    ticket.requestedStartAt
-                      ? confirmMut.mutate(ticket.id, {
-                          onError: handleAcceptError,
-                        })
-                      : updateStatus.mutate(
-                          { ticketId: ticket.id, status: "APPROVED" },
-                          { onError: handleAcceptError },
-                        )
-                  }
+                  acceptLabel={ticket.requestedStartAt ? t("ticket.actions.confirmSchedule") : t("ticket.actions.accept")}
+                  isPending={confirmMut.isPending || declineMut.isPending || updateStatus.isPending}
+                  onAccept={() => ticket.requestedStartAt
+                    ? confirmMut.mutate(ticket.id, { onError: handleAcceptError })
+                    : updateStatus.mutate(
+                        { ticketId: ticket.id, status: "APPROVED" },
+                        { onError: handleAcceptError },
+                      )}
                   onDecline={() => declineMut.mutate(ticket.id)}
                 />
               ))}
@@ -517,11 +432,9 @@ export function ProviderDashboardPage() {
           <>
             <div className="panel-title">
               <span className="num">02</span>
-              <span className="label">Active jobs</span>
+              <span className="label">{t("dashboard.jobsInProgress")}</span>
               <span className="rule" />
-              <span className="mono muted" style={{ fontSize: 11 }}>
-                {activeJobs.length} IN PROGRESS
-              </span>
+              <span className="mono muted" style={{ fontSize: 11 }}>{activeJobs.length} {t("dashboard.inProgress_badge")}</span>
             </div>
             <div className="dash-card-grid">
               {activePaged.pageItems.map((ticket) => (
@@ -539,42 +452,18 @@ export function ProviderDashboardPage() {
         {/* ── Panel 03: Open to anyone ── */}
         <div className="panel-title">
           <span className="num">{activeJobs.length > 0 ? "03" : "02"}</span>
-          <span className="label">Open to anyone</span>
+          <span className="label">{t("dashboard.nearbyOpenTickets")}</span>
           <span className="rule" />
-          <span
-            className="mono"
-            style={{
-              fontSize: 11,
-              color: "var(--blue-700)",
-              background: "var(--blue-50)",
-              padding: "3px 8px",
-              borderRadius: 4,
-              letterSpacing: "0.05em",
-            }}
-          >
-            {openTickets.length} AVAILABLE
+          <span className="mono" style={{ fontSize: 11, color: "var(--blue-700)", background: "var(--blue-50)", padding: "3px 8px", borderRadius: 4, letterSpacing: "0.05em" }}>
+            {openTickets.length} {t("dashboard.available_badge")}
           </span>
         </div>
 
         {loadingOpen ? (
-          <div style={{ padding: "32px 0", color: "var(--slate-400)" }}>
-            Loading open tickets…
-          </div>
+          <div style={{ padding: "32px 0", color: "var(--slate-400)" }}>{t("common.loading")}</div>
         ) : openTickets.length === 0 ? (
-          <div
-            className="card card-pad"
-            style={{
-              textAlign: "center",
-              padding: "40px 24px",
-              marginBottom: 48,
-            }}
-          >
-            <div style={{ fontSize: 15, color: "var(--slate-500)" }}>
-              No open tickets right now.
-            </div>
-            <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>
-              Tickets open to all providers will appear here.
-            </div>
+          <div className="card card-pad" style={{ textAlign: "center", padding: "40px 24px", marginBottom: 48 }}>
+            <div style={{ fontSize: 15, color: "var(--slate-500)" }}>{t("dashboard.noNearby")}</div>
           </div>
         ) : (
           <>
@@ -583,7 +472,7 @@ export function ProviderDashboardPage() {
                 <RequestCard
                   key={ticket.id}
                   ticket={ticket}
-                  acceptLabel="Accept & assign →"
+                  acceptLabel={t("ticket.actions.acceptAssign")}
                   isPending={acceptOpen.isPending}
                   onAccept={() => {
                     acceptOpen.mutate(ticket.id, {
@@ -602,27 +491,10 @@ export function ProviderDashboardPage() {
         )}
 
         {/* ── Pro tip ── */}
-        <div
-          className="pulse-card"
-          style={{
-            marginTop: 16,
-            background: "var(--amber-50)",
-            borderColor: "var(--amber-100)",
-          }}
-        >
-          <span className="eyebrow-plain" style={{ color: "var(--amber-700)" }}>
-            Pro tip · grow your business
-          </span>
-          <p
-            style={{
-              fontSize: 14,
-              lineHeight: 1.55,
-              margin: "8px 0 0",
-              color: "var(--amber-700)",
-            }}
-          >
-            Respond to inbound requests quickly to build your reputation.
-            Accepted tickets move to your active jobs automatically.
+        <div className="pulse-card" style={{ marginTop: 16, background: "var(--amber-50)", borderColor: "var(--amber-100)" }}>
+          <span className="eyebrow-plain" style={{ color: "var(--amber-700)" }}>{t("dashboard.proTip_provider_eyebrow")}</span>
+          <p style={{ fontSize: 14, lineHeight: 1.55, margin: "8px 0 0", color: "var(--amber-700)" }}>
+            {t("dashboard.proTip_provider_text")}
           </p>
         </div>
       </main>

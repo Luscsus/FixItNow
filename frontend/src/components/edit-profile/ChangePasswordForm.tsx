@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
+import { useTranslation } from "react-i18next";
 
 import { useAuth } from "@/context/auth";
 import { changePassword } from "@/services/userService";
@@ -9,20 +10,10 @@ import { mapZodErrors } from "@/lib/validation";
 import { passwordStrength } from "@/utils/passwordStrength";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 
-const schema = z
-  .object({
-    currentPassword: z.string().min(1, "Current password is required."),
-    newPassword: z.string().min(8, "Password must be at least 8 characters."),
-    confirmNewPassword: z.string().min(1, "Please confirm your new password."),
-  })
-  .refine((d) => d.newPassword === d.confirmNewPassword, {
-    message: "Passwords do not match.",
-    path: ["confirmNewPassword"],
-  });
-
 type Fields = "currentPassword" | "newPassword" | "confirmNewPassword";
 
 export function ChangePasswordForm() {
+  const { t } = useTranslation();
   const { accessToken } = useAuth();
   const [form, setForm] = useState({
     currentPassword: "",
@@ -31,6 +22,17 @@ export function ChangePasswordForm() {
   });
   const [errors, setErrors] = useState<Partial<Record<Fields, string>>>({});
   const [success, setSuccess] = useState(false);
+
+  const schema = z
+    .object({
+      currentPassword: z.string().min(1, t("editProfile.error_currentPassword")),
+      newPassword: z.string().min(8, t("editProfile.error_newPasswordMin")),
+      confirmNewPassword: z.string().min(1, t("editProfile.error_confirmPassword")),
+    })
+    .refine((d) => d.newPassword === d.confirmNewPassword, {
+      message: t("editProfile.error_passwordMatch"),
+      path: ["confirmNewPassword"],
+    });
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -51,7 +53,7 @@ export function ChangePasswordForm() {
 
   const pwStrength = passwordStrength(form.newPassword);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const parsed = schema.safeParse(form);
     if (!parsed.success) {
@@ -69,7 +71,7 @@ export function ChangePasswordForm() {
   return (
     <form onSubmit={handleSubmit} className="col" style={{ gap: 20 }}>
       <div className="field">
-        <label className="field-label" htmlFor="cp-current">Current password</label>
+        <label className="field-label" htmlFor="cp-current">{t("editProfile.currentPassword")}</label>
         <PasswordInput
           id="cp-current"
           autoComplete="current-password"
@@ -81,11 +83,11 @@ export function ChangePasswordForm() {
       </div>
 
       <div className="field">
-        <label className="field-label" htmlFor="cp-new">New password</label>
+        <label className="field-label" htmlFor="cp-new">{t("editProfile.newPassword")}</label>
         <PasswordInput
           id="cp-new"
           autoComplete="new-password"
-          placeholder="Min. 8 characters"
+          placeholder={t("editProfile.minChars")}
           value={form.newPassword}
           onChange={set("newPassword")}
           hasError={Boolean(errors.newPassword)}
@@ -99,7 +101,7 @@ export function ChangePasswordForm() {
       </div>
 
       <div className="field">
-        <label className="field-label" htmlFor="cp-confirm">Confirm new password</label>
+        <label className="field-label" htmlFor="cp-confirm">{t("editProfile.confirmNewPassword")}</label>
         <PasswordInput
           id="cp-confirm"
           autoComplete="new-password"
@@ -112,9 +114,9 @@ export function ChangePasswordForm() {
 
       <div className="row" style={{ gap: 12, alignItems: "center" }}>
         <button type="submit" className="btn btn-primary" disabled={mutation.isPending}>
-          {mutation.isPending ? "Updating…" : "Update password"}
+          {mutation.isPending ? t("editProfile.updating") : t("editProfile.updatePassword")}
         </button>
-        {success && <span style={{ color: "var(--emerald-700)", fontSize: 13 }}>Password updated.</span>}
+        {success && <span style={{ color: "var(--emerald-700)", fontSize: 13 }}>{t("editProfile.passwordUpdated")}</span>}
       </div>
     </form>
   );

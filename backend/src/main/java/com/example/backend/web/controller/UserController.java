@@ -58,6 +58,9 @@ public class UserController {
     @GetMapping("/providers/me")
     @Transactional(readOnly = true)
     public ResponseEntity<ProviderResponse> getCurrentProvider(@AuthenticationPrincipal UserPrincipal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(401).build();
+        }
         User user = principal.getUser();
         if (!(user instanceof Provider)) {
             return ResponseEntity.status(403).build();

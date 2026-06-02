@@ -27,6 +27,9 @@ public interface NotificationService {
 
     void markAllAsRead(UUID userId);
 
+    /** Permanently removes every notification belonging to the user. */
+    void deleteAll(UUID userId);
+
     /** Clears the grouped unread-message notification once the recipient reads the chat. */
     void markChatRoomRead(UUID userId, UUID chatRoomId);
 }

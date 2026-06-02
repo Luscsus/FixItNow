@@ -109,8 +109,8 @@ public class TicketService {
         if (assignedProviderId != null) {
             ensureChatRoom(saved, assignedProviderId);
             saved = ticketRepository.save(saved);
-            // Hold the requested slot immediately so other customers see it as unavailable.
-            calendarService.syncBookedBlockForTicket(saved);
+            // Note: the requested slot is NOT booked on the provider's calendar yet —
+            // a BOOKED block is only created once the provider accepts the ticket.
             // Opening greeting so the chat isn't empty when the provider opens it
             postSystemMessage(saved, "Ticket " + formatTicketCode(saved.getId())
                 + " · " + saved.getServiceType() + " · awaiting provider response.");
@@ -159,6 +159,33 @@ public class TicketService {
             if (notifBody != null) {
                 notifyCustomerOfStatusChange(saved, notifBody);
             }
+        }
+        return toResponse(saved);
+    }
+
+    /**
+     * Customer-initiated cancellation. Only the ticket owner may cancel, and only
+     * while the ticket is still awaiting the provider's response (PENDING_APPROVAL).
+     * Once a provider has accepted, the customer can no longer cancel from here.
+     */
+    @Transactional
+    public TicketResponse cancelTicketByCustomer(Long ticketId, UUID userId) {
+        Ticket ticket = getTicketOrThrow(ticketId);
+        if (ticket.getUser() == null || !ticket.getUser().getId().equals(userId)) {
+            throw new AccessDeniedException("Only the ticket owner can cancel this ticket.");
+        }
+        if (ticket.getStatus() != TicketStatus.PENDING_APPROVAL) {
+            throw new InvalidTicketStatusTransitionException(
+                "Ticket " + ticketId + " can only be cancelled while awaiting provider approval (status: "
+                    + ticket.getStatus() + ")");
+        }
+        ticket.setStatus(TicketStatus.CANCELLED);
+        Ticket saved = ticketRepository.save(ticket);
+        recordHistory(saved, TicketStatus.CANCELLED);
+        calendarService.syncBookedBlockForTicket(saved);
+        String chatBody = statusChangeMessage(saved, TicketStatus.PENDING_APPROVAL, TicketStatus.CANCELLED);
+        if (chatBody != null) {
+            postSystemMessage(saved, chatBody);
         }
         return toResponse(saved);
     }

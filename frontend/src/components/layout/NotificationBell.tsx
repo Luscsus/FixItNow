@@ -101,7 +101,7 @@ export function NotificationBell() {
   const queryClient = useQueryClient();
   const { accessToken, refreshSession } = useAuth();
   const { data: currentUser } = useCurrentUser();
-  const { notifications, unreadCount, isLoading, markRead, markAllRead } = useNotifications();
+  const { notifications, unreadCount, isLoading, markRead, markAllRead, deleteAll } = useNotifications();
   const { isMobile } = useBreakpoint();
 
   const [open, setOpen] = useState(false);
@@ -197,14 +197,23 @@ export function NotificationBell() {
           desktopAsModal={false}
           maxHeight="80vh"
         >
-          {unreadCount > 0 && (
-            <div style={{ padding: "0 0 12px", borderBottom: "1px solid rgba(15,23,42,0.07)", marginBottom: 4 }}>
+          {notifications.length > 0 && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "0 0 12px", borderBottom: "1px solid rgba(15,23,42,0.07)", marginBottom: 4 }}>
+              {unreadCount > 0 ? (
+                <button
+                  onClick={() => markAllRead.mutate()}
+                  disabled={markAllRead.isPending}
+                  style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 500, color: "var(--navy-700)", padding: 0 }}
+                >
+                  {t("notifications.markAllRead")}
+                </button>
+              ) : <span />}
               <button
-                onClick={() => markAllRead.mutate()}
-                disabled={markAllRead.isPending}
-                style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 500, color: "var(--navy-700)", padding: 0 }}
+                onClick={() => deleteAll.mutate()}
+                disabled={deleteAll.isPending}
+                style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 500, color: "var(--red-600)", padding: 0 }}
               >
-                {t("notifications.markAllRead")}
+                {t("notifications.clearAll")}
               </button>
             </div>
           )}
@@ -231,19 +240,34 @@ export function NotificationBell() {
             borderBottom: "1px solid rgba(15,23,42,0.07)",
           }}>
             <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text)" }}>{t("notifications.title")}</span>
-            {unreadCount > 0 && (
-              <button
-                onClick={() => markAllRead.mutate()}
-                disabled={markAllRead.isPending}
-                style={{
-                  background: "transparent", border: "none", cursor: "pointer",
-                  fontSize: 12, fontWeight: 500, color: "var(--navy-700)",
-                  padding: 0,
-                }}
-              >
-                {t("notifications.markAllRead")}
-              </button>
-            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              {unreadCount > 0 && (
+                <button
+                  onClick={() => markAllRead.mutate()}
+                  disabled={markAllRead.isPending}
+                  style={{
+                    background: "transparent", border: "none", cursor: "pointer",
+                    fontSize: 12, fontWeight: 500, color: "var(--navy-700)",
+                    padding: 0,
+                  }}
+                >
+                  {t("notifications.markAllRead")}
+                </button>
+              )}
+              {notifications.length > 0 && (
+                <button
+                  onClick={() => deleteAll.mutate()}
+                  disabled={deleteAll.isPending}
+                  style={{
+                    background: "transparent", border: "none", cursor: "pointer",
+                    fontSize: 12, fontWeight: 500, color: "var(--red-600)",
+                    padding: 0,
+                  }}
+                >
+                  {t("notifications.clearAll")}
+                </button>
+              )}
+            </div>
           </div>
           {notifList}
         </div>

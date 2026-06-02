@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -46,6 +47,13 @@ public class NotificationController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, Boolean>> markAllRead(@AuthenticationPrincipal UserPrincipal userDetails) {
         notificationService.markAllAsRead(userDetails.getUser().getId());
+        return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    @DeleteMapping
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Boolean>> deleteAll(@AuthenticationPrincipal UserPrincipal userDetails) {
+        notificationService.deleteAll(userDetails.getUser().getId());
         return ResponseEntity.ok(Map.of("success", true));
     }
 }

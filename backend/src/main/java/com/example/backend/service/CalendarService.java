@@ -281,6 +281,10 @@ public class CalendarService {
             || ticket.getStatus() == TicketStatus.CANCELLED
             || ticket.getStatus() == TicketStatus.DECLINED;
 
+        // A ticket that is still awaiting the provider's response must NOT occupy the
+        // provider's calendar — the slot is only booked once they accept it.
+        boolean pending = ticket.getStatus() == TicketStatus.PENDING_APPROVAL;
+
         LocalDateTime startAt = ticket.getScheduledStartAt() != null
             ? ticket.getScheduledStartAt() : ticket.getRequestedStartAt();
         LocalDateTime endAt = ticket.getScheduledEndAt() != null
@@ -292,7 +296,7 @@ public class CalendarService {
         Optional<Provider> providerOpt = assignedId != null
             ? providerRepository.findById(assignedId) : Optional.empty();
 
-        if (closed || !hasSchedule || providerOpt.isEmpty()) {
+        if (closed || pending || !hasSchedule || providerOpt.isEmpty()) {
             existing.ifPresent(blockRepository::delete);
             return;
         }

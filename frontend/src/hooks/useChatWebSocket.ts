@@ -98,6 +98,10 @@ export function useChatWebSocket({
         // update in refreshSession will make this effect re-run with a new
         // accessToken and the next CONNECT will succeed.
         if (/jwt|auth|access denied/i.test(msg)) {
+          // Stop the auto-reconnect loop so we don't keep retrying with the same
+          // rejected token. A successful refresh updates accessToken, re-running
+          // this effect with a fresh client.
+          client.deactivate();
           refreshSessionRef.current().catch(() => { /* already logged inside */ });
         }
       },

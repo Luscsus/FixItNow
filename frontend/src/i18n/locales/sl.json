@@ -674,6 +674,14 @@
     "cancelTicket": "Prekliči zahtevek",
     "acceptPayoutError": "Pred sprejemom dela morate dodati podatke o izplačilu (bančni račun).",
     "acceptPayoutErrorLink": "Dodaj podatke o izplačilu →",
+    "cancelDialog": {
+      "title": "Prekliči ta zahtevek?",
+      "body": "Ali ste prepričani, da želite preklicati zahtevek {{code}}? Tega ni mogoče razveljaviti — zahtevek bo zaprt in premaknjen med rešene zahtevke.",
+      "confirm": "Da, prekliči zahtevek",
+      "loading": "Preklicevanje…",
+      "keep": "Obdrži zahtevek",
+      "error": "Zahtevka ni bilo mogoče preklicati. Poskusite znova."
+    },
     "ticketDeclined": "Zahtevek zavrnjen",
     "ticketCancelled": "Zahtevek preklican",
     "status": {
@@ -1224,6 +1232,7 @@
     "noNotifications": "Še ni obvestil.",
     "allCaughtUp": "Ste na tekočem.",
     "markAllRead": "Označi vse kot prebrano",
+    "clearAll": "Počisti vse",
     "newMessage": "Novo sporočilo",
     "ticketUpdate": "Posodobitev zahtevka"
   },
@@ -1378,6 +1387,9 @@
     "loading": "Nalagam ocene…",
     "empty": "Ni ocen — bodite prvi!",
     "deleteConfirm": "Izbriši svojo oceno?",
+    "deleteTitle": "Izbriši oceno",
+    "deleteBody": "S tem boste trajno odstranili svojo oceno za tega ponudnika. Tega dejanja ni mogoče razveljaviti.",
+    "deleteLabel": "Izbriši oceno",
     "edit": "Uredi",
     "deleting": "Brišem…",
     "delete": "Izbriši",

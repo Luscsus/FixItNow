@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/context/auth';
 import {
+  deleteAllNotifications,
   getNotifications,
   markAllNotificationsRead,
   markNotificationRead,
@@ -42,11 +43,17 @@ export function useNotifications() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY }),
   });
 
+  const deleteAll = useMutation({
+    mutationFn: () => deleteAllNotifications(accessToken),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY }),
+  });
+
   return {
     notifications,
     unreadCount,
     isLoading: query.isLoading,
     markRead,
     markAllRead,
+    deleteAll,
   };
 }

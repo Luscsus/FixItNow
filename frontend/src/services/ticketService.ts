@@ -78,6 +78,14 @@ export async function confirmTicket(ticketId: number, accessToken?: string): Pro
   return mapTicket(data);
 }
 
+export async function cancelTicket(ticketId: number, accessToken?: string): Promise<Ticket> {
+  const data = await requestJson<TicketResponseDto>(`/api/tickets/${ticketId}/cancel`, {
+    method: "POST",
+    headers: authHeader(accessToken),
+  });
+  return mapTicket(data);
+}
+
 export async function declineTicket(ticketId: number, accessToken?: string): Promise<Ticket> {
   const data = await requestJson<TicketResponseDto>(
     `/api/tickets/${ticketId}/status?newStatus=DECLINED`,

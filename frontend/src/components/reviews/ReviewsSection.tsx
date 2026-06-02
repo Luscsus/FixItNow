@@ -12,6 +12,7 @@ import {
 import { StarRating } from "./StarRating";
 import { ReviewForm } from "./ReviewForm";
 import { Pagination, usePaginatedItems } from "@/components/ui/Pagination";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { Review } from "@/domain/review";
 
 const REVIEWS_PAGE_SIZE = 5;
@@ -139,6 +140,7 @@ export function ReviewsSection({ providerId, sectionNumber = "03" }: Readonly<Pr
   const currentUser = useCurrentUser();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const reviewsQuery = useQuery({
     queryKey: ["providerReviews", providerId],
@@ -157,6 +159,7 @@ export function ReviewsSection({ providerId, sectionNumber = "03" }: Readonly<Pr
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["providerReviews", providerId] });
       queryClient.invalidateQueries({ queryKey: ["providerReviewStats", providerId] });
+      setConfirmDelete(false);
     },
   });
 
@@ -265,9 +268,7 @@ export function ReviewsSection({ providerId, sectionNumber = "03" }: Readonly<Pr
                   review={r}
                   isMine={r.reviewerId === myUserId}
                   onEdit={() => setShowForm(true)}
-                  onDelete={() => {
-                    if (window.confirm(t("reviews.deleteConfirm"))) deleteMutation.mutate();
-                  }}
+                  onDelete={() => setConfirmDelete(true)}
                   isDeleting={deleteMutation.isPending}
                 />
               ))}
@@ -276,6 +277,18 @@ export function ReviewsSection({ providerId, sectionNumber = "03" }: Readonly<Pr
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title={t("reviews.deleteTitle")}
+        confirmLabel={t("reviews.deleteLabel")}
+        loadingLabel={t("reviews.deleting")}
+        loading={deleteMutation.isPending}
+        onConfirm={() => deleteMutation.mutate()}
+        onCancel={() => setConfirmDelete(false)}
+      >
+        {t("reviews.deleteBody")}
+      </ConfirmDialog>
     </>
   );
 }

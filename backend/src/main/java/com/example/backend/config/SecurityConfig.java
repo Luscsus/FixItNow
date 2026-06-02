@@ -66,6 +66,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/providers/*/calendar").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/providers/*/reviews").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/providers/*/reviews/stats").permitAll()
+                // "/providers/me" is the *current* provider's own profile and must stay
+                // authenticated. It has to come before the public "/providers/*" wildcard
+                // below, otherwise that wildcard matches "me" too and lets unauthenticated
+                // requests reach the controller with a null principal (NPE).
+                .requestMatchers(HttpMethod.GET, "/api/v1/providers/me").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/v1/providers/*").permitAll()
                 .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                 .anyRequest().authenticated()

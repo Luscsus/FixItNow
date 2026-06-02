@@ -12,6 +12,8 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -134,6 +136,12 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional
+    public void deleteAll(UUID userId) {
+        notificationRepository.deleteAllForRecipient(userId);
+    }
+
+    @Override
+    @Transactional
     public void markChatRoomRead(UUID userId, UUID chatRoomId) {
         notificationRepository
             .findFirstByRecipientIdAndChatRoomIdAndTypeAndReadFalse(userId, chatRoomId, NotificationType.NEW_MESSAGE)
@@ -161,7 +169,23 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     private void broadcast(Notification n) {
-        messagingTemplate.convertAndSend("/topic/notifications/" + n.getRecipientId(), toResponse(n));
+        // Snapshot the payload now (while the entity is managed), but only push it to the
+        // client AFTER the surrounding transaction commits. Sending mid-transaction lets the
+        // client receive the frame and refetch before the row is committed/visible, so the
+        // new notification is missed and the unread badge never updates. Deferring to
+        // afterCommit guarantees the row is readable by the time the frame goes out.
+        String destination = "/topic/notifications/" + n.getRecipientId();
+        NotificationResponse payload = toResponse(n);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    messagingTemplate.convertAndSend(destination, payload);
+                }
+            });
+        } else {
+            messagingTemplate.convertAndSend(destination, payload);
+        }
     }
 
     private NotificationResponse toResponse(Notification n) {

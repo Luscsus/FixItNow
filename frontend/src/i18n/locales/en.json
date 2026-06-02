@@ -674,6 +674,14 @@
     "cancelTicket": "Cancel ticket",
     "acceptPayoutError": "You need to add your payout (bank) details before accepting work.",
     "acceptPayoutErrorLink": "Add payout details →",
+    "cancelDialog": {
+      "title": "Cancel this ticket?",
+      "body": "Are you sure you want to cancel ticket {{code}}? This can't be undone — the request will be closed and moved to your resolved tickets.",
+      "confirm": "Yes, cancel ticket",
+      "loading": "Cancelling…",
+      "keep": "Keep ticket",
+      "error": "Could not cancel this ticket. Please try again."
+    },
     "ticketDeclined": "Ticket declined",
     "ticketCancelled": "Ticket cancelled",
     "status": {
@@ -1224,6 +1232,7 @@
     "noNotifications": "No notifications yet.",
     "allCaughtUp": "You're all caught up.",
     "markAllRead": "Mark all read",
+    "clearAll": "Clear all",
     "newMessage": "New message",
     "ticketUpdate": "Ticket update"
   },
@@ -1378,6 +1387,9 @@
     "loading": "Loading reviews…",
     "empty": "No reviews yet — be the first!",
     "deleteConfirm": "Delete your review?",
+    "deleteTitle": "Delete review",
+    "deleteBody": "This will permanently remove your review for this provider. This action cannot be undone.",
+    "deleteLabel": "Delete review",
     "edit": "Edit",
     "deleting": "Deleting…",
     "delete": "Delete",

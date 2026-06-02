@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/context/auth";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useTicketsQuery } from "@/hooks/useTicketsQuery";
@@ -17,7 +18,7 @@ const REVIEWS_PAGE_SIZE = 5;
 
 interface Props {
   providerId: string;
-  sectionNumber?: string; // "03", "04" etc. for the panel-title numbering
+  sectionNumber?: string;
 }
 
 function formatReviewDate(iso: string): string {
@@ -44,19 +45,16 @@ function getInitials(name: string): string {
   );
 }
 
-function ReviewCard({
-  review,
-  isMine,
-  onEdit,
-  onDelete,
-  isDeleting,
-}: {
+interface ReviewCardProps {
   review: Review;
   isMine: boolean;
   onEdit: () => void;
   onDelete: () => void;
   isDeleting: boolean;
-}) {
+}
+
+function ReviewCard({ review, isMine, onEdit, onDelete, isDeleting }: Readonly<ReviewCardProps>) {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -70,19 +68,10 @@ function ReviewCard({
     >
       <div
         style={{
-          width: 36,
-          height: 36,
-          flexShrink: 0,
-          borderRadius: "50%",
-          background: "var(--navy-900)",
-          color: "var(--amber-500)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 12,
-          fontWeight: 700,
-          letterSpacing: "0.05em",
-          overflow: "hidden",
+          width: 36, height: 36, flexShrink: 0, borderRadius: "50%",
+          background: "var(--navy-900)", color: "var(--amber-500)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 12, fontWeight: 700, letterSpacing: "0.05em", overflow: "hidden",
         }}
       >
         {review.reviewerProfilePictureUrl ? (
@@ -96,39 +85,22 @@ function ReviewCard({
         )}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            gap: 8,
-            flexWrap: "wrap",
-          }}
-        >
-          <span style={{ fontWeight: 600, fontSize: 14 }}>
-            {review.reviewerName}
-          </span>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontWeight: 600, fontSize: 14 }}>{review.reviewerName}</span>
           {isMine && (
             <span
               className="mono"
               style={{
-                fontSize: 9,
-                padding: "1px 6px",
-                borderRadius: 4,
-                background: "var(--amber-100, #fef3c7)",
-                color: "var(--amber-800, #92400e)",
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                fontWeight: 700,
+                fontSize: 9, padding: "1px 6px", borderRadius: 4,
+                background: "var(--amber-100, #fef3c7)", color: "var(--amber-800, #92400e)",
+                letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 700,
               }}
             >
-              You
+              {t("reviews.you")}
             </span>
           )}
           <span style={{ flex: 1 }} />
-          <span
-            className="mono"
-            style={{ fontSize: 11, color: "var(--text-muted)" }}
-          >
+          <span className="mono" style={{ fontSize: 11, color: "var(--text-muted)" }}>
             {formatReviewDate(review.createdAt)}
           </span>
         </div>
@@ -136,28 +108,14 @@ function ReviewCard({
           <StarRating value={review.rating} size={14} />
         </div>
         {review.comment && (
-          <p
-            style={{
-              margin: "8px 0 0",
-              fontSize: 14,
-              lineHeight: 1.55,
-              color: "var(--text)",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-            }}
-          >
+          <p style={{ margin: "8px 0 0", fontSize: 14, lineHeight: 1.55, color: "var(--text)", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
             {review.comment}
           </p>
         )}
         {isMine && (
           <div style={{ marginTop: 10, display: "flex", gap: 6 }}>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={onEdit}
-              disabled={isDeleting}
-            >
-              Edit
+            <button type="button" className="btn btn-ghost btn-sm" onClick={onEdit} disabled={isDeleting}>
+              {t("reviews.edit")}
             </button>
             <button
               type="button"
@@ -166,7 +124,7 @@ function ReviewCard({
               disabled={isDeleting}
               style={{ color: "#B91C1C" }}
             >
-              {isDeleting ? "Deleting…" : "Delete"}
+              {isDeleting ? t("reviews.deleting") : t("reviews.delete")}
             </button>
           </div>
         )}
@@ -176,6 +134,7 @@ function ReviewCard({
 }
 
 export function ReviewsSection({ providerId, sectionNumber = "03" }: Readonly<Props>) {
+  const { t } = useTranslation();
   const { accessToken, role } = useAuth();
   const currentUser = useCurrentUser();
   const queryClient = useQueryClient();
@@ -184,8 +143,6 @@ export function ReviewsSection({ providerId, sectionNumber = "03" }: Readonly<Pr
   const reviewsQuery = useQuery({
     queryKey: ["providerReviews", providerId],
     queryFn: () => listProviderReviews(providerId),
-    // Keep showing the old list while a refetch runs after invalidation —
-    // prevents the empty / "Loading…" flash on edit/delete.
     placeholderData: keepPreviousData,
   });
 
@@ -210,16 +167,12 @@ export function ReviewsSection({ providerId, sectionNumber = "03" }: Readonly<Pr
     return reviewsQuery.data.find((r) => r.reviewerId === myUserId) ?? null;
   }, [reviewsQuery.data, myUserId]);
 
-  // Eligibility to leave a review: the customer must have at least one
-  // COMPLETED ticket assigned to this provider. The backend enforces the same
-  // rule (see ReviewServiceImpl#upsertReview); this client check just hides
-  // the CTA so it isn't a confusing dead-end.
   const ticketsQuery = useTicketsQuery();
   const canReview = useMemo(() => {
     if (!isCustomer) return false;
     const tickets = ticketsQuery.data ?? [];
     return tickets.some(
-      (t) => t.assignedServiceProviderId === providerId && t.status === "COMPLETED",
+      (tk) => tk.assignedServiceProviderId === providerId && tk.status === "COMPLETED",
     );
   }, [isCustomer, ticketsQuery.data, providerId]);
 
@@ -233,20 +186,15 @@ export function ReviewsSection({ providerId, sectionNumber = "03" }: Readonly<Pr
     <>
       <div className="panel-title">
         <span className="num">{sectionNumber}</span>
-        <span className="label">Reviews</span>
+        <span className="label">{t("reviews.title")}</span>
         <span className="rule" />
       </div>
 
       <div className="card card-pad" style={{ marginBottom: 32 }}>
-        {/* Aggregate header */}
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 16,
-            paddingBottom: 16,
-            borderBottom: "1px solid var(--border)",
-            marginBottom: 16,
+            display: "flex", alignItems: "center", gap: 16,
+            paddingBottom: 16, borderBottom: "1px solid var(--border)", marginBottom: 16,
           }}
         >
           <div>
@@ -259,86 +207,52 @@ export function ReviewsSection({ providerId, sectionNumber = "03" }: Readonly<Pr
           </div>
           <div style={{ borderLeft: "1px solid var(--border)", paddingLeft: 16 }}>
             <div className="mono" style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-              Total reviews
+              {t("reviews.totalReviews")}
             </div>
-            <div style={{ fontSize: 22, fontWeight: 600, marginTop: 2 }}>
-              {count}
-            </div>
+            <div style={{ fontSize: 22, fontWeight: 600, marginTop: 2 }}>{count}</div>
           </div>
           <span style={{ flex: 1 }} />
-          {/* CTA: show "Edit" if user already has a review (they were eligible
-              when they posted), otherwise show "Write a review" only when
-              they have at least one COMPLETED ticket with this provider. */}
           {isCustomer && !showForm && (myReview || canReview) && (
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={() => setShowForm(true)}
-            >
-              {myReview ? "Edit your review" : "Write a review"}
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>
+              {myReview ? t("reviews.editReview") : t("reviews.writeReview")}
             </button>
           )}
         </div>
 
-        {/* Eligibility hint for logged-in customers who haven't completed a
-            ticket with this provider yet and don't already have a review. */}
         {isCustomer && !myReview && !canReview && (
           <div
             style={{
-              marginBottom: 16,
-              padding: "10px 14px",
-              borderRadius: 10,
-              background: "var(--slate-50, #f8fafc)",
-              border: "1px solid var(--border)",
-              fontSize: 13,
-              color: "var(--text-muted)",
-              lineHeight: 1.5,
+              marginBottom: 16, padding: "10px 14px", borderRadius: 10,
+              background: "var(--slate-50, #f8fafc)", border: "1px solid var(--border)",
+              fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5,
             }}
           >
-            <strong style={{ color: "var(--text)" }}>Worked with {`this provider`}?</strong>{" "}
-            Reviews are open once a ticket between you two is marked{" "}
-            <strong>Completed</strong>.
+            <strong style={{ color: "var(--text)" }}>{t("reviews.workedWith")}</strong>{" "}
+            {t("reviews.reviewsOpen")}{" "}
+            <strong>{t("reviews.completed")}</strong>.
           </div>
         )}
 
-        {/* Form */}
         {isCustomer && showForm && (
           <div
             style={{
-              padding: 16,
-              borderRadius: 10,
-              background: "var(--slate-50, #f8fafc)",
-              border: "1px solid var(--border)",
-              marginBottom: 16,
+              padding: 16, borderRadius: 10,
+              background: "var(--slate-50, #f8fafc)", border: "1px solid var(--border)", marginBottom: 16,
             }}
           >
-            <ReviewForm
-              providerId={providerId}
-              existing={myReview}
-              onDone={() => setShowForm(false)}
-            />
+            <ReviewForm providerId={providerId} existing={myReview} onDone={() => setShowForm(false)} />
           </div>
         )}
 
-        {/* List — show "Loading" ONLY on the very first fetch (data undefined),
-            not on refetches after an invalidation. */}
         {reviewsQuery.data === undefined && reviewsQuery.isPending && (
           <div style={{ color: "var(--text-muted)", fontSize: 13, textAlign: "center", padding: 16 }}>
-            Loading reviews…
+            {t("reviews.loading")}
           </div>
         )}
 
         {reviewsQuery.data !== undefined && reviews.length === 0 && (
-          <div
-            style={{
-              color: "var(--text-muted)",
-              fontSize: 14,
-              textAlign: "center",
-              padding: "24px 16px",
-              fontStyle: "italic",
-            }}
-          >
-            No reviews yet — be the first!
+          <div style={{ color: "var(--text-muted)", fontSize: 14, textAlign: "center", padding: "24px 16px", fontStyle: "italic" }}>
+            {t("reviews.empty")}
           </div>
         )}
 
@@ -352,7 +266,7 @@ export function ReviewsSection({ providerId, sectionNumber = "03" }: Readonly<Pr
                   isMine={r.reviewerId === myUserId}
                   onEdit={() => setShowForm(true)}
                   onDelete={() => {
-                    if (window.confirm("Delete your review?")) deleteMutation.mutate();
+                    if (window.confirm(t("reviews.deleteConfirm"))) deleteMutation.mutate();
                   }}
                   isDeleting={deleteMutation.isPending}
                 />

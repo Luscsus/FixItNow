@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/context/auth";
 import { useNotifications } from "@/hooks/useNotifications";
 import type { UserRole } from "@/domain/auth";
@@ -49,10 +50,11 @@ function IconHome() {
 }
 
 interface MobileNavProps {
-  hidden?: boolean;
+  readonly hidden?: boolean;
 }
 
 export function MobileNav({ hidden = false }: MobileNavProps) {
+  const { t } = useTranslation();
   const { isAuthenticated, role } = useAuth();
   const { notifications } = useNotifications();
   const unread = notifications.filter((n) => !n.read && n.type === "NEW_MESSAGE").length;
@@ -61,23 +63,23 @@ export function MobileNav({ hidden = false }: MobileNavProps) {
 
   const items = isAuthenticated
     ? [
-        { label: "Tickets",   href: dashboardHref(role, true), icon: <IconTickets /> },
-        { label: "Providers", href: "/browse",                 icon: <IconProviders /> },
-        { label: "Inbox",     href: "/chat",                   icon: <IconInbox />, badge: unread },
-        { label: "Profile",   href: "/profile",                icon: <IconProfile /> },
+        { label: t("nav.tickets"),   href: dashboardHref(role, true), icon: <IconTickets /> },
+        { label: t("nav.providers"), href: "/browse",                 icon: <IconProviders /> },
+        { label: t("nav.inbox"),     href: "/chat",                   icon: <IconInbox />, badge: unread },
+        { label: t("nav.profile"),   href: "/profile",                icon: <IconProfile /> },
       ]
     : [
-        { label: "Home",      href: "/",         icon: <IconHome /> },
-        { label: "Providers", href: "/browse",   icon: <IconProviders /> },
-        { label: "Log in",    href: "/login",    icon: <IconProfile /> },
-        { label: "Sign up",   href: "/register", icon: <IconTickets /> },
+        { label: t("nav.home"),      href: "/",         icon: <IconHome /> },
+        { label: t("nav.providers"), href: "/browse",   icon: <IconProviders /> },
+        { label: t("nav.logIn"),     href: "/login",    icon: <IconProfile /> },
+        { label: t("nav.signUp"),    href: "/register", icon: <IconTickets /> },
       ];
 
   return (
     <nav className="mobile-nav safe-bottom mobile-only" aria-label="Primary">
       {items.map((item) => (
         <NavLink
-          key={item.label}
+          key={item.href}
           to={item.href}
           end={item.href === "/"}
           className={({ isActive }) => `mobile-nav-item${isActive ? " is-active" : ""}`}

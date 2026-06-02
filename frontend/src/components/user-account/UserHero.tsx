@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 interface UserHeroProps {
   fullName: string;
@@ -9,9 +10,10 @@ interface UserHeroProps {
 }
 
 function VerifiedBadge() {
+  const { t } = useTranslation();
   return (
     <span
-      title="Email verified"
+      title={t("userAccount.hero_emailVerifiedTitle")}
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -29,16 +31,17 @@ function VerifiedBadge() {
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" style={{ flexShrink: 0 }}>
         <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
-      Verified
+      {t("userAccount.hero_verified")}
     </span>
   );
 }
 
 function UnverifiedNudge() {
+  const { t } = useTranslation();
   return (
     <Link
       to="/confirm-email"
-      title="Verify your email to get a verified badge"
+      title={t("userAccount.hero_verifyEmailTitle")}
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -58,20 +61,21 @@ function UnverifiedNudge() {
         <circle cx="12" cy="12" r="10" />
         <path d="M12 8v4m0 4h.01" />
       </svg>
-      Verify email
+      {t("userAccount.hero_verifyEmail")}
     </Link>
   );
 }
 
 export function UserHero({ fullName, initials, email, profilePictureUrl, emailVerified }: UserHeroProps) {
+  const { t } = useTranslation();
   return (
     <section className="acct-hero">
       <div className="acct-hero-grid" />
       <div className="container">
         <div className="crumbs" style={{ color: "rgba(255,255,255,0.55)", marginBottom: 18 }}>
-          <Link to="/dashboard/user" style={{ color: "rgba(255,255,255,0.55)" }}>Dashboard</Link>
+          <Link to="/dashboard/user" style={{ color: "rgba(255,255,255,0.55)" }}>{t("userAccount.hero_dashboard")}</Link>
           <span className="sep">/</span>
-          <span style={{ color: "rgba(255,255,255,0.85)" }}>Account</span>
+          <span style={{ color: "rgba(255,255,255,0.85)" }}>{t("userAccount.hero_account")}</span>
         </div>
 
         <div className="acct-hero-inner">
@@ -95,35 +99,35 @@ export function UserHero({ fullName, initials, email, profilePictureUrl, emailVe
             <div className="sub">
               {email && <span className="mono">{email}</span>}
               {email && <span className="acct-dot-sep" />}
-              <span className="mono">Customer account</span>
+              <span className="mono">{t("userAccount.hero_customerAccount")}</span>
             </div>
           </div>
           <div className="acct-hero-actions">
-            <Link to="/profile/edit" className="btn btn-secondary">Edit profile</Link>
-            <Link to="/tickets/new" className="btn btn-accent">+ New ticket</Link>
+            <Link to="/profile/edit" className="btn btn-secondary">{t("userAccount.hero_editProfile")}</Link>
+            <Link to="/tickets/new" className="btn btn-accent">{t("userAccount.hero_newTicket")}</Link>
           </div>
         </div>
 
         <div className="stat-strip">
           <div className="stat-cell">
-            <div className="lbl">Tickets filed</div>
+            <div className="lbl">{t("userAccount.hero_ticketsFiled")}</div>
             <div className="val">—</div>
-            <div className="hint">no data yet</div>
+            <div className="hint">{t("userAccount.hero_noData")}</div>
           </div>
           <div className="stat-cell accent">
-            <div className="lbl">Spent · YTD</div>
+            <div className="lbl">{t("userAccount.hero_spentYTD")}</div>
             <div className="val">—</div>
-            <div className="hint">no data yet</div>
+            <div className="hint">{t("userAccount.hero_noData")}</div>
           </div>
           <div className="stat-cell">
-            <div className="lbl">Time to fix</div>
+            <div className="lbl">{t("userAccount.hero_timeToFix")}</div>
             <div className="val">—</div>
-            <div className="hint">median from filed → done</div>
+            <div className="hint">{t("userAccount.hero_timeToFixHint")}</div>
           </div>
           <div className="stat-cell">
-            <div className="lbl">Saved providers</div>
+            <div className="lbl">{t("userAccount.hero_savedProviders")}</div>
             <div className="val">—</div>
-            <div className="hint">no data yet</div>
+            <div className="hint">{t("userAccount.hero_noData")}</div>
           </div>
         </div>
       </div>

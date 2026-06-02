@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 export function Pagination({
   page,
   total,
@@ -7,6 +9,7 @@ export function Pagination({
   total: number;
   onChange: (p: number) => void;
 }) {
+  const { t } = useTranslation();
   if (total <= 1) return null;
 
   const pages: (number | "…")[] = [];
@@ -63,7 +66,7 @@ export function Pagination({
           paddingLeft: 12,
         }}
       >
-        ← Prev
+        {t("pagination.prev")}
       </button>
 
       {pages.map((p, i) =>
@@ -109,12 +112,13 @@ export function Pagination({
           paddingRight: 12,
         }}
       >
-        Next →
+        {t("pagination.next")}
       </button>
     </div>
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function usePaginatedItems<T>(items: T[], page: number, pageSize: number) {
   const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
   const safePage = Math.min(Math.max(1, page), totalPages);

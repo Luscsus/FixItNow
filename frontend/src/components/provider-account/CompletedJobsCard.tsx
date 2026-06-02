@@ -1,18 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useProviderTicketsQuery } from "@/hooks/useProviderTicketsQuery";
 import { Pagination, usePaginatedItems } from "@/components/ui/Pagination";
 import type { Ticket } from "@/domain/ticket";
 
 const PAGE_SIZE = 8;
-
-const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
-const STATUS_LABEL: Record<string, string> = {
-  COMPLETED: "Completed",
-  CANCELLED: "Cancelled",
-  DECLINED:  "Declined",
-};
 
 const PRIORITY_CLASS: Record<string, string> = {
   CRITICAL: "urgency-critical",
@@ -21,15 +14,22 @@ const PRIORITY_CLASS: Record<string, string> = {
   LOW: "urgency-low",
 };
 
-function fmtDate(d: Date): string {
-  return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+function fmtDate(d: Date, locale: string): string {
+  return d.toLocaleDateString(locale, { month: "short", day: "numeric", year: "numeric" });
 }
 
-function CompletedJobRow({ ticket }: { ticket: Ticket }) {
+function CompletedJobRow({ ticket }: { readonly ticket: Ticket }) {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const dateLabel = ticket.requestedStartAt
-    ? fmtDate(ticket.requestedStartAt)
-    : fmtDate(ticket.createdAt);
+    ? fmtDate(ticket.requestedStartAt, i18n.language)
+    : fmtDate(ticket.createdAt, i18n.language);
+
+  const statusLabel: Record<string, string> = {
+    COMPLETED: t("providerAccount.completedJobs_completed"),
+    CANCELLED: t("providerAccount.completedJobs_cancelled"),
+    DECLINED: t("providerAccount.completedJobs_declined"),
+  };
 
   return (
     <div
@@ -88,18 +88,19 @@ function CompletedJobRow({ ticket }: { ticket: Ticket }) {
           alignSelf: "flex-start",
         }}
       >
-        {STATUS_LABEL[ticket.status] ?? ticket.status}
+        {statusLabel[ticket.status] ?? ticket.status}
       </span>
     </div>
   );
 }
 
 export function CompletedJobsCard() {
+  const { t } = useTranslation();
   const { data: tickets = [], isLoading } = useProviderTicketsQuery();
   const [page, setPage] = useState(1);
 
   const done = tickets.filter(
-    (t) => t.status === "COMPLETED" || t.status === "CANCELLED" || t.status === "DECLINED",
+    (tk) => tk.status === "COMPLETED" || tk.status === "CANCELLED" || tk.status === "DECLINED",
   );
 
   const { pageItems, totalPages, safePage } = usePaginatedItems(done, page, PAGE_SIZE);
@@ -108,11 +109,11 @@ export function CompletedJobsCard() {
     <>
       <div className="panel-title">
         <span className="num">01</span>
-        <span className="label">Past jobs</span>
+        <span className="label">{t("providerAccount.completedJobs_title")}</span>
         <span className="rule" />
         {!isLoading && (
           <span className="mono muted" style={{ fontSize: 11 }}>
-            {done.length} {done.length === 1 ? "job" : "jobs"}
+            {t("providerAccount.completedJobs_job", { count: done.length })}
           </span>
         )}
       </div>
@@ -120,16 +121,16 @@ export function CompletedJobsCard() {
       <div className="card" style={{ marginBottom: 32, padding: 0 }}>
         {isLoading && (
           <div style={{ padding: "20px 24px", fontSize: 13, color: "var(--text-muted)" }}>
-            Loading jobs…
+            {t("providerAccount.completedJobs_loading")}
           </div>
         )}
         {!isLoading && done.length === 0 && (
           <div style={{ padding: "20px 24px", fontSize: 13, color: "var(--text-muted)" }}>
-            No completed jobs yet.
+            {t("providerAccount.completedJobs_empty")}
           </div>
         )}
-        {pageItems.map((t) => (
-          <CompletedJobRow key={t.id} ticket={t} />
+        {pageItems.map((tk) => (
+          <CompletedJobRow key={tk.id} ticket={tk} />
         ))}
       </div>
       <Pagination page={safePage} total={totalPages} onChange={setPage} />

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   useAdminDeleteTicketMutation,
   useAdminTickets,
@@ -29,6 +30,7 @@ function ticketCode(id: number) {
 }
 
 export function AdminTicketsPage() {
+  const { t } = useTranslation();
   const { data: tickets = [], isLoading, error } = useAdminTickets();
   const { notify } = useToast();
   const [query, setQuery] = useState("");
@@ -40,46 +42,46 @@ export function AdminTicketsPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return tickets;
-    return tickets.filter((t) =>
+    return tickets.filter((tk) =>
       [
-        ticketCode(t.id),
-        t.serviceType,
-        t.submittedByName ?? "",
-        t.assignedServiceProviderName ?? "",
-        t.status,
+        ticketCode(tk.id),
+        tk.serviceType,
+        tk.submittedByName ?? "",
+        tk.assignedServiceProviderName ?? "",
+        tk.status,
       ].join(" ").toLowerCase().includes(q),
     );
   }, [tickets, query]);
 
-  function handleStatusChange(t: Ticket, status: string) {
+  function handleStatusChange(tk: Ticket, status: string) {
     update.mutate(
-      { id: t.id, status: status as TicketStatus },
+      { id: tk.id, status: status as TicketStatus },
       {
-        onSuccess: () => notify(`${ticketCode(t.id)} status updated.`, "success"),
-        onError: () => notify("Failed to update status.", "error"),
+        onSuccess: () => notify(t("admin.statusUpdated", { code: ticketCode(tk.id) }), "success"),
+        onError: () => notify(t("admin.failedStatus"), "error"),
       },
     );
   }
 
-  function handlePriorityChange(t: Ticket, priority: string) {
+  function handlePriorityChange(tk: Ticket, priority: string) {
     update.mutate(
-      { id: t.id, priority: priority as TicketPriority },
+      { id: tk.id, priority: priority as TicketPriority },
       {
-        onSuccess: () => notify(`${ticketCode(t.id)} priority updated.`, "success"),
-        onError: () => notify("Failed to update priority.", "error"),
+        onSuccess: () => notify(t("admin.priorityUpdated", { code: ticketCode(tk.id) }), "success"),
+        onError: () => notify(t("admin.failedPriority"), "error"),
       },
     );
   }
 
   function confirmDeleteTicket() {
-    const t = confirmDelete;
-    if (!t) return;
-    remove.mutate(t.id, {
+    const tk = confirmDelete;
+    if (!tk) return;
+    remove.mutate(tk.id, {
       onSuccess: () => {
-        notify(`${ticketCode(t.id)} deleted.`, "success");
+        notify(t("admin.ticketDeleted", { code: ticketCode(tk.id) }), "success");
         setConfirmDelete(null);
       },
-      onError: () => notify("Failed to delete ticket.", "error"),
+      onError: () => notify(t("admin.failedDeleteTicket"), "error"),
     });
   }
 
@@ -90,22 +92,22 @@ export function AdminTicketsPage() {
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "flex-end", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
           <div>
-            <span className="eyebrow">Console · Ticket management</span>
+            <span className="eyebrow">Console · {t("admin.ticketMgmt")}</span>
             <h1 style={{ fontSize: "clamp(22px, 2.4vw, 30px)", fontWeight: 700, letterSpacing: "-0.025em", margin: "6px 0 0" }}>
-              All tickets <span style={{ color: "var(--text-muted)", fontWeight: 500 }}>· {tickets.length}</span>
+              {t("admin.allTickets")} <span style={{ color: "var(--text-muted)", fontWeight: 500 }}>· {tickets.length}</span>
             </h1>
           </div>
           <span style={{ flex: 1 }} />
           <SearchField
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search code, service, customer, provider…"
+            placeholder={t("admin.searchTickets")}
             containerStyle={{ maxWidth: 360, minWidth: 240 }}
           />
         </div>
 
-        {isLoading && <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>Loading tickets…</div>}
-        {error && <div style={{ padding: 40, textAlign: "center", color: "var(--red-600)" }}>Failed to load tickets.</div>}
+        {isLoading && <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>{t("admin.loadingTickets")}</div>}
+        {error && <div style={{ padding: 40, textAlign: "center", color: "var(--red-600)" }}>{t("admin.failedTickets")}</div>}
 
         {!isLoading && !error && (
           <div className="admin-table" style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
@@ -118,20 +120,20 @@ export function AdminTicketsPage() {
               fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 700,
               color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase",
             }}>
-              <div>Ticket</div>
-              <div>Customer</div>
-              <div>Provider</div>
-              <div>Status</div>
-              <div>Priority</div>
-              <div style={{ textAlign: "right" }}>Action</div>
+              <div>{t("admin.colTicket")}</div>
+              <div>{t("admin.colCustomer")}</div>
+              <div>{t("admin.colProvider")}</div>
+              <div>{t("admin.colStatus")}</div>
+              <div>{t("admin.colPriority")}</div>
+              <div style={{ textAlign: "right" }}>{t("admin.colAction")}</div>
             </div>
 
             {filtered.length === 0 && (
-              <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>No tickets match your search.</div>
+              <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>{t("admin.noTicketsMatch")}</div>
             )}
 
-            {filtered.map((t) => (
-              <div key={t.id} className="admin-table-row" style={{
+            {filtered.map((tk) => (
+              <div key={tk.id} className="admin-table-row" style={{
                 display: "grid",
                 gridTemplateColumns: "minmax(200px, 2fr) 1.2fr 1.2fr 180px 130px 90px",
                 gap: 12,
@@ -139,48 +141,43 @@ export function AdminTicketsPage() {
                 borderBottom: "1px solid var(--border)",
                 alignItems: "center",
               }}>
-                {/* Ticket */}
                 <div style={{ minWidth: 0 }}>
                   <Link
-                    to={`/tickets/${t.id}`}
+                    to={`/tickets/${tk.id}`}
                     style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--navy-700, #142C5E)", textDecoration: "none", fontWeight: 700, letterSpacing: "0.04em" }}
                   >
-                    {ticketCode(t.id)}
+                    {ticketCode(tk.id)}
                   </Link>
                   <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {t.serviceType}
+                    {tk.serviceType}
                   </div>
                 </div>
 
-                {/* Customer */}
                 <div style={{ fontSize: 13, color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {t.submittedByName ?? "—"}
+                  {tk.submittedByName ?? "—"}
                 </div>
 
-                {/* Provider */}
                 <div style={{ fontSize: 13, color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {t.assignedServiceProviderName ?? "Unassigned"}
+                  {tk.assignedServiceProviderName ?? t("admin.unassigned")}
                 </div>
 
-                {/* Status */}
                 <div>
                   <StyledSelect
-                    value={t.status}
+                    value={tk.status}
                     disabled={busy}
-                    onChange={(e) => handleStatusChange(t, e.target.value)}
+                    onChange={(e) => handleStatusChange(tk, e.target.value)}
                   >
                     {STATUSES.map((s) => (
-                      <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
+                      <option key={s} value={s}>{s.replaceAll("_", " ")}</option>
                     ))}
                   </StyledSelect>
                 </div>
 
-                {/* Priority */}
                 <div>
                   <StyledSelect
-                    value={t.priority ?? "MEDIUM"}
+                    value={tk.priority ?? "MEDIUM"}
                     disabled={busy}
-                    onChange={(e) => handlePriorityChange(t, e.target.value)}
+                    onChange={(e) => handlePriorityChange(tk, e.target.value)}
                   >
                     {PRIORITIES.map((p) => (
                       <option key={p} value={p}>{p}</option>
@@ -188,15 +185,14 @@ export function AdminTicketsPage() {
                   </StyledSelect>
                 </div>
 
-                {/* Action */}
                 <div style={{ display: "flex", justifyContent: "flex-end" }}>
                   <button
                     className="btn btn-sm"
                     disabled={busy}
-                    onClick={() => setConfirmDelete(t)}
+                    onClick={() => setConfirmDelete(tk)}
                     style={{ background: "var(--red-100)", color: "var(--red-700)", border: "1px solid #FCA5A5" }}
                   >
-                    Delete
+                    {t("common.delete")}
                   </button>
                 </div>
               </div>
@@ -205,24 +201,24 @@ export function AdminTicketsPage() {
         )}
 
         <p style={{ marginTop: 14, fontSize: 12.5, color: "var(--text-muted)" }}>
-          Admin status changes bypass the normal ticket lifecycle. The customer is notified of the change.
+          {t("admin.adminNote")}
         </p>
       </div>
 
       <ConfirmDialog
         open={confirmDelete !== null}
-        title="Delete this ticket?"
-        confirmLabel="Delete ticket"
-        loadingLabel="Deleting…"
+        title={t("admin.deleteTicket_title")}
+        confirmLabel={t("admin.deleteTicket_label")}
+        loadingLabel={t("admin.deleteTicket_loading")}
         loading={remove.isPending}
         onConfirm={confirmDeleteTicket}
         onCancel={() => setConfirmDelete(null)}
       >
         {confirmDelete && (
           <>
-            You're about to delete{" "}
+            {t("admin.deleteTicket_about")}{" "}
             <strong style={{ color: "var(--text)" }}>{ticketCode(confirmDelete.id)}</strong>{" "}
-            (<span>{confirmDelete.serviceType}</span>). This permanently removes the ticket and its history and can't be undone.
+            (<span>{confirmDelete.serviceType}</span>). {t("admin.deleteTicket_body")}
           </>
         )}
       </ConfirmDialog>

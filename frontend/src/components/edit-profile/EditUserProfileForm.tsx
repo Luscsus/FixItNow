@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
+import { useTranslation } from "react-i18next";
 
 import { useAuth } from "@/context/auth";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -9,18 +10,19 @@ import { uploadImage } from "@/services/imageService";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { mapZodErrors } from "@/lib/validation";
 
-const schema = z.object({
-  firstName: z.string().min(1, "First name is required."),
-  lastName: z.string().min(1, "Last name is required."),
-});
-
 type Fields = "firstName" | "lastName";
 
 export function EditUserProfileForm() {
+  const { t } = useTranslation();
   const { accessToken } = useAuth();
   const { data: user } = useCurrentUser();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const schema = z.object({
+    firstName: z.string().min(1, t("editProfile.error_firstName")),
+    lastName: z.string().min(1, t("editProfile.error_lastName")),
+  });
 
   const [form, setForm] = useState({ firstName: "", lastName: "" });
   const [errors, setErrors] = useState<Partial<Record<Fields, string>>>({});
@@ -37,10 +39,9 @@ export function EditUserProfileForm() {
     }
   }, [user]);
 
-  // Revoke the object URL when the component unmounts or the preview changes
   useEffect(() => {
     return () => {
-      if (previewUrl && previewUrl.startsWith("blob:")) {
+      if (previewUrl?.startsWith("blob:")) {
         URL.revokeObjectURL(previewUrl);
       }
     };
@@ -69,23 +70,23 @@ export function EditUserProfileForm() {
 
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
-      setUploadError("Only JPEG, PNG, and WebP images are allowed.");
+      setUploadError(t("editProfile.photoTypeError"));
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setUploadError("File size must not exceed 5 MB.");
+      setUploadError(t("editProfile.photoSizeError"));
       return;
     }
 
     setUploadError(null);
     setPendingFile(file);
-    if (previewUrl && previewUrl.startsWith("blob:")) {
+    if (previewUrl?.startsWith("blob:")) {
       URL.revokeObjectURL(previewUrl);
     }
     setPreviewUrl(URL.createObjectURL(file));
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault();
     const parsed = schema.safeParse({
       firstName: form.firstName.trim(),
@@ -119,48 +120,37 @@ export function EditUserProfileForm() {
 
   const isPending = mutation.isPending || isUploading;
 
+  function submitLabel(): string {
+    if (isUploading) return t("editProfile.uploading");
+    if (isPending) return t("editProfile.saving");
+    return t("editProfile.saveChanges");
+  }
+
   return (
     <form onSubmit={handleSubmit} className="col" style={{ gap: 20 }}>
-      {/* Profile picture */}
       <div className="col" style={{ gap: 8, alignItems: "flex-start" }}>
-        <label className="field-label">Profile photo</label>
+        <span className="field-label">{t("editProfile.profilePhoto")}</span>
         <div className="row" style={{ gap: 14, alignItems: "center" }}>
           <div
             style={{
-              width: 72,
-              height: 72,
-              borderRadius: "50%",
-              overflow: "hidden",
-              background: "var(--amber-500)",
-              display: "grid",
-              placeItems: "center",
-              fontSize: 26,
-              fontWeight: 700,
-              color: "var(--navy-900)",
-              flexShrink: 0,
-              border: "2px solid var(--slate-200)",
+              width: 72, height: 72, borderRadius: "50%", overflow: "hidden",
+              background: "var(--amber-500)", display: "grid", placeItems: "center",
+              fontSize: 26, fontWeight: 700, color: "var(--navy-900)",
+              flexShrink: 0, border: "2px solid var(--slate-200)",
             }}
           >
             {currentPicture ? (
-              <img
-                src={currentPicture}
-                alt="Profile"
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
+              <img src={currentPicture} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             ) : (
               initials
             )}
           </div>
           <div className="col" style={{ gap: 4 }}>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {pendingFile ? "Change photo" : "Upload photo"}
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => fileInputRef.current?.click()}>
+              {pendingFile ? t("editProfile.changePhoto") : t("editProfile.uploadPhoto")}
             </button>
             <span style={{ fontSize: 12, color: "var(--slate-500)" }}>
-              JPEG, PNG or WebP · max 5 MB
+              {t("editProfile.photoHint")}
             </span>
           </div>
         </div>
@@ -171,57 +161,36 @@ export function EditUserProfileForm() {
           style={{ display: "none" }}
           onChange={handleFileChange}
         />
-        {uploadError && (
-          <span className="field-error">{uploadError}</span>
-        )}
+        {uploadError && <span className="field-error">{uploadError}</span>}
         {pendingFile && !uploadError && (
           <span style={{ fontSize: 12, color: "var(--emerald-700)" }}>
-            "{pendingFile.name}" ready to upload
+            "{pendingFile.name}" {t("editProfile.readyToUpload")}
           </span>
         )}
       </div>
 
-      {/* Name fields */}
       <div className="row" style={{ gap: 12, alignItems: "flex-start" }}>
         <div className="field grow">
-          <label className="field-label" htmlFor="edit-first">First name</label>
+          <label className="field-label" htmlFor="edit-first">{t("userAccount.personalInfo_firstName")}</label>
           <div className={`input-wrap${errors.firstName ? " error" : ""}`}>
-            <input
-              id="edit-first"
-              className="input"
-              value={form.firstName}
-              onChange={set("firstName")}
-              autoComplete="given-name"
-            />
+            <input id="edit-first" className="input" value={form.firstName} onChange={set("firstName")} autoComplete="given-name" />
           </div>
           {errors.firstName && <span className="field-error">{errors.firstName}</span>}
         </div>
         <div className="field grow">
-          <label className="field-label" htmlFor="edit-last">Last name</label>
+          <label className="field-label" htmlFor="edit-last">{t("userAccount.personalInfo_lastName")}</label>
           <div className={`input-wrap${errors.lastName ? " error" : ""}`}>
-            <input
-              id="edit-last"
-              className="input"
-              value={form.lastName}
-              onChange={set("lastName")}
-              autoComplete="family-name"
-            />
+            <input id="edit-last" className="input" value={form.lastName} onChange={set("lastName")} autoComplete="family-name" />
           </div>
           {errors.lastName && <span className="field-error">{errors.lastName}</span>}
         </div>
       </div>
 
       <div className="row" style={{ gap: 12, alignItems: "center" }}>
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={isPending}
-        >
-          {isUploading ? "Uploading…" : isPending ? "Saving…" : "Save changes"}
+        <button type="submit" className="btn btn-primary" disabled={isPending}>
+          {submitLabel()}
         </button>
-        {success && (
-          <span style={{ color: "var(--emerald-700)", fontSize: 13 }}>Saved.</span>
-        )}
+        {success && <span style={{ color: "var(--emerald-700)", fontSize: 13 }}>{t("editProfile.saved")}</span>}
       </div>
     </form>
   );

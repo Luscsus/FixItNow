@@ -20,7 +20,7 @@ export function useMediaQuery(query: string): boolean {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
     const mql = window.matchMedia(query);
     const handler = (event: MediaQueryListEvent) => setMatches(event.matches);
-    setMatches(mql.matches);
+    // Initial value is already set via the useState lazy initializer (matchSafely(query))
     if (typeof mql.addEventListener === "function") {
       mql.addEventListener("change", handler);
       return () => mql.removeEventListener("change", handler);

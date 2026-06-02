@@ -1,10 +1,12 @@
 import { Link, NavLink, Navigate, Outlet, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/context/auth";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import { setLanguage } from "@/i18n/i18n";
 import type { UserRole } from "@/domain/auth";
 
 function dashboardHref(role: UserRole | null, isAuthenticated: boolean): string {
@@ -14,8 +16,8 @@ function dashboardHref(role: UserRole | null, isAuthenticated: boolean): string 
   return "/dashboard/user";
 }
 
-const NAV_DOT_INACTIVE = "#94A3B8"; // slate-400
-const NAV_DOT_ACTIVE   = "#F59E0B"; // amber-500 (app accent)
+const NAV_DOT_INACTIVE = "#94A3B8";
+const NAV_DOT_ACTIVE   = "#F59E0B";
 
 function PlusIcon() {
   return (
@@ -34,7 +36,91 @@ function ChevronDown() {
   );
 }
 
+function GlobeIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="2" y1="12" x2="22" y2="12" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  );
+}
+
+function LanguageSelector() {
+  const { i18n } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const currentLang = i18n.language === "sl" ? "SL" : "EN";
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 5,
+          padding: "6px 10px", borderRadius: 8, border: "none",
+          background: open ? "rgba(15,23,42,0.06)" : "transparent",
+          cursor: "pointer", fontSize: 12.5, fontWeight: 600,
+          color: "var(--text-muted)", transition: "background 0.12s",
+          fontFamily: "var(--font-mono)", letterSpacing: "0.04em",
+        }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(15,23,42,0.05)"; }}
+        onMouseLeave={(e) => { if (!open) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+        title="Select language"
+      >
+        <GlobeIcon />
+        {currentLang}
+      </button>
+
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 6px)", right: 0,
+          minWidth: 140, background: "#fff",
+          border: "1px solid rgba(15,23,42,0.1)", borderRadius: 10,
+          boxShadow: "0 8px 24px rgba(15,23,42,0.12)", overflow: "hidden", zIndex: 50,
+        }}>
+          {(["en", "sl"] as const).map((lang) => {
+            const label = lang === "en" ? "English" : "Slovenščina";
+            const isActive = i18n.language === lang;
+            return (
+              <button
+                key={lang}
+                onClick={() => { setLanguage(lang); setOpen(false); }}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  width: "100%", padding: "9px 14px", textAlign: "left",
+                  background: isActive ? "rgba(15,23,42,0.04)" : "transparent",
+                  border: "none", cursor: "pointer", fontSize: 13.5, fontWeight: isActive ? 600 : 400,
+                  color: "var(--text)", transition: "background 0.1s",
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(15,23,42,0.05)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = isActive ? "rgba(15,23,42,0.04)" : "transparent"; }}
+              >
+                {label}
+                {isActive && (
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M3 8l3.5 3.5L13 4.5" />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AppLayout() {
+  const { t } = useTranslation();
   const { isAuthenticated, clearSession, role, userInfo } = useAuth();
   const { data: currentUser } = useCurrentUser();
   const profilePictureUrl = currentUser?.profilePictureUrl;
@@ -43,9 +129,9 @@ export function AppLayout() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const navLinks = [
-    { label: "Tickets",   href: dashboardHref(role, isAuthenticated) },
-    { label: "Providers", href: "/browse" },
-    { label: "Inbox",     href: "/chat" },
+    { label: t("nav.tickets"),   href: dashboardHref(role, isAuthenticated) },
+    { label: t("nav.providers"), href: "/browse" },
+    { label: t("nav.inbox"),     href: "/chat" },
   ];
 
   useEffect(() => {
@@ -64,7 +150,6 @@ export function AppLayout() {
     navigate("/");
   }
 
-  // Admins live entirely in the admin console — keep them out of the public app shell.
   if (isAuthenticated && role === "ADMIN") {
     return <Navigate to="/dashboard/admin/providers" replace />;
   }
@@ -102,7 +187,7 @@ export function AppLayout() {
           {/* Nav links */}
           <nav className="app-header-navlinks" style={{ display: "flex", gap: 2 }}>
             {navLinks.map(({ label, href }) => (
-              <NavLink key={label} to={href}>
+              <NavLink key={href} to={href}>
                 {({ isActive }) => (
                   <span
                     style={{
@@ -140,7 +225,10 @@ export function AppLayout() {
           <span style={{ flex: 1 }} />
 
           {/* Right side actions */}
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+
+            {/* Language selector */}
+            <LanguageSelector />
 
             {/* Notification bell */}
             {isAuthenticated && <NotificationBell />}
@@ -162,7 +250,7 @@ export function AppLayout() {
                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.85"; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
               >
-                <PlusIcon /> New ticket
+                <PlusIcon /> {t("nav.newTicket")}
               </NavLink>
             )}
 
@@ -180,10 +268,10 @@ export function AppLayout() {
                   onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(15,23,42,0.05)"; (e.currentTarget as HTMLElement).style.color = "var(--text)"; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "var(--text-muted)"; }}
                 >
-                  Log in
+                  {t("nav.logIn")}
                 </NavLink>
                 <NavLink to="/register" className="btn btn-primary btn-sm">
-                  Sign up
+                  {t("nav.signUp")}
                 </NavLink>
               </>
             ) : (
@@ -202,25 +290,21 @@ export function AppLayout() {
                   onMouseEnter={(e) => { if (!dropdownOpen) (e.currentTarget as HTMLElement).style.background = "rgba(15,23,42,0.06)"; }}
                   onMouseLeave={(e) => { if (!dropdownOpen) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
                 >
-                  {/* Avatar circle */}
                   {profilePictureUrl ? (
                     <img
                       src={profilePictureUrl}
                       alt={userInfo.fullName}
                       style={{
                         width: 32, height: 32, borderRadius: "50%",
-                        objectFit: "cover", flexShrink: 0,
-                        display: "block",
+                        objectFit: "cover", flexShrink: 0, display: "block",
                       }}
                     />
                   ) : (
                     <span style={{
                       width: 32, height: 32, borderRadius: "50%",
-                      background: "var(--navy-700)",
-                      color: "#fff",
+                      background: "var(--navy-700)", color: "#fff",
                       display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 12, fontWeight: 700, letterSpacing: "0.02em",
-                      flexShrink: 0,
+                      fontSize: 12, fontWeight: 700, letterSpacing: "0.02em", flexShrink: 0,
                     }}>
                       {userInfo.initials || "?"}
                     </span>
@@ -232,19 +316,11 @@ export function AppLayout() {
                 {dropdownOpen && (
                   <div style={{
                     position: "absolute", top: "calc(100% + 8px)", right: 0,
-                    minWidth: 160,
-                    background: "#fff",
-                    border: "1px solid rgba(15,23,42,0.1)",
-                    borderRadius: 10,
-                    boxShadow: "0 8px 24px rgba(15,23,42,0.12)",
-                    overflow: "hidden",
-                    zIndex: 50,
+                    minWidth: 160, background: "#fff",
+                    border: "1px solid rgba(15,23,42,0.1)", borderRadius: 10,
+                    boxShadow: "0 8px 24px rgba(15,23,42,0.12)", overflow: "hidden", zIndex: 50,
                   }}>
-                    {/* User info header */}
-                    <div style={{
-                      padding: "12px 16px",
-                      borderBottom: "1px solid rgba(15,23,42,0.07)",
-                    }}>
+                    <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(15,23,42,0.07)" }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{userInfo.fullName}</div>
                       <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>{userInfo.email}</div>
                     </div>
@@ -262,7 +338,7 @@ export function AppLayout() {
                         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(15,23,42,0.05)"; }}
                         onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
                       >
-                        Profile
+                        {t("dropdown.profile")}
                       </NavLink>
                       <button
                         onClick={handleSignOut}
@@ -271,13 +347,12 @@ export function AppLayout() {
                           padding: "8px 12px", borderRadius: 6,
                           fontSize: 13.5, fontWeight: 500,
                           color: "#ef4444", background: "transparent",
-                          border: "none", cursor: "pointer",
-                          transition: "background 0.1s",
+                          border: "none", cursor: "pointer", transition: "background 0.1s",
                         }}
                         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.06)"; }}
                         onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
                       >
-                        Sign out
+                        {t("dropdown.signOut")}
                       </button>
                     </div>
                   </div>

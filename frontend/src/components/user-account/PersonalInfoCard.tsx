@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 interface PersonalInfoCardProps {
   firstName: string;
@@ -14,28 +15,29 @@ const PILL_BASE: React.CSSProperties = {
   letterSpacing: "0.06em",
 };
 
-export function PersonalInfoCard({ firstName, lastName, email, emailVerified }: PersonalInfoCardProps) {
+export function PersonalInfoCard({ firstName, lastName, email, emailVerified }: Readonly<PersonalInfoCardProps>) {
+  const { t } = useTranslation();
   return (
     <>
       <div className="panel-title">
         <span className="num">01</span>
-        <span className="label">Personal info</span>
+        <span className="label">{t("userAccount.personalInfo_title")}</span>
         <span className="rule" />
-        <Link to="/profile/edit" className="mono muted" style={{ fontSize: 11, letterSpacing: "0.05em", textDecoration: "none" }}>Edit →</Link>
+        <Link to="/profile/edit" className="mono muted" style={{ fontSize: 11, letterSpacing: "0.05em", textDecoration: "none" }}>{t("userAccount.personalInfo_edit")}</Link>
       </div>
 
       <div className="card card-pad" style={{ marginBottom: 32 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "28px 32px" }}>
           <div>
-            <div className="mono muted" style={{ fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase" }}>First name</div>
+            <div className="mono muted" style={{ fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase" }}>{t("userAccount.personalInfo_firstName")}</div>
             <div style={{ fontSize: 15, marginTop: 6 }}>{firstName || <span className="muted">—</span>}</div>
           </div>
           <div>
-            <div className="mono muted" style={{ fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase" }}>Last name</div>
+            <div className="mono muted" style={{ fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase" }}>{t("userAccount.personalInfo_lastName")}</div>
             <div style={{ fontSize: 15, marginTop: 6 }}>{lastName || <span className="muted">—</span>}</div>
           </div>
           <div>
-            <div className="mono muted" style={{ fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase" }}>Email</div>
+            <div className="mono muted" style={{ fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase" }}>{t("userAccount.personalInfo_email")}</div>
             <div style={{ fontSize: 15, marginTop: 6, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               {email || <span className="muted">—</span>}
               {email && emailVerified === true && (
@@ -47,14 +49,14 @@ export function PersonalInfoCard({ firstName, lastName, email, emailVerified }: 
                     background: "var(--emerald-100)",
                   }}
                 >
-                  VERIFIED
+                  {t("userAccount.personalInfo_verified")}
                 </span>
               )}
               {email && emailVerified === false && (
                 <Link
                   to="/confirm-email"
                   className="mono"
-                  title="Verify your email to get a verified badge"
+                  title={t("userAccount.hero_verifyEmailTitle")}
                   style={{
                     ...PILL_BASE,
                     color: "var(--amber-800, #92400e)",
@@ -62,14 +64,14 @@ export function PersonalInfoCard({ firstName, lastName, email, emailVerified }: 
                     textDecoration: "none",
                   }}
                 >
-                  NOT VERIFIED
+                  {t("userAccount.personalInfo_notVerified")}
                 </Link>
               )}
             </div>
           </div>
           <div>
-            <div className="mono muted" style={{ fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase" }}>Role</div>
-            <div style={{ fontSize: 15, marginTop: 6 }}>Customer</div>
+            <div className="mono muted" style={{ fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase" }}>{t("userAccount.personalInfo_role")}</div>
+            <div style={{ fontSize: 15, marginTop: 6 }}>{t("userAccount.personalInfo_customer")}</div>
           </div>
         </div>
       </div>

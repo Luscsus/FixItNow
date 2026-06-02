@@ -1,4 +1,5 @@
 import { useRef, useMemo, useState, useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -59,7 +60,9 @@ function dayLabel(d: Date): string {
   return `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}`;
 }
 
-function renderBlockLabel(b: AnyBlock): string {
+// Block labels are resolved inside the component via useWeekScheduleLabels()
+// This fallback is used only in non-React contexts (event title prop).
+function renderBlockLabelFallback(b: AnyBlock): string {
   if (b.type === "BOOKED") {
     const owner = (b as TimeBlock).title;
     if (owner && owner.trim()) return owner.trim();
@@ -67,9 +70,9 @@ function renderBlockLabel(b: AnyBlock): string {
     if (pub && pub.trim()) return pub.trim();
     return "Booked";
   }
-  return b.type === "AVAILABLE" ? "Available"
-    : b.type === "BREAK" ? "Break"
-    : "Off";
+  if (b.type === "AVAILABLE") return "Available";
+  if (b.type === "BREAK") return "Break";
+  return "Off";
 }
 
 function formatTime(d: Date): string {
@@ -90,6 +93,7 @@ function eventPropsForType(type: TimeBlockType) {
 const DAY_ABBR = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
 function EventContent({ arg, editable }: { arg: EventContentArg; editable: boolean }) {
+  const { t } = useTranslation();
   const type = arg.event.extendedProps.type as TimeBlockType;
   const block = arg.event.extendedProps.block as AnyBlock | undefined;
   const start = arg.event.start;
@@ -100,8 +104,21 @@ function EventContent({ arg, editable }: { arg: EventContentArg; editable: boole
     timeText = `${formatTime(start)}–${formatTime(end)}`;
   }
 
+  function resolveLabel(b: AnyBlock): string {
+    if (b.type === "BOOKED") {
+      const owner = (b as TimeBlock).title;
+      if (owner && owner.trim()) return owner.trim();
+      const pub = (b as PublicTimeBlock).label;
+      if (pub && pub.trim()) return pub.trim();
+      return t("providerAccount.schedule_booked");
+    }
+    if (b.type === "AVAILABLE") return t("providerAccount.schedule_available");
+    if (b.type === "BREAK") return t("providerAccount.schedule_break");
+    return t("providerAccount.schedule_off");
+  }
+
   const isOff = type === "OFF";
-  const label = block ? renderBlockLabel(block) : "";
+  const label = block ? resolveLabel(block) : "";
   const isRecurring = Boolean(block && isOwnerBlock(block) && block.seriesId);
 
   return (
@@ -132,6 +149,7 @@ function EventContent({ arg, editable }: { arg: EventContentArg; editable: boole
 }
 
 export function WeekSchedule({ providerId, editable }: WeekScheduleProps) {
+  const { t } = useTranslation();
   const calRef = useRef<FullCalendar>(null);
   const isMobile = useMediaQuery(BREAKPOINTS.mobile);
   const [rangeStart, setRangeStart] = useState<Date>(() => startOfWeek(new Date()));
@@ -169,7 +187,7 @@ export function WeekSchedule({ providerId, editable }: WeekScheduleProps) {
     () =>
       blocks.map((b, i) => ({
         id: isOwnerBlock(b) && b.id ? b.id : `virt-${i}`,
-        title: renderBlockLabel(b),
+        title: renderBlockLabelFallback(b),
         start: b.startAt,
         end: b.endAt,
         extendedProps: { type: b.type, block: b },
@@ -238,7 +256,7 @@ export function WeekSchedule({ providerId, editable }: WeekScheduleProps) {
             className="btn btn-secondary btn-sm"
             onClick={() => calRef.current?.getApi().today()}
           >
-            Today
+            {t("providerAccount.schedule_today")}
           </button>
           <button
             className="btn btn-secondary btn-sm"
@@ -256,7 +274,7 @@ export function WeekSchedule({ providerId, editable }: WeekScheduleProps) {
                 setModalOpen(true);
               }}
             >
-              + Block time
+              {t("providerAccount.schedule_blockTime")}
             </button>
           )}
         </div>

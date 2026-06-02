@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 const DOCUMENTS = [
   {
     icon: "LIC", iconBg: "var(--emerald-100)", iconColor: "var(--emerald-700)",
@@ -32,13 +34,14 @@ const DOCUMENTS = [
 ];
 
 export function CredentialsDocuments() {
+  const { t } = useTranslation();
   return (
     <>
       <div className="panel-title">
         <span className="num">04</span>
-        <span className="label">Credentials &amp; documents</span>
+        <span className="label">{t("providerAccount.credentials_title")}</span>
         <span className="rule" />
-        <button className="btn btn-secondary btn-sm">+ Upload</button>
+        <button className="btn btn-secondary btn-sm">{t("providerAccount.credentials_upload")}</button>
       </div>
 
       <div className="card card-pad">

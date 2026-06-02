@@ -1,5 +1,6 @@
 import type React from "react";
 import type { ComponentType } from "react";
+import { useTranslation } from "react-i18next";
 import {
   IconDrop,
   IconBolt,
@@ -78,8 +79,35 @@ export const AVATAR_PALETTE = [
 ];
 
 export function avatarColor(id: string) {
-  const h = [...id].reduce((s, c) => s + c.charCodeAt(0), 0);
+  const h = [...id].reduce((s, c) => s + (c.codePointAt(0) ?? 0), 0);
   return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
+}
+
+/** Returns category labels, filter presets, and sort options in the active language. */
+export function useBrowseI18n() {
+  const { t } = useTranslation();
+
+  const categoryLabels: Record<string, string> = Object.fromEntries(
+    Object.keys(CATEGORY_META).map((key) => [key, t(`categories.${key}`, CATEGORY_META[key].label)]),
+  );
+
+  const expPresets = [
+    { label: t("filterSidebar.any"),  value: 0 },
+    { label: t("filterSidebar.yr1"),  value: 1 },
+    { label: t("filterSidebar.yr3"),  value: 3 },
+    { label: t("filterSidebar.yr5"),  value: 5 },
+    { label: t("filterSidebar.yr10"), value: 10 },
+  ];
+
+  const sortOptions = [
+    { value: "default",      label: t("filterSidebar.bestMatch") },
+    { value: "price_asc",    label: t("filterSidebar.lowestPrice") },
+    { value: "price_desc",   label: t("filterSidebar.highestPrice") },
+    { value: "exp_desc",     label: t("filterSidebar.mostExperienced") },
+    { value: "distance_asc", label: t("filterSidebar.closestFirst") },
+  ];
+
+  return { categoryLabels, expPresets, sortOptions };
 }
 
 export function initials(first: string, last: string) {

@@ -1,14 +1,14 @@
+import { useTranslation } from "react-i18next";
 import { IconSearch, IconPin, IconChevron } from "./BrowseIcons";
 import { BrowsePill } from "./BrowsePill";
 import {
   type Segment,
   CATEGORY_META,
-  CATEGORY_LABEL,
-  EXP_PRESETS,
   BUDGET_PRESETS,
   DROPDOWN,
   FILTER_HEAD,
   RANGE_ROW,
+  useBrowseI18n,
 } from "./browseConstants";
 
 function SegLabel({ name, dot }: { name: string; dot?: boolean }) {
@@ -152,17 +152,20 @@ export function SearchBar({
   setHoverSeg,
   onSearch,
 }: SearchBarProps) {
+  const { t } = useTranslation();
+  const { categoryLabels, expPresets } = useBrowseI18n();
+
   const catLabel =
     selectedCategories.length === 0
-      ? "All trades"
-      : selectedCategories.map((c) => CATEGORY_LABEL[c] ?? c).join(", ");
-  let locLabel = "Any distance";
-  if (locationEnabled) locLabel = coords ? `GPS · ${radiusKm} km radius` : "Awaiting GPS…";
-  const expLabel = minExp > 0 ? `${minExp}+ years` : "Any";
+      ? t("browse.allTrades")
+      : selectedCategories.map((c) => categoryLabels[c] ?? c).join(", ");
+  let locLabel = t("browse.anyDistance");
+  if (locationEnabled) locLabel = coords ? t("browse.gpsRadius", { km: radiusKm }) : t("browse.awaitingGps");
+  const expLabel = minExp > 0 ? t("browse.expYears", { n: minExp }) : t("browse.anyExp");
   const budgetLabel =
     minPrice || maxPrice
       ? `$${minPrice || "0"}–$${maxPrice || "∞"}/hr`
-      : "Any budget";
+      : t("browse.anyBudget");
 
   const hasFilter = {
     category: selectedCategories.length > 0,
@@ -220,7 +223,7 @@ export function SearchBar({
       {/* ── Category ── */}
       <div style={{ position: "relative", flex: "1.3 1 0", minWidth: 0 }}>
         <div {...segProps("category")}>
-          <SegLabel name="Category" dot={hasFilter.category} />
+          <SegLabel name={t("searchBar.category")} dot={hasFilter.category} />
           <SegVal
             text={catLabel}
             placeholder={!hasFilter.category}
@@ -253,7 +256,7 @@ export function SearchBar({
                   color: "var(--text-muted)",
                 }}
               >
-                Select trades
+                {t("searchBar.selectTrades")}
               </span>
               {selectedCategories.length > 0 && (
                 <button
@@ -270,13 +273,15 @@ export function SearchBar({
                     fontFamily: "inherit",
                   }}
                 >
-                  Clear all
+                  {t("searchBar.clearAll")}
                 </button>
               )}
             </div>
             <div style={{ maxHeight: 260, overflowY: "auto" }}>
             {categories.map((key) => {
-              const { label, Icon } = CATEGORY_META[key] ?? { label: key, Icon: null };
+              const meta = CATEGORY_META[key] ?? { label: key, Icon: null };
+              const { Icon } = meta;
+              const label = categoryLabels[key] ?? meta.label;
               const active = selectedCategories.includes(key);
               return (
                 <div
@@ -350,7 +355,7 @@ export function SearchBar({
       {/* ── Location ── */}
       <div style={{ position: "relative", flex: "1 1 0", minWidth: 0 }}>
         <div {...segProps("location")}>
-          <SegLabel name="Location" dot={hasFilter.location} />
+          <SegLabel name={t("searchBar.location")} dot={hasFilter.location} />
           <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
             <IconPin size={12} />
             <SegVal text={locLabel} placeholder={!coords} />
@@ -361,7 +366,7 @@ export function SearchBar({
           <div style={{ ...DROPDOWN, minWidth: 288, padding: 18 }}>
             {/* Toggle row */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <span style={{ fontSize: 13.5, fontWeight: 600 }}>Distance filter</span>
+              <span style={{ fontSize: 13.5, fontWeight: 600 }}>{t("searchBar.distanceFilter")}</span>
               <button
                 type="button"
                 onClick={() => { setLocationEnabled(!locationEnabled); setPage(1); }}
@@ -385,12 +390,12 @@ export function SearchBar({
               <>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#10b981", display: "block", flexShrink: 0 }} />
-                  <span style={{ fontSize: 13, fontWeight: 600 }}>GPS detected</span>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>{t("searchBar.gpsDetected")}</span>
                   <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginLeft: "auto" }}>
                     {coords.lat.toFixed(4)}, {coords.lon.toFixed(4)}
                   </span>
                 </div>
-                <div style={{ ...FILTER_HEAD, marginBottom: 8 }}>Search radius</div>
+                <div style={{ ...FILTER_HEAD, marginBottom: 8 }}>{t("searchBar.searchRadius")}</div>
                 <input
                   type="range" min={5} max={100} value={radiusKm}
                   onChange={(e) => setRadiusKm(Number(e.target.value))}
@@ -407,13 +412,13 @@ export function SearchBar({
 
             {locationEnabled && !coords && (
               <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.55 }}>
-                Waiting for GPS… Allow location access in your browser if prompted.
+                {t("searchBar.waitingForGps")}
               </p>
             )}
 
             {!locationEnabled && (
               <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.55 }}>
-                Enable to filter results by distance from your location.
+                {t("searchBar.enableLocation")}
               </p>
             )}
           </div>
@@ -425,14 +430,14 @@ export function SearchBar({
       {/* ── Experience ── */}
       <div style={{ position: "relative", flex: "1 1 0", minWidth: 0 }}>
         <div {...segProps("experience")}>
-          <SegLabel name="Experience" dot={hasFilter.experience} />
+          <SegLabel name={t("searchBar.experience")} dot={hasFilter.experience} />
           <SegVal text={expLabel} placeholder={!hasFilter.experience} />
         </div>
 
         {openSeg === "experience" && (
           <div style={{ ...DROPDOWN, minWidth: 264, padding: 18 }}>
             <div style={{ ...FILTER_HEAD, marginBottom: 12 }}>
-              Minimum experience
+              {t("searchBar.minExperience")}
             </div>
             <div
               style={{
@@ -442,7 +447,7 @@ export function SearchBar({
                 marginBottom: 18,
               }}
             >
-              {EXP_PRESETS.map(({ label, value }) => (
+              {expPresets.map(({ label, value }) => (
                 <BrowsePill
                   key={value}
                   active={minExp === value}
@@ -456,7 +461,7 @@ export function SearchBar({
                 </BrowsePill>
               ))}
             </div>
-            <div style={{ ...FILTER_HEAD, marginBottom: 8 }}>Custom</div>
+            <div style={{ ...FILTER_HEAD, marginBottom: 8 }}>{t("searchBar.custom")}</div>
             <input
               type="range"
               min={0}
@@ -470,11 +475,11 @@ export function SearchBar({
               }}
             />
             <div style={RANGE_ROW}>
-              <span>0 yr</span>
+              <span>0 {t("profile.yr")}</span>
               <span style={{ color: "var(--text)", fontWeight: 600 }}>
-                {minExp > 0 ? `${minExp}+ yr` : "Any"}
+                {minExp > 0 ? `${minExp}+ ${t("profile.yr")}` : t("searchBar.anyExp")}
               </span>
-              <span>20 yr</span>
+              <span>20 {t("profile.yr")}</span>
             </div>
           </div>
         )}
@@ -485,7 +490,7 @@ export function SearchBar({
       {/* ── Budget ── */}
       <div style={{ position: "relative", flex: "1 1 0", minWidth: 0 }}>
         <div {...segProps("budget")}>
-          <SegLabel name="Budget" dot={hasFilter.budget} />
+          <SegLabel name={t("searchBar.budget")} dot={hasFilter.budget} />
           <SegVal text={budgetLabel} placeholder={!hasFilter.budget} />
         </div>
 
@@ -500,7 +505,7 @@ export function SearchBar({
             }}
           >
             <div style={{ ...FILTER_HEAD, marginBottom: 12 }}>
-              Budget per hour
+              {t("searchBar.budgetPerHour")}
             </div>
             <div
               style={{
@@ -528,17 +533,17 @@ export function SearchBar({
                 );
               })}
             </div>
-            <div style={{ ...FILTER_HEAD, marginBottom: 10 }}>Custom range</div>
+            <div style={{ ...FILTER_HEAD, marginBottom: 10 }}>{t("searchBar.customRange")}</div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              {(["Min $", "Max $"] as const).map((ph, i) => (
+              {(["min", "max"] as const).map((side) => (
                 <input
-                  key={ph}
+                  key={side}
                   type="number"
                   min={0}
-                  placeholder={ph}
-                  value={i === 0 ? minPrice : maxPrice}
+                  placeholder={side === "min" ? t("searchBar.minPlaceholder") : t("searchBar.maxPlaceholder")}
+                  value={side === "min" ? minPrice : maxPrice}
                   onChange={(e) =>
-                    i === 0
+                    side === "min"
                       ? setMinPrice(e.target.value)
                       : setMaxPrice(e.target.value)
                   }
@@ -569,7 +574,7 @@ export function SearchBar({
           disabled={isLoading}
         >
           <IconSearch size={16} />
-          <span style={{ fontSize: 13.5 }}>Search</span>
+          <span style={{ fontSize: 13.5 }}>{t("searchBar.search")}</span>
         </button>
       </div>
     </form>

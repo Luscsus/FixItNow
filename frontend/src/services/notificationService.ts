@@ -24,3 +24,10 @@ export async function markAllNotificationsRead(accessToken: string): Promise<voi
     headers: authHeader(accessToken),
   });
 }
+
+export async function deleteAllNotifications(accessToken: string): Promise<void> {
+  await requestJson<{ success: boolean }>('/api/notifications', {
+    method: 'DELETE',
+    headers: authHeader(accessToken),
+  });
+}

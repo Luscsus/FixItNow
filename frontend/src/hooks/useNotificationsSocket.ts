@@ -74,9 +74,24 @@ export function useNotificationsSocket({ userId, accessToken, refreshSession }: 
       heartbeatOutgoing: 10000,
       onConnect: () => {
         client.subscribe(`/topic/notifications/${userId}`, (frame) => {
-          queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
           try {
             const n = JSON.parse(frame.body) as AppNotification;
+            // Upsert the pushed payload straight into the cache instead of refetching.
+            // The frame is the authoritative saved row, so this updates the badge/list
+            // instantly and avoids racing the server's transaction commit (a refetch can
+            // otherwise run before the new row is committed and miss it, leaving the badge
+            // stuck at the old count). Upsert by id: replace an existing entry (e.g. a
+            // bumped message group or a read-clear), otherwise prepend the new one.
+            queryClient.setQueryData<AppNotification[]>(NOTIFICATIONS_QUERY_KEY, (old) => {
+              const list = old ?? [];
+              const idx = list.findIndex((x) => x.id === n.id);
+              if (idx >= 0) {
+                const copy = [...list];
+                copy[idx] = n;
+                return copy;
+              }
+              return [n, ...list];
+            });
             if (n.type === 'TICKET_STATUS_CHANGE' && n.ticketId != null) {
               queryClient.invalidateQueries({ queryKey: ['tickets', n.ticketId] });
             } else if (n.type === 'NEW_MESSAGE' && n.chatRoomId != null) {
@@ -99,6 +114,11 @@ export function useNotificationsSocket({ userId, accessToken, refreshSession }: 
       onStompError: (frame) => {
         const msg = frame.headers['message'] ?? '';
         if (/jwt|auth|access denied/i.test(msg)) {
+          // Stop the auto-reconnect loop — otherwise the client keeps retrying every
+          // `reconnectDelay` ms with the same rejected token, flooding the server logs.
+          // A successful refresh updates `accessToken`, which re-runs this effect and
+          // creates a fresh client that connects with the new token.
+          client.deactivate();
           refreshRef.current().catch(() => { /* already logged inside */ });
         }
       },

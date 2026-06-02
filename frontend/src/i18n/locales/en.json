@@ -1230,6 +1230,7 @@
     "noNotifications": "No notifications yet.",
     "allCaughtUp": "You're all caught up.",
     "markAllRead": "Mark all read",
+    "clearAll": "Clear all",
     "newMessage": "New message",
     "ticketUpdate": "Ticket update"
   },

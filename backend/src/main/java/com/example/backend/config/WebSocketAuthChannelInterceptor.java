@@ -52,7 +52,15 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
             } else if (command == StompCommand.SEND || command == StompCommand.SUBSCRIBE) {
                 rebindSessionUser(accessor);
             }
+        } catch (AccessDeniedException ex) {
+            // Expected, client-driven case: a missing/expired/invalid token (e.g. a
+            // reconnecting client whose session lapsed). Reject the frame but keep the
+            // log quiet — DEBUG, no stack trace — so it doesn't flood the console.
+            log.debug("[ws-auth] rejected command={} session={}: {}",
+                command, accessor.getSessionId(), ex.getMessage());
+            throw ex;
         } catch (RuntimeException ex) {
+            // Anything else is genuinely unexpected — log it loudly with the stack trace.
             log.error("[ws-auth] interceptor failed for command={} session={} dest={} : {}",
                 command, accessor.getSessionId(), accessor.getDestination(), ex.toString(), ex);
             throw ex;

@@ -672,6 +672,14 @@
     "decline": "Zavrni",
     "updating": "Posodabljanje…",
     "cancelTicket": "Prekliči zahtevek",
+    "cancelDialog": {
+      "title": "Prekliči ta zahtevek?",
+      "body": "Ali ste prepričani, da želite preklicati zahtevek {{code}}? Tega ni mogoče razveljaviti — zahtevek bo zaprt in premaknjen med rešene zahtevke.",
+      "confirm": "Da, prekliči zahtevek",
+      "loading": "Preklicevanje…",
+      "keep": "Obdrži zahtevek",
+      "error": "Zahtevka ni bilo mogoče preklicati. Poskusite znova."
+    },
     "ticketDeclined": "Zahtevek zavrnjen",
     "ticketCancelled": "Zahtevek preklican",
     "status": {

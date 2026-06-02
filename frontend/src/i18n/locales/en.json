@@ -672,6 +672,14 @@
     "decline": "Decline",
     "updating": "Updating…",
     "cancelTicket": "Cancel ticket",
+    "cancelDialog": {
+      "title": "Cancel this ticket?",
+      "body": "Are you sure you want to cancel ticket {{code}}? This can't be undone — the request will be closed and moved to your resolved tickets.",
+      "confirm": "Yes, cancel ticket",
+      "loading": "Cancelling…",
+      "keep": "Keep ticket",
+      "error": "Could not cancel this ticket. Please try again."
+    },
     "ticketDeclined": "Ticket declined",
     "ticketCancelled": "Ticket cancelled",
     "status": {

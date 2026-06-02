@@ -7,9 +7,13 @@ import { useAuth } from "@/context/auth";
 import { useUpdateTicketStatusMutation } from "@/hooks/useUpdateTicketStatusMutation";
 import { useAcceptTicketMutation } from "@/hooks/useAcceptTicketMutation";
 import { useConfirmTicketMutation, useDeclineTicketMutation } from "@/hooks/useConfirmTicketMutation";
+import { useCancelTicketMutation } from "@/hooks/useCancelTicketMutation";
 import { TicketChatPanel } from "@/components/ticket/TicketChatPanel";
 import { IssueInvoicePanel } from "@/components/ticket/IssueInvoicePanel";
 import { LiveTrackingPanel } from "@/components/tracking/LiveTrackingPanel";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/components/ui/toast";
+import { getErrorMessage } from "@/lib/errorMessage";
 import { generateInvoicePdf } from "@/utils/generateInvoicePdf";
 import type { Ticket, TicketPriority, TicketStatus, StatusHistoryEntry } from "@/domain/ticket";
 
@@ -219,6 +223,9 @@ export function TicketDetailPage() {
   const acceptMut  = useAcceptTicketMutation();
   const confirmMut = useConfirmTicketMutation();
   const declineMut = useDeclineTicketMutation();
+  const cancelMut  = useCancelTicketMutation();
+  const { notify } = useToast();
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   const { data: ticket, isLoading, isError } = useTicketQuery(ticketId);
 
@@ -517,8 +524,10 @@ export function TicketDetailPage() {
                 {updateMut.isPending ? t("ticket.updating") : nextStatus.label}
               </button>
             )}
-            {!isTerminal && role !== "PROVIDER" && (
-              <button className="btn btn-danger" disabled title="Coming soon">{t("ticket.cancelTicket")}</button>
+            {role !== "PROVIDER" && ticket.status === "PENDING_APPROVAL" && (
+              <button className="btn btn-danger" disabled={cancelMut.isPending} onClick={() => setCancelDialogOpen(true)}>
+                {t("ticket.cancelTicket")}
+              </button>
             )}
           </div>
         </div>
@@ -527,6 +536,29 @@ export function TicketDetailPage() {
           <TicketChatPanel ticket={ticket} />
         </aside>
       </main>
+
+      <ConfirmDialog
+        open={cancelDialogOpen}
+        title={t("ticket.cancelDialog.title")}
+        confirmLabel={t("ticket.cancelDialog.confirm")}
+        loadingLabel={t("ticket.cancelDialog.loading")}
+        cancelLabel={t("ticket.cancelDialog.keep")}
+        loading={cancelMut.isPending}
+        onCancel={() => setCancelDialogOpen(false)}
+        onConfirm={() =>
+          cancelMut.mutate(ticket.id, {
+            onSuccess: () => {
+              setCancelDialogOpen(false);
+              notify(t("ticket.ticketCancelled"), "success");
+            },
+            onError: (err) => {
+              notify(getErrorMessage(err) || t("ticket.cancelDialog.error"), "error");
+            },
+          })
+        }
+      >
+        {t("ticket.cancelDialog.body", { code: ticketIdStr })}
+      </ConfirmDialog>
     </>
   );
 }

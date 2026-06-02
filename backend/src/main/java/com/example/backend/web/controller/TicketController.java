@@ -103,6 +103,15 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.updateTicketStatus(ticketId, newStatus));
     }
 
+    @PostMapping("/{ticketId}/cancel")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<TicketResponse> cancelTicket(
+        @PathVariable Long ticketId,
+        @AuthenticationPrincipal UserPrincipal userDetails
+    ) {
+        return ResponseEntity.ok(ticketService.cancelTicketByCustomer(ticketId, userDetails.getUser().getId()));
+    }
+
     @GetMapping("/provider")
     @PreAuthorize("hasRole('PROVIDER')")
     public ResponseEntity<List<TicketResponse>> getProviderTickets(@AuthenticationPrincipal UserPrincipal userDetails) {

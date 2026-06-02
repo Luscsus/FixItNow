@@ -10,6 +10,9 @@ public interface NotificationService {
     /** Create + push a ticket status-change notification (preference-gated). */
     void notifyTicketStatusChange(Long ticketId, UUID recipientId, String title, String body);
 
+    /** Create + push a "provider is nearby" notification (preference-gated). */
+    void notifyProviderNearby(Long ticketId, UUID recipientId, String title, String body);
+
     /**
      * Create or bump the per-chat unread-message notification for the recipient
      * (preference-gated). One notification per chat room; repeat messages increment it.

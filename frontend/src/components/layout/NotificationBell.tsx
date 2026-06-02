@@ -6,6 +6,7 @@ import { useAuth } from "@/context/auth";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useNotificationsSocket } from "@/hooks/useNotificationsSocket";
+import { primeNotificationSound } from "@/lib/notificationSound";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import type { AppNotification } from "@/domain/notification";
@@ -125,7 +126,7 @@ export function NotificationBell() {
   function handleItemClick(n: AppNotification) {
     setOpen(false);
     if (!n.read) markRead.mutate(n.id);
-    if (n.type === "TICKET_STATUS_CHANGE" && n.ticketId != null) {
+    if ((n.type === "TICKET_STATUS_CHANGE" || n.type === "PROVIDER_NEARBY") && n.ticketId != null) {
       navigate(`/tickets/${n.ticketId}`);
     } else if (n.type === "NEW_MESSAGE" && n.chatRoomId) {
       // Invalidate the rooms list and message cache so ChatPage shows fresh data.
@@ -151,7 +152,17 @@ export function NotificationBell() {
       {/* Bell button */}
       <button
         title="Notifications"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          // Request OS-notification permission here — inside a real user
+          // gesture — because Safari ignores requestPermission() called from
+          // an effect/on mount. No-op once the user has already answered.
+          if (typeof Notification !== "undefined" && Notification.permission === "default") {
+            Notification.requestPermission().catch(() => { /* dismissed — fine */ });
+          }
+          // Unlock the audio chime (browser autoplay policy needs a gesture).
+          primeNotificationSound();
+          setOpen((o) => !o);
+        }}
         style={{
           position: "relative",
           display: "inline-flex", alignItems: "center", justifyContent: "center",

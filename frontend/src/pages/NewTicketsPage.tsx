@@ -9,6 +9,8 @@ import { useActiveCategoriesQuery } from "@/hooks/useActiveCategoriesQuery";
 import { useUploadImageMutation } from "@/hooks/useUploadImageMutation";
 import { useToast } from "@/components/ui/toast";
 import { ProviderAvailabilityPicker } from "@/components/ticket/ProviderAvailabilityPicker";
+import { AddressAutocomplete } from "@/components/tickets/AddressAutocomplete";
+import type { AddressSuggestion } from "@/services/geocodeService";
 
 type Urgency = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 type ProviderMode = "SPECIFIC" | "OPEN";
@@ -32,6 +34,9 @@ export function NewTicketPage() {
   const [category, setCategory]     = useState<ServiceCategory | "">(savedForm?.category ?? "");
   const [description, setDescription] = useState(savedForm?.description ?? "");
   const [location, setLocation]     = useState(savedForm?.location ?? "");
+  // Exact coordinates, set when the customer picks an address suggestion.
+  // Cleared whenever they edit the text again, so we never send stale coords.
+  const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [urgency, setUrgency]       = useState<Urgency | "">(savedForm?.urgency ?? "");
   const [providerMode, setProviderMode] = useState<ProviderMode>(incomingProvider ? "SPECIFIC" : (savedForm?.providerMode ?? "OPEN"));
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(incomingProvider);
@@ -106,6 +111,7 @@ export function NewTicketPage() {
       await createTicketMutation.mutateAsync({
         serviceType: title.trim(), category: category as ServiceCategory,
         description: description.trim(), location: location.trim(), priority: urgency as TicketPriority,
+        latitude: locationCoords?.lat ?? null, longitude: locationCoords?.lng ?? null,
         assignedProviderId: providerMode === "SPECIFIC" && selectedProvider ? selectedProvider.id : null,
         requestedStartAt: providerMode === "SPECIFIC" && requestedStartAt ? requestedStartAt : null,
         requestedEndAt:   providerMode === "SPECIFIC" && requestedEndAt   ? requestedEndAt   : null,
@@ -200,10 +206,30 @@ export function NewTicketPage() {
             <div className="form-grid">
               <div className="field">
                 <label className="field-label">{t("newTicket.locationLabel")}</label>
-                <div className="input-wrap">
-                  <input className="input" value={location} placeholder={t("newTicket.locationPlaceholder")} onChange={(e) => setLocation(e.target.value)} />
-                </div>
-                {submitAttempted && !location.trim() ? <span className="field-error">{t("newTicket.errors.locationRequired")}</span> : <span className="field-hint">{t("newTicket.locationHint")}</span>}
+                <AddressAutocomplete
+                  value={location}
+                  resolved={locationCoords !== null}
+                  hasError={submitAttempted && !location.trim()}
+                  placeholder={t("newTicket.locationPlaceholder")}
+                  onTextChange={(text) => {
+                    setLocation(text);
+                    // Editing the text invalidates any previously-picked coords.
+                    setLocationCoords(null);
+                  }}
+                  onSelect={(s: AddressSuggestion) => {
+                    setLocation(s.displayName);
+                    setLocationCoords({ lat: s.lat, lng: s.lng });
+                  }}
+                />
+                {submitAttempted && !location.trim() ? (
+                  <span className="field-error">{t("newTicket.errors.locationRequired")}</span>
+                ) : (
+                  <span className="field-hint">
+                    {locationCoords
+                      ? t("newTicket.locationPinnedHint")
+                      : t("newTicket.locationHint")}
+                  </span>
+                )}
               </div>
 
               <div className="field">

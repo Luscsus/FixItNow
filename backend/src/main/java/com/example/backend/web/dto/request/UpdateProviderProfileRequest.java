@@ -40,6 +40,7 @@ public class UpdateProviderProfileRequest {
 
     @NotNull(message = "Price per hour is required")
     @DecimalMin(value = "0.0", inclusive = false, message = "Price per hour must be positive")
+    @Digits(integer = 8, fraction = 2, message = "Price per hour must have at most 8 digits before the decimal point")
     private BigDecimal pricePerHour;
 
     @NotNull(message = "Years of experience is required")

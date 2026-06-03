@@ -7,7 +7,7 @@ import { useAuth } from "@/context/auth";
 import { useCurrentProvider } from "@/hooks/useCurrentProvider";
 import { updateCurrentProvider, updateProfilePicture } from "@/services/userService";
 import { uploadImage } from "@/services/imageService";
-import { getErrorMessage } from "@/lib/errorMessage";
+import { getErrorMessage, getTranslatedFieldErrors } from "@/lib/errorMessage";
 import { mapZodErrors } from "@/lib/validation";
 import { bankFromIban, formatIban, isValidIban, normalizeIban } from "@/lib/iban";
 import { StripeConnectPanel } from "@/components/edit-profile/StripeConnectPanel";
@@ -209,7 +209,12 @@ export function EditProviderProfileForm() {
       await mutation.mutateAsync(payload);
     } catch (error) {
       setIsUploading(false);
-      setErrors({ firstName: getErrorMessage(error) });
+      const fieldErrors = getTranslatedFieldErrors(error, t);
+      if (fieldErrors) {
+        setErrors(fieldErrors);
+      } else {
+        setErrors({ firstName: getErrorMessage(error) });
+      }
     }
   };
 

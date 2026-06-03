@@ -1540,5 +1540,18 @@
     "saving": "Saving…",
     "updateReview": "Update review",
     "postReview": "Post review"
+  },
+  "validation": {
+    "required": "This field is required.",
+    "tooLong": "Must be at most {{max}} characters.",
+    "tooShort": "Must be at least {{min}} characters.",
+    "sizeBetween": "Must be between {{min}} and {{max}} characters.",
+    "positive": "Must be a positive number.",
+    "positiveOrZero": "Must be zero or positive.",
+    "min": "Must be at least {{min}}.",
+    "max": "Must be at most {{max}}.",
+    "invalidEmail": "Must be a valid email address.",
+    "invalidFormat": "Invalid format.",
+    "digitsBeforeDecimal": "Must have at most {{max}} digits before the decimal point."
   }
 }

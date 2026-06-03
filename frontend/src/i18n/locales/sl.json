@@ -1540,5 +1540,18 @@
     "saving": "Shranjujem…",
     "updateReview": "Posodobi oceno",
     "postReview": "Objavi oceno"
+  },
+  "validation": {
+    "required": "To polje je obvezno.",
+    "tooLong": "Največ {{max}} znakov.",
+    "tooShort": "Vsaj {{min}} znakov.",
+    "sizeBetween": "Med {{min}} in {{max}} znakov.",
+    "positive": "Mora biti pozitivno število.",
+    "positiveOrZero": "Mora biti nič ali pozitivno.",
+    "min": "Vsaj {{min}}.",
+    "max": "Največ {{max}}.",
+    "invalidEmail": "Vnesite veljaven e-poštni naslov.",
+    "invalidFormat": "Neveljavna oblika.",
+    "digitsBeforeDecimal": "Dovoljeno je največ {{max}} mest pred decimalno vejico."
   }
 }

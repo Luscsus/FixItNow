@@ -213,6 +213,7 @@ public class TicketService {
                 .map(h -> new TicketResponse.StatusHistoryEntry(h.getStatus(), h.getChangedAt()))
                 .toList()
         );
+        attachProviderBankDetails(ticket, resp);
         return resp;
     }
 
@@ -306,12 +307,15 @@ public class TicketService {
             throw new InvalidTicketStatusTransitionException(
                 "Invoice can only be issued when ticket is in PENDING_PROVIDER_INVOICE status (current: " + ticket.getStatus() + ")");
         }
+        if (amount == null || amount.compareTo(java.math.BigDecimal.ONE) < 0) {
+            throw new ApiException("Invoice amount must be at least €1.00.");
+        }
         ticket.setEstimatedCost(amount);
         ticket.setStatus(TicketStatus.PENDING_PAYMENT);
         Ticket saved = ticketRepository.save(ticket);
         recordHistory(saved, TicketStatus.PENDING_PAYMENT);
         calendarService.syncBookedBlockForTicket(saved);
-        String invoiceMsg = "Invoice issued · $" + amount.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString() + " · awaiting payment.";
+        String invoiceMsg = "Invoice issued · €" + amount.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString() + " · awaiting payment.";
         postSystemMessage(saved, invoiceMsg);
         notifyCustomerOfStatusChange(saved, notificationBodyForStatus(TicketStatus.PENDING_PAYMENT));
 
@@ -334,6 +338,44 @@ public class TicketService {
             System.err.println("[ticket] invoice email failed for ticket " + ticketId + ": " + ex.getMessage());
         }
 
+        return toResponse(saved);
+    }
+
+    /**
+     * Marks a ticket's invoice as paid and advances it to COMPLETED. Called from
+     * the Stripe webhook (authoritative) and from the on-return confirmation
+     * fallback. Idempotent: if the ticket is already COMPLETED this is a no-op,
+     * so a webhook + confirm race can't double-process or throw.
+     */
+    @Transactional
+    public TicketResponse markTicketPaid(Long ticketId, String paymentIntentId) {
+        Ticket ticket = getTicketOrThrow(ticketId);
+
+        // Already settled — record the payment-intent if we didn't have it and return.
+        if (ticket.getStatus() == TicketStatus.COMPLETED || ticket.getPaidAt() != null) {
+            if (paymentIntentId != null && ticket.getStripePaymentIntentId() == null) {
+                ticket.setStripePaymentIntentId(paymentIntentId);
+                ticketRepository.save(ticket);
+            }
+            return toResponse(ticket);
+        }
+
+        if (ticket.getStatus() != TicketStatus.PENDING_PAYMENT) {
+            throw new InvalidTicketStatusTransitionException(
+                "Payment can only be recorded for a ticket awaiting payment (current: " + ticket.getStatus() + ")");
+        }
+
+        ticket.setStatus(TicketStatus.COMPLETED);
+        ticket.setPaidAt(LocalDateTime.now());
+        if (paymentIntentId != null) {
+            ticket.setStripePaymentIntentId(paymentIntentId);
+        }
+        Ticket saved = ticketRepository.save(ticket);
+        recordHistory(saved, TicketStatus.COMPLETED);
+        calendarService.syncBookedBlockForTicket(saved);
+
+        postSystemMessage(saved, "Payment received · ticket " + formatTicketCode(saved.getId()) + " complete. Thank you!");
+        notifyCustomerOfStatusChange(saved, notificationBodyForStatus(TicketStatus.COMPLETED));
         return toResponse(saved);
     }
 
@@ -590,6 +632,39 @@ public class TicketService {
         resp.setRequestedStartAt(ticket.getRequestedStartAt());
         resp.setRequestedEndAt(ticket.getRequestedEndAt());
         return resp;
+    }
+
+    /**
+     * Fills in the assigned provider's current bank/payout details on a detail
+     * response so the customer's invoice PDF shows the real account (not the mock
+     * fallback). Re-fetches through the provider repository because the ticket
+     * holds the provider as a lazy {@code User} proxy without the bank columns.
+     */
+    private void attachProviderBankDetails(Ticket ticket, TicketResponse resp) {
+        if (ticket.getAssignedServiceProvider() == null) return;
+        Provider provider = providerRepository.findById(ticket.getAssignedServiceProvider().getId()).orElse(null);
+        if (provider == null) return;
+        resp.setBankAccountHolder(provider.getBankAccountHolder());
+        resp.setBankIban(provider.getBankIban());
+        resp.setBankBic(provider.getBankBic());
+        resp.setBankName(provider.getBankName());
+        Location loc = provider.getLocation();
+        if (loc != null) {
+            resp.setBankRecipientStreet(joinNonBlank(loc.getStreetName(), loc.getStreetNumber()));
+            resp.setBankRecipientCity(joinNonBlank(loc.getPostalCode(), loc.getCity()));
+        }
+    }
+
+    /** Joins non-blank parts with a single space, or returns null when all are blank. */
+    private static String joinNonBlank(String... parts) {
+        StringBuilder sb = new StringBuilder();
+        for (String p : parts) {
+            if (p != null && !p.isBlank()) {
+                if (sb.length() > 0) sb.append(' ');
+                sb.append(p.trim());
+            }
+        }
+        return sb.length() == 0 ? null : sb.toString();
     }
 
     private void ensureChatRoom(Ticket ticket, UUID providerId) {

@@ -116,6 +116,18 @@ public class Ticket {
     @Column(name = "provider_nearby_notified", nullable = false)
     private boolean providerNearbyNotified = false;
 
+    // ─── Stripe payment (customer pays the invoice) ───────────────────────────
+    // Set when the customer starts a Stripe Checkout session for this ticket's
+    // invoice; the payment-intent id and paidAt are filled once payment clears.
+    @Column(name = "stripe_checkout_session_id", length = 255)
+    private String stripeCheckoutSessionId;
+
+    @Column(name = "stripe_payment_intent_id", length = 255)
+    private String stripePaymentIntentId;
+
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
+
     public Ticket() {
     }
 

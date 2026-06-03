@@ -190,7 +190,7 @@ function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick?: () => void 
               {ticket.estimatedCost != null ? (
                 <>
                   <span className="grow" />
-                  <span className="ticket-next">${ticket.estimatedCost}</span>
+                  <span className="ticket-next">€{ticket.estimatedCost}</span>
                 </>
               ) : (
                 <span className="grow" />

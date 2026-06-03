@@ -283,7 +283,7 @@ export function NewTicketPage() {
                         </div>
                         <div className="muted new-ticket-provider-meta">
                           {selectedProvider.categories.map((c) => c.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (l) => l.toUpperCase())).join(", ")}
-                          {selectedProvider.pricePerHour != null ? ` · $${selectedProvider.pricePerHour}/hr` : ""}
+                          {selectedProvider.pricePerHour != null ? ` · €${selectedProvider.pricePerHour}/hr` : ""}
                         </div>
                       </div>
                       <button className="btn btn-ghost btn-sm" type="button" onClick={() => { setRequestedStartAt(null); setRequestedEndAt(null); navigate("/providers", { state: { formState: { title, category, description, location, urgency, providerMode } } }); }}>

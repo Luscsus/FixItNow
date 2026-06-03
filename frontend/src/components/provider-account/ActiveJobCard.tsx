@@ -112,7 +112,7 @@ function ActiveJob({ ticket }: { ticket: Ticket }) {
             <>
               {(ticket.submittedByName || ticket.location || ticket.requestedStartAt) && <span>·</span>}
               <span>·</span>
-              <span className="mono">${ticket.estimatedCost.toFixed(2)} {t("providerAccount.activeJobs_quoted")}</span>
+              <span className="mono">€{ticket.estimatedCost.toFixed(2)} {t("providerAccount.activeJobs_quoted")}</span>
             </>
           )}
         </div>

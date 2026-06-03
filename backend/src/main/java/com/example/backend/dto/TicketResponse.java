@@ -51,6 +51,17 @@ public class TicketResponse {
     private LocalDateTime requestedEndAt;
     private List<StatusHistoryEntry> statusHistory;
 
+    // ─── Assigned provider's payout/bank details ──────────────────────────────
+    // Populated only on the single-ticket detail view (getTicketDetails) so the
+    // customer can render a correct invoice PDF (bank rows + payment QR) without
+    // access to the provider's private profile. Null on list responses.
+    private String bankAccountHolder;
+    private String bankIban;
+    private String bankBic;
+    private String bankName;
+    private String bankRecipientStreet;
+    private String bankRecipientCity;
+
     @Getter
     @Setter
     public static class StatusHistoryEntry {

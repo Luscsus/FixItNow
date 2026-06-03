@@ -234,15 +234,15 @@ export function RegisterProviderPage() {
             <div style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "16px 20px", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
               <div>
                 <div style={{ fontSize: 10.5, fontFamily: "var(--font-mono)", color: "var(--amber-500)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600 }}>{t("registerProvider.ratePerHr")}</div>
-                <div style={{ fontSize: 22, fontFamily: "var(--font-mono)", color: "#fff", fontWeight: 600, marginTop: 6 }}>${hourlyRate}</div>
+                <div style={{ fontSize: 22, fontFamily: "var(--font-mono)", color: "#fff", fontWeight: 600, marginTop: 6 }}>€{hourlyRate}</div>
               </div>
               <div>
                 <div style={{ fontSize: 10.5, fontFamily: "var(--font-mono)", color: "var(--amber-500)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600 }}>{t("registerProvider.jobsPerWk4")}</div>
-                <div style={{ fontSize: 22, fontFamily: "var(--font-mono)", color: "#fff", fontWeight: 600, marginTop: 6 }}>${weekly4.toLocaleString()}</div>
+                <div style={{ fontSize: 22, fontFamily: "var(--font-mono)", color: "#fff", fontWeight: 600, marginTop: 6 }}>€{weekly4.toLocaleString()}</div>
               </div>
               <div>
                 <div style={{ fontSize: 10.5, fontFamily: "var(--font-mono)", color: "var(--amber-500)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600 }}>{t("registerProvider.jobsPerWk8")}</div>
-                <div style={{ fontSize: 22, fontFamily: "var(--font-mono)", color: "#fff", fontWeight: 600, marginTop: 6 }}>${weekly8.toLocaleString()}</div>
+                <div style={{ fontSize: 22, fontFamily: "var(--font-mono)", color: "#fff", fontWeight: 600, marginTop: 6 }}>€{weekly8.toLocaleString()}</div>
               </div>
             </div>
           </div>
@@ -498,13 +498,13 @@ export function RegisterProviderPage() {
                     <span className="rule" />
                   </div>
                   <div className="rate-row">
-                    <span className="rate-big">${hourlyRate}</span>
+                    <span className="rate-big">€{hourlyRate}</span>
                     <span className="field-hint">{t("registerProvider.hourPerHour")}</span>
                   </div>
                   <input type="range" className="slider" min={20} max={200} step={5} value={hourlyRate} onChange={(e) => setHourlyRate(Number(e.target.value))} style={{ marginTop: 10 }} />
                   <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-                    <span className="field-hint">$20</span>
-                    <span className="field-hint">$200</span>
+                    <span className="field-hint">€20</span>
+                    <span className="field-hint">€200</span>
                   </div>
                 </div>
 

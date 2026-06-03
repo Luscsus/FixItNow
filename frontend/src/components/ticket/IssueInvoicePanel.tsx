@@ -44,6 +44,7 @@ export function IssueInvoicePanel({ ticket }: Props) {
     mutationFn: async () => {
       const parsed = parseFloat(amount);
       if (!parsed || parsed <= 0) throw new Error(t('invoicePanel.invalidAmount'));
+      if (parsed < 1) throw new Error(t('invoicePanel.minAmount'));
       const bank = buildBank();
       if (!bank) throw new Error(t('invoicePanel.addPayoutFirst'));
 
@@ -78,6 +79,7 @@ export function IssueInvoicePanel({ ticket }: Props) {
   const handlePreview = async () => {
     const parsed = parseFloat(amount);
     if (!parsed || parsed <= 0) { setError(t('invoicePanel.enterAmountFirst')); return; }
+    if (parsed < 1) { setError(t('invoicePanel.minAmount')); return; }
     const bank = buildBank();
     if (!bank) { setError(t('invoicePanel.addPayoutPreview')); return; }
     setError(null);
@@ -121,9 +123,9 @@ export function IssueInvoicePanel({ ticket }: Props) {
       <form onSubmit={handleSubmit}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <div style={{ position: 'relative', flex: 1 }}>
-            <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 15, fontWeight: 600, color: 'var(--text-muted)', pointerEvents: 'none' }}>$</span>
+            <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 15, fontWeight: 600, color: 'var(--text-muted)', pointerEvents: 'none' }}>€</span>
             <input
-              type="number" min="0.01" step="0.01" placeholder="0.00"
+              type="number" min="1" step="0.01" placeholder="1.00"
               value={amount}
               onChange={e => { setAmount(e.target.value); setError(null); }}
               disabled={mutation.isPending}

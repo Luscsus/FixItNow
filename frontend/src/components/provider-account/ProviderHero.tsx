@@ -93,7 +93,7 @@ export function ProviderHero({ fullName, initials, profilePictureUrl, email, onl
             <div className="lbl">{t("providerAccount.hero_totalEarned")}</div>
             <div className="val">
               {stats?.totalEarned != null
-                ? `$${stats.totalEarned.toFixed(2)}`
+                ? `€${stats.totalEarned.toFixed(2)}`
                 : "—"}
             </div>
             <div className="hint">{completedHint}</div>

@@ -28,6 +28,50 @@ export function formatIban(raw: string | null | undefined): string {
   return s.replace(/(.{4})/g, "$1 ").trim();
 }
 
+// ── Slovenian bank register: account-prefix → { bank name, BIC } ──────────────
+// A Slovenian IBAN is `SI` + 2 check digits + a 15-digit BBAN whose first five
+// digits identify the bank/branch. The bank itself is the leading two digits
+// (plus a few 5-digit prefixes reserved for e-money providers). Source: Bank of
+// Slovenia identification-code register / UPN BIC list (current as of 2026).
+type BankInfo = { bankName: string; bic: string };
+
+const SI_BANKS_2: Record<string, BankInfo> = {
+  "02": { bankName: "Nova Ljubljanska banka d.d.", bic: "LJBASI2X" },
+  "03": { bankName: "OTP banka d.d.", bic: "KBMASI2X" },
+  "04": { bankName: "OTP banka d.d.", bic: "KBMASI2X" },
+  "05": { bankName: "OTP banka d.d.", bic: "KBMASI2X" },
+  "07": { bankName: "Gorenjska banka d.d.", bic: "GORESI2X" },
+  "10": { bankName: "Banka Intesa Sanpaolo d.d.", bic: "BAKOSI2X" },
+  "19": { bankName: "Deželna banka Slovenije d.d.", bic: "SZKBSI2X" },
+  "29": { bankName: "UniCredit Banka Slovenije d.d.", bic: "BACXSI22" },
+  "30": { bankName: "Nova Ljubljanska banka d.d.", bic: "LJBASI2X" },
+  "33": { bankName: "Addiko Bank d.d.", bic: "HAABSI22" },
+  "34": { bankName: "Banka Sparkasse d.d.", bic: "KSPKSI22" },
+  "35": { bankName: "BKS Bank AG", bic: "BFKKSI22" },
+  "38": { bankName: "SID banka d.d.", bic: "SIDRSI22" },
+  "60": { bankName: "Hranilnica LON d.d.", bic: "HLONSI22" },
+  "61": { bankName: "Delavska hranilnica d.d.", bic: "HDELSI22" },
+  "64": { bankName: "Primorska hranilnica Vipava d.d.", bic: "HKVISI22" },
+};
+
+const SI_BANKS_5: Record<string, BankInfo> = {
+  "91002": { bankName: "PayWiser d.o.o.", bic: "PWSRSI22" },
+};
+
+/**
+ * Derives the bank name and BIC from an IBAN, for Slovenian (SI) accounts only.
+ * Returns null for non-SI IBANs, too-short input, or an unrecognized bank code
+ * (so the caller can leave the fields for manual entry).
+ */
+export function bankFromIban(raw: string | null | undefined): { bankName: string; bic: string } | null {
+  const s = normalizeIban(raw);
+  if (!s.startsWith("SI") || s.length < 9) return null;
+  const five = s.slice(4, 9);
+  if (SI_BANKS_5[five]) return SI_BANKS_5[five];
+  const two = s.slice(4, 6);
+  return SI_BANKS_2[two] ?? null;
+}
+
 export function isValidIban(raw: string | null | undefined): boolean {
   const s = normalizeIban(raw);
   if (s.length < 4) return false;

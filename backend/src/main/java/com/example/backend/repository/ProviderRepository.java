@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -17,6 +18,8 @@ import java.util.UUID;
 public interface ProviderRepository extends JpaRepository<Provider, UUID>, JpaSpecificationExecutor<Provider> {
 
     List<Provider> findAllByStatus(UserStatus status);
+
+    Optional<Provider> findByStripeAccountId(String stripeAccountId);
 
     @Query("SELECT DISTINCT c FROM Provider p JOIN p.categories c WHERE p.status = :status")
     Set<ServiceCategory> findDistinctCategoriesByStatus(@Param("status") UserStatus status);

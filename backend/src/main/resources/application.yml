@@ -76,6 +76,18 @@ app:
     from-address: ${EMAIL_FROM_ADDRESS:noreply@example.com}
     from-name: ${EMAIL_FROM_NAME:Backend App}
 
+stripe:
+  # Secret API key (sk_test_… in test mode). Leave blank to disable payments.
+  secret-key: ${STRIPE_SECRET_KEY:}
+  # Signing secret for the payment webhook (whsec_…), from the Stripe dashboard
+  # or `stripe listen` during local development.
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+  # ISO currency code charged on Stripe Checkout. EUR to match the payment QR.
+  currency: ${STRIPE_CURRENCY:eur}
+  # Platform commission, as a percentage of each invoice, kept as the Stripe
+  # application fee on destination charges. The rest goes to the provider.
+  application-fee-percent: ${STRIPE_APPLICATION_FEE_PERCENT:10}
+
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME:}
   api-key: ${CLOUDINARY_API_KEY:}

@@ -303,7 +303,7 @@ export function UserLanding() {
                       </span>
 
                       <span className="problem-mini" style={{ gap: 4 }}>
-                        <span style={{ fontSize: 13, color: "var(--text-muted)" }}>$</span>
+                        <span style={{ fontSize: 13, color: "var(--text-muted)" }}>€</span>
                         <input
                           type="number" min={0} placeholder="min" value={minPrice}
                           onChange={(e) => { setSmartMatchActive(false); setMinPrice(e.target.value); }}
@@ -345,7 +345,7 @@ export function UserLanding() {
                 {[
                   { av: "MC", bg: "var(--amber-500)", color: "var(--navy-900)", ago: "2 MIN AGO", name: "Marcus C.", what: "arrived for a sink leak.", where: "Oakwood Bldg C · 2.3 mi" },
                   { av: "PS", bg: "oklch(0.65 0.06 60)", color: "#fff", ago: "11 MIN AGO", name: "Priya S.", what: "finished an AC service.", where: "Cedar Tower · 5★" },
-                  { av: "SO", bg: "oklch(0.65 0.06 200)", color: "#fff", ago: "28 MIN AGO", name: "Sam O.", what: "swapped a laptop charge board.", where: "FIX-2411 · $185" },
+                  { av: "SO", bg: "oklch(0.65 0.06 200)", color: "#fff", ago: "28 MIN AGO", name: "Sam O.", what: "swapped a laptop charge board.", where: "FIX-2411 · €185" },
                   { av: "RV", bg: "oklch(0.65 0.06 130)", color: "#fff", ago: "42 MIN AGO", name: "Renata V.", what: "cleared a clogged main drain.", where: "Howard St · 6th floor" },
                 ].map((item) => (
                   <div key={item.ago} className="live-feed-item">

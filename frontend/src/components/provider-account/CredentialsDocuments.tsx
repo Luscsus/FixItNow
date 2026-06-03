@@ -9,7 +9,7 @@ const DOCUMENTS = [
   },
   {
     icon: "INS", iconBg: "var(--emerald-100)", iconColor: "var(--emerald-700)",
-    name: "General liability · $2M coverage",
+    name: "General liability · €2M coverage",
     meta: "Hartford · policy GL-948822 · expires 09/26",
     status: "ds-ok", statusLabel: "✓ On file",
   },

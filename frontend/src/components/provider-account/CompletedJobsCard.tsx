@@ -62,7 +62,7 @@ function CompletedJobRow({ ticket }: { readonly ticket: Ticket }) {
             <>
               <span>•</span>
               <span className="mono" style={{ color: "var(--emerald-700)", fontWeight: 600 }}>
-                ${ticket.estimatedCost.toFixed(2)}
+                €{ticket.estimatedCost.toFixed(2)}
               </span>
             </>
           )}

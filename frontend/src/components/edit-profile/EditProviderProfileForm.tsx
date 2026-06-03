@@ -9,7 +9,8 @@ import { updateCurrentProvider, updateProfilePicture } from "@/services/userServ
 import { uploadImage } from "@/services/imageService";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { mapZodErrors } from "@/lib/validation";
-import { formatIban, isValidIban, normalizeIban } from "@/lib/iban";
+import { bankFromIban, formatIban, isValidIban, normalizeIban } from "@/lib/iban";
+import { StripeConnectPanel } from "@/components/edit-profile/StripeConnectPanel";
 import type { ServiceCategory } from "@/domain/admin";
 
 type TradeEntry = { icon: string; category: ServiceCategory };
@@ -389,6 +390,8 @@ export function EditProviderProfileForm() {
           </div>
         </div>
 
+        <StripeConnectPanel />
+
         <div className="field">
           <label className="field-label" htmlFor="p-bank-holder">{t("editProfile.accountHolder")}</label>
           <div className={`input-wrap${errors.bankAccountHolder ? " error" : ""}`}>
@@ -404,7 +407,18 @@ export function EditProviderProfileForm() {
               id="p-bank-iban" className="input"
               placeholder="SI56 1234 5678 9012 345"
               value={form.bankIban}
-              onChange={(e) => { setForm((p) => ({ ...p, bankIban: formatIban(e.target.value) })); setSuccess(false); }}
+              onChange={(e) => {
+                const formatted = formatIban(e.target.value);
+                // Auto-fill bank name + BIC from the IBAN for recognized Slovenian
+                // banks; leave them untouched for foreign / unknown IBANs.
+                const info = bankFromIban(formatted);
+                setForm((p) => ({
+                  ...p,
+                  bankIban: formatted,
+                  ...(info ? { bankName: info.bankName, bankBic: info.bic } : {}),
+                }));
+                setSuccess(false);
+              }}
               spellCheck={false} autoComplete="off"
               style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.04em" }}
             />

@@ -17,7 +17,7 @@ export function SpecialtiesRatesCard() {
       </div>
       <div className="rail-row">
         <span className="k">{t("providerAccount.specialties_hourly")}</span>
-        <span className="v mono" style={{ fontSize: 14 }}>$95 <span className="muted">/ hr</span></span>
+        <span className="v mono" style={{ fontSize: 14 }}>€95 <span className="muted">/ hr</span></span>
       </div>
       <div className="rail-row">
         <span className="k">{t("providerAccount.specialties_minimum")}</span>
@@ -25,7 +25,7 @@ export function SpecialtiesRatesCard() {
       </div>
       <div className="rail-row">
         <span className="k">{t("providerAccount.specialties_afterHours")}</span>
-        <span className="v mono" style={{ fontSize: 14 }}>+ $50</span>
+        <span className="v mono" style={{ fontSize: 14 }}>+ €50</span>
       </div>
       <div className="rail-row">
         <span className="k">{t("providerAccount.specialties_serviceArea")}</span>

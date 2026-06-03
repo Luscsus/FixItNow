@@ -53,6 +53,13 @@ export type TicketResponseDto = {
   requestedEndAt: string | null;
   statusHistory?: StatusHistoryEntryDto[] | null;
   imageUrls?: string[];
+  // Assigned provider's bank/payout details — present only on the detail view.
+  bankAccountHolder?: string | null;
+  bankIban?: string | null;
+  bankBic?: string | null;
+  bankName?: string | null;
+  bankRecipientStreet?: string | null;
+  bankRecipientCity?: string | null;
 };
 
 export type OpenTicketSummaryDto = {

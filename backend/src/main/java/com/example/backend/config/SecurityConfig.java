@@ -49,6 +49,8 @@ public class SecurityConfig {
         "/api/v1/public/stats",
         "/api/v1/geocode/search",
         "/api/tickets/public/open",
+        // Stripe webhook — authenticated by signature verification, not JWT.
+        "/api/payments/webhook",
         "/actuator/health",
         "/swagger-ui/**",
         "/swagger-ui.html",

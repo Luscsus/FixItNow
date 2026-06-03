@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTicketQuery } from "@/hooks/useTicketQuery";
@@ -15,6 +15,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/toast";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { generateInvoicePdf } from "@/utils/generateInvoicePdf";
+import { createCheckoutSession, confirmPayment } from "@/services/ticketService";
 import type { Ticket, TicketPriority, TicketStatus, StatusHistoryEntry } from "@/domain/ticket";
 
 function fmt(d: Date, locale: string): string {
@@ -217,8 +218,11 @@ export function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const ticketId = id ? parseInt(id, 10) : NaN;
-  const { role } = useAuth();
+  const { role, accessToken } = useAuth();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [paying, setPaying] = useState(false);
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
   const updateMut  = useUpdateTicketStatusMutation();
   const acceptMut  = useAcceptTicketMutation();
   const confirmMut = useConfirmTicketMutation();
@@ -228,6 +232,42 @@ export function TicketDetailPage() {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   const { data: ticket, isLoading, isError } = useTicketQuery(ticketId);
+
+  // Handle the redirect back from Stripe Checkout. On ?payment=success we ask
+  // the backend to confirm the session (so the ticket advances even if the
+  // webhook hasn't fired yet); on ?payment=cancelled we just inform the user.
+  // The query params are cleared afterwards so a refresh doesn't re-trigger.
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    if (!payment || Number.isNaN(ticketId)) return;
+    setSearchParams({}, { replace: true });
+
+    if (payment === "success") {
+      setConfirmingPayment(true);
+      confirmPayment(ticketId, accessToken)
+        .then(() => {
+          queryClient.invalidateQueries({ queryKey: ["tickets", ticketId] });
+          queryClient.invalidateQueries({ queryKey: ["tickets"] });
+          notify(t("ticket.payment.success"), "success");
+        })
+        .catch(() => notify(t("ticket.payment.confirmError"), "error"))
+        .finally(() => setConfirmingPayment(false));
+    } else if (payment === "cancelled") {
+      notify(t("ticket.payment.cancelled"), "info");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, ticketId]);
+
+  const handlePay = async () => {
+    setPaying(true);
+    try {
+      const url = await createCheckoutSession(ticketId, accessToken);
+      window.location.href = url;
+    } catch (err) {
+      notify(getErrorMessage(err) || t("ticket.payment.startError"), "error");
+      setPaying(false);
+    }
+  };
 
   const stepLabels: Record<TicketStatus, string> = {
     PENDING_APPROVAL:       t("ticket.status.PENDING_APPROVAL"),
@@ -467,6 +507,25 @@ export function TicketDetailPage() {
 
           {isProvider && ticket.status === "PENDING_PROVIDER_INVOICE" && (
             <div style={{ marginTop: 28 }}><IssueInvoicePanel ticket={ticket} /></div>
+          )}
+
+          {!isProvider && ticket.status === "PENDING_PAYMENT" && ticket.estimatedCost != null && (
+            <div style={{ marginTop: 28, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: "24px", boxShadow: "var(--shadow-sm)" }}>
+              <div className="mono" style={{ fontSize: 10.5, color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600, marginBottom: 6 }}>
+                {t("ticket.payment.title")}
+              </div>
+              <div className="row" style={{ alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+                <div>
+                  <p style={{ margin: "0 0 4px", fontSize: 14, color: "var(--text-muted)", lineHeight: 1.5 }}>
+                    {t("ticket.payment.subtitle", { name: ticket.assignedServiceProviderName ?? "your provider" })}
+                  </p>
+                  <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em" }}>${ticket.estimatedCost.toFixed(2)}</div>
+                </div>
+                <button className="btn btn-primary" disabled={paying || confirmingPayment} onClick={handlePay} style={{ minWidth: 160 }}>
+                  {paying ? t("ticket.payment.redirecting") : t("ticket.payment.payNow")}
+                </button>
+              </div>
+            </div>
           )}
 
           {(ticket.status === "PENDING_PAYMENT" || ticket.status === "COMPLETED") && ticket.estimatedCost != null && (

@@ -119,6 +119,37 @@ export async function issueInvoice(
   return mapTicket(data);
 }
 
+/**
+ * Starts a Stripe Checkout session for the ticket's invoice and returns the
+ * hosted payment URL the caller should redirect the browser to.
+ */
+export async function createCheckoutSession(
+  ticketId: number,
+  accessToken?: string,
+): Promise<string> {
+  const data = await requestJson<{ url: string }>(
+    `/api/tickets/${ticketId}/checkout-session`,
+    { method: "POST", headers: authHeader(accessToken) },
+  );
+  return data.url;
+}
+
+/**
+ * Confirms payment after returning from Stripe Checkout. The backend checks the
+ * session with Stripe and advances the ticket to COMPLETED if it was paid.
+ * Returns the (possibly updated) ticket.
+ */
+export async function confirmPayment(
+  ticketId: number,
+  accessToken?: string,
+): Promise<Ticket> {
+  const data = await requestJson<TicketResponseDto>(
+    `/api/tickets/${ticketId}/payment/confirm`,
+    { method: "POST", headers: authHeader(accessToken) },
+  );
+  return mapTicket(data);
+}
+
 export async function getNearbyTickets(
   latitude: number,
   longitude: number,

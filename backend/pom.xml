@@ -26,6 +26,7 @@
         <totp.version>1.7.1</totp.version>
         <springdoc.version>2.6.0</springdoc.version>
         <spring-dotenv.version>4.0.0</spring-dotenv.version>
+        <stripe.version>32.2.0</stripe.version>
     </properties>
 
     <dependencies>
@@ -126,6 +127,13 @@
             <groupId>com.cloudinary</groupId>
             <artifactId>cloudinary-http44</artifactId>
             <version>1.38.0</version>
+        </dependency>
+
+        <!-- Stripe payments -->
+        <dependency>
+            <groupId>com.stripe</groupId>
+            <artifactId>stripe-java</artifactId>
+            <version>${stripe.version}</version>
         </dependency>
 
         <!-- Lombok -->

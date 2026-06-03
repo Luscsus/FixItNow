@@ -337,6 +337,44 @@ public class TicketService {
         return toResponse(saved);
     }
 
+    /**
+     * Marks a ticket's invoice as paid and advances it to COMPLETED. Called from
+     * the Stripe webhook (authoritative) and from the on-return confirmation
+     * fallback. Idempotent: if the ticket is already COMPLETED this is a no-op,
+     * so a webhook + confirm race can't double-process or throw.
+     */
+    @Transactional
+    public TicketResponse markTicketPaid(Long ticketId, String paymentIntentId) {
+        Ticket ticket = getTicketOrThrow(ticketId);
+
+        // Already settled — record the payment-intent if we didn't have it and return.
+        if (ticket.getStatus() == TicketStatus.COMPLETED || ticket.getPaidAt() != null) {
+            if (paymentIntentId != null && ticket.getStripePaymentIntentId() == null) {
+                ticket.setStripePaymentIntentId(paymentIntentId);
+                ticketRepository.save(ticket);
+            }
+            return toResponse(ticket);
+        }
+
+        if (ticket.getStatus() != TicketStatus.PENDING_PAYMENT) {
+            throw new InvalidTicketStatusTransitionException(
+                "Payment can only be recorded for a ticket awaiting payment (current: " + ticket.getStatus() + ")");
+        }
+
+        ticket.setStatus(TicketStatus.COMPLETED);
+        ticket.setPaidAt(LocalDateTime.now());
+        if (paymentIntentId != null) {
+            ticket.setStripePaymentIntentId(paymentIntentId);
+        }
+        Ticket saved = ticketRepository.save(ticket);
+        recordHistory(saved, TicketStatus.COMPLETED);
+        calendarService.syncBookedBlockForTicket(saved);
+
+        postSystemMessage(saved, "Payment received · ticket " + formatTicketCode(saved.getId()) + " complete. Thank you!");
+        notifyCustomerOfStatusChange(saved, notificationBodyForStatus(TicketStatus.COMPLETED));
+        return toResponse(saved);
+    }
+
     @Transactional
     public void deleteTicket(Long ticketId, UUID userId) {
         Ticket ticket = getTicketOrThrow(ticketId);

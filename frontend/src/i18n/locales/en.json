@@ -667,6 +667,16 @@
     "activity": "Activity",
     "events": "{{count}} events",
     "downloadInvoice": "↓ Download Invoice PDF",
+    "payment": {
+      "title": "Payment",
+      "subtitle": "Pay the invoice from {{name}} securely with Stripe.",
+      "payNow": "Pay now",
+      "redirecting": "Redirecting…",
+      "success": "Payment received — thank you! Your ticket is now complete.",
+      "cancelled": "Payment was cancelled. You can try again anytime.",
+      "startError": "Could not start the payment. Please try again.",
+      "confirmError": "We couldn't confirm your payment yet. If you were charged, it will update shortly."
+    },
     "backToDashboardBtn": "← Back to dashboard",
     "declining": "Declining…",
     "decline": "Decline",

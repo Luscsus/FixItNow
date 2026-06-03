@@ -61,19 +61,19 @@ function IconPin({ size = 14 }: { readonly size?: number }) {
 }
 
 const INCOMING_JOBS = [
-  { id: "FIX-2418", trade: "PLUMBING",   title: "Leaking shut-off valve, kitchen",         dist: "1.2 mi", payout: "$140–180", urgency: "URGENT" },
-  { id: "FIX-2417", trade: "ELECTRICAL", title: "Outlet sparking, master bedroom",         dist: "2.8 mi", payout: "$120–160", urgency: "TODAY" },
-  { id: "FIX-2416", trade: "HVAC",       title: "AC not cooling, 3-bedroom condo",         dist: "3.4 mi", payout: "$220–290", urgency: "TODAY" },
+  { id: "FIX-2418", trade: "PLUMBING",   title: "Leaking shut-off valve, kitchen",         dist: "1.2 mi", payout: "€140–180", urgency: "URGENT" },
+  { id: "FIX-2417", trade: "ELECTRICAL", title: "Outlet sparking, master bedroom",         dist: "2.8 mi", payout: "€120–160", urgency: "TODAY" },
+  { id: "FIX-2416", trade: "HVAC",       title: "AC not cooling, 3-bedroom condo",         dist: "3.4 mi", payout: "€220–290", urgency: "TODAY" },
 ];
 
 const PROVIDER_QUOTES = [
   {
-    name: "Marcus C.", trade: "Plumbing · Oakland", earnings: "$94k", years: 2,
+    name: "Marcus C.", trade: "Plumbing · Oakland", earnings: "€94k", years: 2,
     quote: "I used to spend half my week chasing leads on Craigslist. Now jobs hit my phone, I pick the ones I want, and the money lands the next day. I haven't placed an ad in 18 months.",
   },
   {
-    name: "Priya S.", trade: "HVAC · San Jose", earnings: "$112k", years: 3,
-    quote: "The radius and rate filters are the whole game. I only see jobs that fit what I do — no driving an hour for a $60 fix. Same-day payouts mean I never wait on an invoice.",
+    name: "Priya S.", trade: "HVAC · San Jose", earnings: "€112k", years: 3,
+    quote: "The radius and rate filters are the whole game. I only see jobs that fit what I do — no driving an hour for a €60 fix. Same-day payouts mean I never wait on an invoice.",
   },
 ];
 
@@ -161,7 +161,7 @@ export function ProviderLanding() {
                 <div>
                   <span className="live-pulse">{t("providerLanding.todayEarnings")}</span>
                   <div style={{ marginTop: 14, fontSize: 38, fontWeight: 700, letterSpacing: "-0.02em", color: "#fff", lineHeight: 1 }}>
-                    <span style={{ color: "var(--amber-500)" }}>$</span>847
+                    <span style={{ color: "var(--amber-500)" }}>€</span>847
                     <span style={{ fontSize: 18, color: "rgba(255,255,255,0.5)", fontWeight: 500, marginLeft: 4 }}>.50</span>
                   </div>
                   <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.55)", marginTop: 6, fontFamily: "var(--font-mono)", letterSpacing: "0.04em" }}>
@@ -300,7 +300,7 @@ export function ProviderLanding() {
             <div>
               <span className="live-pulse" style={{ marginBottom: 14 }}>{t("providerLanding.providerEconomicsLabel")}</span>
               <div className="proof-num" style={{ marginTop: 14 }}>
-                <span className="amber">$1,840</span> {t("providerLanding.avgWeekly")}<br />
+                <span className="amber">€1,840</span> {t("providerLanding.avgWeekly")}<br />
                 <span style={{ fontSize: "0.65em", color: "rgba(255,255,255,0.7)" }}>{t("providerLanding.forFullTimeProviders")}</span>
               </div>
             </div>

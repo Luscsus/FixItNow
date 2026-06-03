@@ -164,7 +164,7 @@ export function SearchBar({
   const expLabel = minExp > 0 ? t("browse.expYears", { n: minExp }) : t("browse.anyExp");
   const budgetLabel =
     minPrice || maxPrice
-      ? `$${minPrice || "0"}–$${maxPrice || "∞"}/hr`
+      ? `€${minPrice || "0"}–€${maxPrice || "∞"}/hr`
       : t("browse.anyBudget");
 
   const hasFilter = {

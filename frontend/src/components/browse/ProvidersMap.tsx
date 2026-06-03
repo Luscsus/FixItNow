@@ -120,7 +120,7 @@ export function ProvidersMap({ providers, userCoords }: ProvidersMapProps) {
               )}
               <br />
               <span style={{ fontSize: 12, fontWeight: 600 }}>
-                ${p.pricePerHour}/hr
+                €{p.pricePerHour}/hr
               </span>
             </div>
           </Tooltip>

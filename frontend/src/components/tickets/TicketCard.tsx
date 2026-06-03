@@ -183,7 +183,7 @@ export function TicketCard({ ticket }: { ticket: Ticket }) {
               {ticket.estimatedCost != null ? (
                 <>
                   <span className="grow" />
-                  <span className="ticket-next">${ticket.estimatedCost}</span>
+                  <span className="ticket-next">€{ticket.estimatedCost}</span>
                 </>
               ) : (
                 <span className="grow" />

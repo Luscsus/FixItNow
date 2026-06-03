@@ -3,11 +3,14 @@ package com.example.backend.service;
 import com.example.backend.common.exception.ApiException;
 import com.example.backend.domain.ticket.Ticket;
 import com.example.backend.domain.ticket.TicketStatus;
+import com.example.backend.domain.user.Provider;
 import com.example.backend.dto.TicketResponse;
 import com.example.backend.exception.TicketNotFoundException;
+import com.example.backend.repository.ProviderRepository;
 import com.example.backend.repository.TicketRepository;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
+import com.stripe.model.Account;
 import com.stripe.model.Event;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
@@ -36,23 +39,32 @@ import java.util.UUID;
 public class PaymentService {
 
     private final TicketRepository ticketRepository;
+    private final ProviderRepository providerRepository;
     private final TicketService ticketService;
+    private final ConnectService connectService;
     private final String frontendUrl;
     private final String currency;
     private final String webhookSecret;
+    private final BigDecimal applicationFeePercent;
     private final boolean enabled;
 
     public PaymentService(TicketRepository ticketRepository,
+                          ProviderRepository providerRepository,
                           TicketService ticketService,
+                          ConnectService connectService,
                           @Value("${app.frontend-url:http://localhost:5173}") String frontendUrl,
-                          @Value("${stripe.currency:usd}") String currency,
+                          @Value("${stripe.currency:eur}") String currency,
                           @Value("${stripe.secret-key:}") String secretKey,
-                          @Value("${stripe.webhook-secret:}") String webhookSecret) {
+                          @Value("${stripe.webhook-secret:}") String webhookSecret,
+                          @Value("${stripe.application-fee-percent:10}") BigDecimal applicationFeePercent) {
         this.ticketRepository = ticketRepository;
+        this.providerRepository = providerRepository;
         this.ticketService = ticketService;
+        this.connectService = connectService;
         this.frontendUrl = frontendUrl;
         this.currency = currency;
         this.webhookSecret = webhookSecret;
+        this.applicationFeePercent = applicationFeePercent;
         this.enabled = secretKey != null && !secretKey.isBlank();
     }
 
@@ -79,9 +91,23 @@ public class PaymentService {
         if (amount == null || amount.signum() <= 0) {
             throw new ApiException("This ticket has no invoice amount to pay.");
         }
+        if (amount.compareTo(BigDecimal.ONE) < 0) {
+            throw new ApiException("The minimum payment amount is €1.00.");
+        }
+
+        // The invoice owner (provider) must have completed Stripe Connect onboarding,
+        // otherwise the funds would land in the platform account instead of theirs.
+        Provider provider = ticket.getAssignedServiceProvider() == null ? null
+            : providerRepository.findById(ticket.getAssignedServiceProvider().getId()).orElse(null);
+        if (provider == null || provider.getStripeAccountId() == null || !provider.isStripeChargesEnabled()) {
+            throw new ApiException(
+                "This provider hasn't finished setting up payouts yet, so payment can't be collected. "
+                + "Please try again once they've completed their Stripe onboarding.");
+        }
 
         String code = String.format("FIX-%04d", ticket.getId());
         long unitAmount = amount.setScale(2, RoundingMode.HALF_UP).movePointRight(2).longValueExact();
+        long feeAmount = computeApplicationFee(unitAmount);
         String returnBase = frontendUrl + "/tickets/" + ticket.getId();
 
         SessionCreateParams.Builder builder = SessionCreateParams.builder()
@@ -107,6 +133,21 @@ public class PaymentService {
         if (ticket.getUser().getEmail() != null) {
             builder.setCustomerEmail(ticket.getUser().getEmail());
         }
+
+        // Destination charge: route the funds to the provider's connected account,
+        // keeping the platform's application fee. Without transfer_data the money
+        // would stay in the platform account (the bug this fixes).
+        SessionCreateParams.PaymentIntentData.Builder piData =
+            SessionCreateParams.PaymentIntentData.builder()
+                .setTransferData(
+                    SessionCreateParams.PaymentIntentData.TransferData.builder()
+                        .setDestination(provider.getStripeAccountId())
+                        .build());
+        if (feeAmount > 0) {
+            piData.setApplicationFeeAmount(feeAmount);
+        }
+        builder.setPaymentIntentData(piData.build());
+
         SessionCreateParams params = builder.build();
 
         try {
@@ -176,7 +217,29 @@ public class PaymentService {
             if (ticketId != null) {
                 ticketService.markTicketPaid(ticketId, session.getPaymentIntent());
             }
+        } else if ("account.updated".equals(event.getType())) {
+            // A connected provider account changed (e.g. finished onboarding) —
+            // sync the cached charges/payouts flags.
+            Account account = (Account) event.getDataObjectDeserializer().getObject().orElse(null);
+            if (account == null) return;
+            providerRepository.findByStripeAccountId(account.getId()).ifPresent(provider -> {
+                connectService.applyAccountState(provider, account);
+                providerRepository.save(provider);
+            });
         }
+    }
+
+    /** Platform commission in cents, rounded half-up; clamped below the total. */
+    private long computeApplicationFee(long unitAmountCents) {
+        if (applicationFeePercent == null || applicationFeePercent.signum() <= 0) {
+            return 0L;
+        }
+        long fee = BigDecimal.valueOf(unitAmountCents)
+            .multiply(applicationFeePercent)
+            .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP)
+            .longValueExact();
+        // Never charge a fee equal to or above the whole amount.
+        return Math.max(0, Math.min(fee, unitAmountCents - 1));
     }
 
     /** Clamps a string to {@code max} chars (Stripe rejects over-long product descriptions). */

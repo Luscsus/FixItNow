@@ -1,5 +1,53 @@
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
+import i18n from '@/i18n/i18n';
+
+/** Localized label for the invoice PDF, in the user's current language. */
+function tr(key: string, opts?: Record<string, unknown>): string {
+  return i18n.t(`invoicePdf.${key}`, opts ?? {}) as string;
+}
+
+// ── Unicode font ──────────────────────────────────────────────────────────────
+// jsPDF's built-in Helvetica uses WinAnsi encoding, which lacks Slovenian
+// characters like č/Č — they render as broken glyphs. We lazy-load Roboto (which
+// covers Latin Extended-A) from /public/fonts and embed it in the PDF. The
+// base64 is fetched once and cached; if loading fails we fall back to Helvetica.
+let robotoCache: Promise<{ normal: string; bold: string }> | null = null;
+
+async function fetchFontBase64(url: string): Promise<string> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Font load failed (${res.status}): ${url}`);
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  let binary = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
+/**
+ * Registers Roboto (normal + bold) on the document and returns the family name
+ * to use for setFont. Falls back to 'helvetica' if the font can't be loaded.
+ */
+async function registerInvoiceFont(doc: jsPDF): Promise<string> {
+  try {
+    robotoCache ??= Promise.all([
+      fetchFontBase64('/fonts/Roboto-Regular.ttf'),
+      fetchFontBase64('/fonts/Roboto-Bold.ttf'),
+    ]).then(([normal, bold]) => ({ normal, bold }));
+    const { normal, bold } = await robotoCache;
+    doc.addFileToVFS('Roboto-Regular.ttf', normal);
+    doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+    doc.addFileToVFS('Roboto-Bold.ttf', bold);
+    doc.addFont('Roboto-Bold.ttf', 'Roboto', 'bold');
+    return 'Roboto';
+  } catch (e) {
+    robotoCache = null; // allow a retry on the next invoice
+    console.warn('[invoice] Unicode font unavailable, falling back to Helvetica:', e);
+    return 'helvetica';
+  }
+}
 
 export type InvoiceBankDetails = {
   /** Display name of the account holder (the provider). */
@@ -215,15 +263,18 @@ function pickQrPayload(data: InvoiceData, bank: InvoiceBankDetails): string {
 // ── Main export (async because QRCode.toDataURL is async) ─────────────────────
 export async function generateInvoicePdf(data: InvoiceData): Promise<Blob> {
   const doc   = new jsPDF({ unit: 'pt', format: 'a4' });
+  // Embed a Unicode font so Slovenian diacritics (č, š, ž) render correctly.
+  const FONT  = await registerInvoiceFont(doc);
   const W     = doc.internal.pageSize.getWidth();
   const H     = doc.internal.pageSize.getHeight();
   const mar   = 48;
   const cW    = W - mar * 2;
-  const date  = (data.issuedAt ?? new Date()).toLocaleDateString('en-US', {
+  const dateLocale = i18n.language?.startsWith('sl') ? 'sl-SI' : 'en-US';
+  const date  = (data.issuedAt ?? new Date()).toLocaleDateString(dateLocale, {
     year: 'numeric', month: 'long', day: 'numeric',
   });
   const dueDate = new Date((data.issuedAt ?? new Date()).getTime() + 14 * 86_400_000)
-    .toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    .toLocaleDateString(dateLocale, { year: 'numeric', month: 'long', day: 'numeric' });
 
   // Resolve which bank info to render: real (passed by the provider's app)
   // or the mock fallback used for previews / legacy customer downloads.
@@ -247,26 +298,26 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Blob> {
   doc.roundedRect(mar + 7, 28, 18, 6, 2, 2, 'F');
   doc.circle(mar + 10, 38, 4, 'F');
 
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(18); ink(doc, [255,255,255]);
+  doc.setFont(FONT,'bold'); doc.setFontSize(18); ink(doc, [255,255,255]);
   doc.text('FixIt', mar + 40, 41);
   ink(doc, AMBER);
   doc.text('Now', mar + 40 + doc.getTextWidth('FixIt'), 41);
 
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(10); ink(doc, [255,255,255]);
+  doc.setFont(FONT,'bold'); doc.setFontSize(10); ink(doc, [255,255,255]);
   doc.setCharSpace(2);
-  doc.text('INVOICE', W - mar, 41, { align: 'right' });
+  doc.text(tr('invoice'), W - mar, 41, { align: 'right' });
   doc.setCharSpace(0);
 
   // ── Invoice # + date ─────────────────────────────────────────────────────────
   let y = 104;
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(22); ink(doc, TEXT);
+  doc.setFont(FONT,'bold'); doc.setFontSize(22); ink(doc, TEXT);
   doc.text(data.ticketCode, mar, y);
 
   const dateBlockX = W - mar - 150;
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); ink(doc, SLATE);
-  doc.text('Issued:', dateBlockX, y - 14);
-  doc.text('Due:',    dateBlockX, y + 4);
-  doc.setFont('helvetica', 'bold'); ink(doc, TEXT);
+  doc.setFont(FONT,'normal'); doc.setFontSize(10); ink(doc, SLATE);
+  doc.text(tr('issued'), dateBlockX, y - 14);
+  doc.text(tr('due'),    dateBlockX, y + 4);
+  doc.setFont(FONT,'bold'); ink(doc, TEXT);
   doc.text(date,    W - mar, y - 14, { align: 'right' });
   doc.text(dueDate, W - mar, y + 4,  { align: 'right' });
 
@@ -281,53 +332,53 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Blob> {
   function infoCard(x: number, label: string, name: string, sub: string) {
     fill(doc, BG); draw(doc, BORDER); doc.setLineWidth(0.5);
     doc.roundedRect(x, y, colW, 68, 4, 4, 'FD');
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); ink(doc, SLATE);
+    doc.setFont(FONT,'bold'); doc.setFontSize(8); ink(doc, SLATE);
     doc.setCharSpace(1.5); doc.text(label, x + 14, y + 18); doc.setCharSpace(0);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(12); ink(doc, TEXT);
+    doc.setFont(FONT,'bold'); doc.setFontSize(12); ink(doc, TEXT);
     doc.text(name, x + 14, y + 36);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); ink(doc, SLATE);
+    doc.setFont(FONT,'normal'); doc.setFontSize(10); ink(doc, SLATE);
     doc.text(sub, x + 14, y + 52);
   }
 
-  infoCard(mar,            'FROM', data.providerName, 'Service Provider');
-  infoCard(mar + colW + 24, 'TO',   data.customerName,  'Customer');
+  infoCard(mar,            tr('from'), data.providerName, tr('serviceProvider'));
+  infoCard(mar + colW + 24, tr('to'),   data.customerName,  tr('customer'));
 
   // ── Service table ─────────────────────────────────────────────────────────────
   y += 92;
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(8); ink(doc, SLATE);
-  doc.setCharSpace(1.5); doc.text('SERVICE DETAILS', mar, y); doc.setCharSpace(0);
+  doc.setFont(FONT,'bold'); doc.setFontSize(8); ink(doc, SLATE);
+  doc.setCharSpace(1.5); doc.text(tr('serviceDetails'), mar, y); doc.setCharSpace(0);
 
   y += 10; draw(doc, BORDER); doc.line(mar, y, W - mar, y);
 
   y += 6;
   fill(doc, BG); doc.rect(mar, y, cW, 26, 'F');
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(9); ink(doc, SLATE);
-  doc.text('DESCRIPTION', mar + 12, y + 17);
-  doc.text('CATEGORY',    mar + cW * 0.55, y + 17);
-  doc.text('AMOUNT',      W - mar - 12, y + 17, { align: 'right' });
+  doc.setFont(FONT,'bold'); doc.setFontSize(9); ink(doc, SLATE);
+  doc.text(tr('description'), mar + 12, y + 17);
+  doc.text(tr('category'),    mar + cW * 0.55, y + 17);
+  doc.text(tr('amount'),      W - mar - 12, y + 17, { align: 'right' });
 
   y += 26; draw(doc, BORDER); doc.line(mar, y, W - mar, y);
 
   y += 6;
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(11); ink(doc, TEXT);
+  doc.setFont(FONT,'bold'); doc.setFontSize(11); ink(doc, TEXT);
   doc.text(data.serviceType, mar + 12, y + 18);
   if (data.location) {
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); ink(doc, SLATE);
+    doc.setFont(FONT,'normal'); doc.setFontSize(9); ink(doc, SLATE);
     doc.text(`${data.location}`, mar + 12, y + 32);
   }
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); ink(doc, TEXT);
+  doc.setFont(FONT,'normal'); doc.setFontSize(9); ink(doc, TEXT);
   doc.text(data.category.replace(/_/g, ' '), mar + cW * 0.55, y + 18);
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(13); ink(doc, NAVY);
-  doc.text(`$${data.amount.toFixed(2)}`, W - mar - 12, y + 18, { align: 'right' });
+  doc.setFont(FONT,'bold'); doc.setFontSize(13); ink(doc, NAVY);
+  doc.text(`€${data.amount.toFixed(2)}`, W - mar - 12, y + 18, { align: 'right' });
 
   y += 52; draw(doc, BORDER); doc.line(mar, y, W - mar, y);
 
   if (data.description) {
     y += 16;
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); ink(doc, SLATE);
-    doc.setCharSpace(1.5); doc.text('WORK DESCRIPTION', mar, y); doc.setCharSpace(0);
+    doc.setFont(FONT,'bold'); doc.setFontSize(8); ink(doc, SLATE);
+    doc.setCharSpace(1.5); doc.text(tr('workDescription'), mar, y); doc.setCharSpace(0);
     y += 12;
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); ink(doc, TEXT);
+    doc.setFont(FONT,'normal'); doc.setFontSize(10); ink(doc, TEXT);
     const lines = doc.splitTextToSize(data.description, cW) as string[];
     doc.text(lines, mar, y);
     y += lines.length * 14 + 8;
@@ -336,16 +387,16 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Blob> {
   // ── Total ─────────────────────────────────────────────────────────────────────
   y += 20;
   fill(doc, NAVY); doc.roundedRect(mar, y, cW, 52, 6, 6, 'F');
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(12); ink(doc, [255,255,255]);
-  doc.text('Total Due', mar + 20, y + 32);
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(20); ink(doc, AMBER);
-  doc.text(`$${data.amount.toFixed(2)}`, W - mar - 20, y + 34, { align: 'right' });
+  doc.setFont(FONT,'bold'); doc.setFontSize(12); ink(doc, [255,255,255]);
+  doc.text(tr('totalDue'), mar + 20, y + 32);
+  doc.setFont(FONT,'bold'); doc.setFontSize(20); ink(doc, AMBER);
+  doc.text(`€${data.amount.toFixed(2)}`, W - mar - 20, y + 34, { align: 'right' });
   y += 68;
 
   // ── Payment details + QR ─────────────────────────────────────────────────────
   y += 8;
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(8); ink(doc, SLATE);
-  doc.setCharSpace(1.5); doc.text('PAYMENT DETAILS', mar, y); doc.setCharSpace(0);
+  doc.setFont(FONT,'bold'); doc.setFontSize(8); ink(doc, SLATE);
+  doc.setCharSpace(1.5); doc.text(tr('paymentDetails'), mar, y); doc.setCharSpace(0);
   y += 10; draw(doc, BORDER); doc.line(mar, y, W - mar, y);
   y += 16;
 
@@ -355,24 +406,27 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Blob> {
   doc.roundedRect(mar, y, payBoxW, 148, 4, 4, 'FD');
 
   // BIC is rendered only when set — we no longer require providers to enter it.
-  const rows: [string, string][] = [
-    ['Bank',      bank.bankName],
-    ['Account',   bank.accountHolder],
-    ['IBAN',      formatIban(bank.iban)],
-    ...(bank.bic ? ([['BIC/SWIFT', bank.bic]] as [string, string][]) : []),
-    ['Reference', data.ticketCode],
-    ['Amount',    `€ ${data.amount.toFixed(2)}`],
-    ['Due date',  dueDate],
+  // `bold`/`navy` flags drive styling so it no longer depends on label text
+  // (which is now localized and can't be string-compared).
+  type PayRow = { label: string; value: string; bold?: boolean; navy?: boolean };
+  const rows: PayRow[] = [
+    { label: tr('bank'),      value: bank.bankName },
+    { label: tr('account'),   value: bank.accountHolder },
+    { label: tr('iban'),      value: formatIban(bank.iban), bold: true },
+    ...(bank.bic ? [{ label: tr('bicSwift'), value: bank.bic }] : []),
+    { label: tr('reference'), value: data.ticketCode },
+    { label: tr('amountRow'), value: `€${data.amount.toFixed(2)}`, bold: true, navy: true },
+    { label: tr('dueDate'),   value: dueDate },
   ];
 
   let rowY = y + 18;
-  for (const [label, value] of rows) {
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); ink(doc, SLATE);
-    doc.text(label, mar + 14, rowY);
-    doc.setFont('helvetica', label === 'IBAN' || label === 'Amount' ? 'bold' : 'normal');
+  for (const row of rows) {
+    doc.setFont(FONT,'normal'); doc.setFontSize(9); ink(doc, SLATE);
+    doc.text(row.label, mar + 14, rowY);
+    doc.setFont(FONT,row.bold ? 'bold' : 'normal');
     doc.setFontSize(9);
-    ink(doc, label === 'Amount' ? NAVY : TEXT);
-    doc.text(value, mar + 14 + 68, rowY);
+    ink(doc, row.navy ? NAVY : TEXT);
+    doc.text(row.value, mar + 14 + 68, rowY);
     rowY += 18;
   }
 
@@ -384,16 +438,16 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Blob> {
 
   doc.addImage(qrDataUrl, 'PNG', qrX + 8, y + 8, 120, 120);
 
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(7); ink(doc, SLATE);
+  doc.setFont(FONT,'bold'); doc.setFontSize(7); ink(doc, SLATE);
   doc.setCharSpace(0.8);
-  doc.text('SCAN TO PAY', qrX + qrBoxW / 2, y + 138, { align: 'center' });
+  doc.text(tr('scanToPay'), qrX + qrBoxW / 2, y + 138, { align: 'center' });
   doc.setCharSpace(0);
 
   // Caption matches the actual QR dialect we chose above.
   const qrCaption = normalizeIban(bank.iban).startsWith('SI')
-    ? 'UPN QR · Slovenian payment'
-    : 'EPC SEPA Credit Transfer';
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(7); ink(doc, SLATE);
+    ? tr('qrUpn')
+    : tr('qrEpc');
+  doc.setFont(FONT,'normal'); doc.setFontSize(7); ink(doc, SLATE);
   doc.text(qrCaption, qrX + qrBoxW / 2, y + 148, { align: 'center' });
 
   // ── Paid stamp (green) — only if context says completed ───────────────────────
@@ -402,9 +456,9 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Blob> {
   // ── Footer ────────────────────────────────────────────────────────────────────
   draw(doc, BORDER); doc.setLineWidth(0.5);
   doc.line(mar, H - 48, W - mar, H - 48);
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); ink(doc, SLATE);
-  doc.text('Thank you for using FixItNow — your trusted maintenance marketplace.', W / 2, H - 32, { align: 'center' });
-  doc.text(`Generated on ${date}  ·  ${data.ticketCode}`, W / 2, H - 18, { align: 'center' });
+  doc.setFont(FONT,'normal'); doc.setFontSize(9); ink(doc, SLATE);
+  doc.text(tr('footerThanks'), W / 2, H - 32, { align: 'center' });
+  doc.text(tr('generatedOn', { date, code: data.ticketCode }), W / 2, H - 18, { align: 'center' });
 
   return doc.output('blob');
 }

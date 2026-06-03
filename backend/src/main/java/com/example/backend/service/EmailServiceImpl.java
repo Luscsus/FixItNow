@@ -180,7 +180,7 @@ public class EmailServiceImpl implements EmailService {
                                 <tr><td colspan="2" style="padding:6px 0;"><hr style="border:none;border-top:1px solid #E2E8F0;"/></td></tr>
                                 <tr>
                                   <td style="font-size:15px;color:#0F172A;font-weight:700;">Total due</td>
-                                  <td style="font-size:20px;color:#0B1E3F;font-weight:700;text-align:right;">$%s</td>
+                                  <td style="font-size:20px;color:#0B1E3F;font-weight:700;text-align:right;">€%s</td>
                                 </tr>
                               </table>
                             </td>

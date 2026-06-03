@@ -309,7 +309,7 @@ export function ProviderCard({
             fontWeight: 500,
           }}
         >
-          {t("providerCard.from")} <b>${p.pricePerHour}</b>
+          {t("providerCard.from")} <b>€{p.pricePerHour}</b>
           <small style={{ color: "var(--text-muted)", fontWeight: 400 }}>
             {" "}
             {t("common.perHour")}

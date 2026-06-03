@@ -168,7 +168,7 @@ export function VisitorProfile({ provider }: Readonly<VisitorProfileProps>) {
             <div className="rev-cell amber">
               <div className="lbl">{t("profile.rate")}</div>
               <div className="val">
-                ${provider.pricePerHour}
+                €{provider.pricePerHour}
                 <span className="unit">{t("common.perHour")}</span>
               </div>
             </div>
@@ -249,7 +249,7 @@ export function VisitorProfile({ provider }: Readonly<VisitorProfileProps>) {
             <div className="rail-row">
               <span className="k">{t("profile.hourlyRate")}</span>
               <span className="v mono" style={{ fontSize: 14 }}>
-                ${provider.pricePerHour} <span className="muted">{t("common.perHour")}</span>
+                €{provider.pricePerHour} <span className="muted">{t("common.perHour")}</span>
               </span>
             </div>
             {provider.serviceRadiusKm > 0 && (

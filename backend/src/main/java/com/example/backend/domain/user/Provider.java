@@ -73,4 +73,21 @@ public class Provider extends User {
     /** Free-text bank name for invoice display. */
     @Column(name = "bank_name", length = 200)
     private String bankName;
+
+    // ─── Stripe Connect (Express) ─────────────────────────────────────────────
+    // Connected-account id and capability flags, so customer payments can be
+    // routed to this provider via destination charges. Flags mirror the Stripe
+    // account state and are updated by the account.updated webhook.
+
+    /** Connected Stripe account id (acct_…), null until onboarding starts. */
+    @Column(name = "stripe_account_id", length = 255)
+    private String stripeAccountId;
+
+    /** Whether the connected account can accept charges (onboarding complete). */
+    @Column(name = "stripe_charges_enabled", nullable = false)
+    private boolean stripeChargesEnabled = false;
+
+    /** Whether the connected account can receive payouts to its bank. */
+    @Column(name = "stripe_payouts_enabled", nullable = false)
+    private boolean stripePayoutsEnabled = false;
 }

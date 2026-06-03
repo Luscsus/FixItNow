@@ -28,6 +28,12 @@ export function mapTicket(dto: TicketResponseDto): Ticket {
         }))
       : null,
     imageUrls: dto.imageUrls ?? [],
+    bankAccountHolder: dto.bankAccountHolder ?? null,
+    bankIban: dto.bankIban ?? null,
+    bankBic: dto.bankBic ?? null,
+    bankName: dto.bankName ?? null,
+    bankRecipientStreet: dto.bankRecipientStreet ?? null,
+    bankRecipientCity: dto.bankRecipientCity ?? null,
   };
 }
 

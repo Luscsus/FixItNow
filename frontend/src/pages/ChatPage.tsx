@@ -740,7 +740,7 @@ export function ChatPage() {
               subBits.push(`${profile.yearsOfExperience} ${t('profile.yr')} ${t('providerCard.experience')}`);
             }
             if (profile?.pricePerHour != null) {
-              subBits.push(`$${profile.pricePerHour}${t('common.perHour')}`);
+              subBits.push(`€${profile.pricePerHour}${t('common.perHour')}`);
             }
             if (profile?.serviceRadiusKm != null) {
               subBits.push(`${profile.serviceRadiusKm} ${t('profile.kmRadius')}`);

@@ -82,8 +82,11 @@ stripe:
   # Signing secret for the payment webhook (whsec_…), from the Stripe dashboard
   # or `stripe listen` during local development.
   webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
-  # ISO currency code charged on Stripe Checkout. Invoices are displayed in "$".
-  currency: ${STRIPE_CURRENCY:usd}
+  # ISO currency code charged on Stripe Checkout. EUR to match the payment QR.
+  currency: ${STRIPE_CURRENCY:eur}
+  # Platform commission, as a percentage of each invoice, kept as the Stripe
+  # application fee on destination charges. The rest goes to the provider.
+  application-fee-percent: ${STRIPE_APPLICATION_FEE_PERCENT:10}
 
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME:}

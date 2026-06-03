@@ -55,10 +55,10 @@ export const EXP_PRESETS = [
 
 export const BUDGET_PRESETS = [
   { label: "Any", min: "", max: "" },
-  { label: "< $50", min: "1", max: "49" },
-  { label: "$50–$100", min: "50", max: "100" },
-  { label: "$100–$150", min: "100", max: "150" },
-  { label: "$150+", min: "150", max: "" },
+  { label: "< €50", min: "1", max: "49" },
+  { label: "€50–€100", min: "50", max: "100" },
+  { label: "€100–€150", min: "100", max: "150" },
+  { label: "€150+", min: "150", max: "" },
 ];
 
 export const SORT_OPTIONS = [

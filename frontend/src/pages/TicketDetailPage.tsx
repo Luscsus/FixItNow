@@ -130,7 +130,7 @@ function MetaCard({ ticket, labels }: { readonly ticket: Ticket; readonly labels
     },
     {
       label: labels.quoted,
-      value: <div className="mono" style={{ marginTop: 6, fontSize: 14, letterSpacing: "0.02em" }}>{ticket.estimatedCost != null ? `$${ticket.estimatedCost.toFixed(2)}` : "—"}</div>,
+      value: <div className="mono" style={{ marginTop: 6, fontSize: 14, letterSpacing: "0.02em" }}>{ticket.estimatedCost != null ? `€${ticket.estimatedCost.toFixed(2)}` : "—"}</div>,
       mini: ticket.estimatedCost != null ? labels.estimatedCost : labels.notYetQuoted,
     },
   ];
@@ -519,7 +519,7 @@ export function TicketDetailPage() {
                   <p style={{ margin: "0 0 4px", fontSize: 14, color: "var(--text-muted)", lineHeight: 1.5 }}>
                     {t("ticket.payment.subtitle", { name: ticket.assignedServiceProviderName ?? "your provider" })}
                   </p>
-                  <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em" }}>${ticket.estimatedCost.toFixed(2)}</div>
+                  <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em" }}>€{ticket.estimatedCost.toFixed(2)}</div>
                 </div>
                 <button className="btn btn-primary" disabled={paying || confirmingPayment} onClick={handlePay} style={{ minWidth: 160 }}>
                   {paying ? t("ticket.payment.redirecting") : t("ticket.payment.payNow")}
@@ -531,11 +531,27 @@ export function TicketDetailPage() {
           {(ticket.status === "PENDING_PAYMENT" || ticket.status === "COMPLETED") && ticket.estimatedCost != null && (
             <div style={{ marginTop: 16 }}>
               <button className="btn btn-secondary" onClick={async () => {
+                // Use the assigned provider's real bank details (from the detail
+                // response) so the downloaded PDF matches the emailed invoice
+                // instead of falling back to the mock account. issuedAt comes
+                // from the PENDING_PAYMENT transition so the date is stable.
+                const bank = ticket.bankIban
+                  ? {
+                      accountHolder: ticket.bankAccountHolder ?? ticket.assignedServiceProviderName ?? "Provider",
+                      iban: ticket.bankIban,
+                      bankName: ticket.bankName ?? "",
+                      bic: ticket.bankBic ?? undefined,
+                      street: ticket.bankRecipientStreet ?? undefined,
+                      city: ticket.bankRecipientCity ?? undefined,
+                    }
+                  : undefined;
+                const issuedAt = ticket.statusHistory?.find((h) => h.status === "PENDING_PAYMENT")?.changedAt;
                 const blob = await generateInvoicePdf({
                   ticketCode: `FIX-${String(ticket.id).padStart(4, "0")}`, serviceType: ticket.serviceType,
                   category: ticket.category, description: ticket.description, location: ticket.location ?? "",
                   providerName: ticket.assignedServiceProviderName ?? "Provider",
                   customerName: ticket.submittedByName ?? "Customer", amount: ticket.estimatedCost ?? 0,
+                  bank, issuedAt,
                 });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");

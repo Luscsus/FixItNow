@@ -290,7 +290,7 @@ export function AdminProvidersPage() {
               {[
                 { label: t("admin.colTrades"), value: selected.categories.map((c) => categoryLabel(c)).join(", ") },
                 { label: t("admin.colExperience"), value: selected.yearsOfExperience != null ? t("admin.colYears", { count: selected.yearsOfExperience }) : "—" },
-                { label: t("admin.colPricePerHour"), value: selected.pricePerHour != null ? `$${selected.pricePerHour}/hr` : "—", mono: true },
+                { label: t("admin.colPricePerHour"), value: selected.pricePerHour != null ? `€${selected.pricePerHour}/hr` : "—", mono: true },
                 { label: t("admin.colServiceRadius"), value: selected.serviceRadiusKm != null ? `${selected.serviceRadiusKm} km` : "—" },
                 { label: t("admin.colStreet"), value: [selected.locationStreetName, selected.locationStreetNumber].filter(Boolean).join(" ") || "—" },
                 { label: t("admin.colCity"), value: [selected.locationCity, selected.locationPostalCode].filter(Boolean).join(" ") || "—" },

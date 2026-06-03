@@ -26,6 +26,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -49,8 +50,60 @@ public class UserController {
 
     @Operation(summary = "Get the currently authenticated user's profile (any role).")
     @GetMapping("/users/me")
+    @Transactional(readOnly = true)
     public ResponseEntity<UserSummaryResponse> getCurrentUser(@AuthenticationPrincipal UserPrincipal principal) {
-        User user = principal.getUser();
+        // Re-fetch inside a transaction so the lazy `location` can be read.
+        User user = userRepository.findById(principal.getUser().getId())
+            .orElseThrow(() -> new ApiException("User not found"));
+        return ResponseEntity.ok(UserSummaryResponse.from(user));
+    }
+
+    @Operation(summary = "Set the current user's default location (geocodes if coords absent).")
+    @PatchMapping("/users/me/location")
+    @Transactional
+    public ResponseEntity<UserSummaryResponse> updateCurrentUserLocation(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @Valid @RequestBody com.example.backend.web.dto.request.UpdateUserLocationRequest request
+    ) {
+        User user = userRepository.findById(principal.getUser().getId())
+            .orElseThrow(() -> new ApiException("User not found"));
+
+        Double lat = request.getLatitude();
+        Double lng = request.getLongitude();
+        // If the address wasn't picked from autocomplete (no coords), geocode it.
+        if (lat == null || lng == null) {
+            var matches = geocodingService.search(request.getAddress(), 1);
+            if (matches.isEmpty()) {
+                throw new ApiException("We couldn't locate that address. Try a more specific one.");
+            }
+            lat = matches.get(0).lat();
+            lng = matches.get(0).lng();
+        }
+
+        Location location = user.getLocation();
+        if (location == null) {
+            location = new Location();
+        }
+        location.setStreetName(request.getAddress().trim());
+        location.setLatitude(lat);
+        location.setLongitude(lng);
+        locationRepository.save(location);
+        user.setLocation(location);
+        userRepository.save(user);
+
+        return ResponseEntity.ok(UserSummaryResponse.from(user));
+    }
+
+    @Operation(summary = "Remove the current user's default location.")
+    @DeleteMapping("/users/me/location")
+    @Transactional
+    public ResponseEntity<UserSummaryResponse> deleteCurrentUserLocation(
+        @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        User user = userRepository.findById(principal.getUser().getId())
+            .orElseThrow(() -> new ApiException("User not found"));
+        user.setLocation(null);
+        userRepository.save(user);
         return ResponseEntity.ok(UserSummaryResponse.from(user));
     }
 

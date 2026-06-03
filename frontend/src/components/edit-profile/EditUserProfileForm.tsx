@@ -9,6 +9,8 @@ import { updateCurrentUser, updateProfilePicture } from "@/services/userService"
 import { uploadImage } from "@/services/imageService";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { mapZodErrors } from "@/lib/validation";
+import { useUserLocation } from "@/hooks/useUserLocation";
+import { LocationModal } from "@/components/user-account/LocationModal";
 
 type Fields = "firstName" | "lastName";
 
@@ -18,6 +20,8 @@ export function EditUserProfileForm() {
   const { data: user } = useCurrentUser();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { saved: savedLocation } = useUserLocation();
+  const [locationModalOpen, setLocationModalOpen] = useState(false);
 
   const schema = z.object({
     firstName: z.string().min(1, t("editProfile.error_firstName")),
@@ -186,12 +190,39 @@ export function EditUserProfileForm() {
         </div>
       </div>
 
+      {/* Default location */}
+      <div className="field">
+        <span className="field-label">{t("userAccount.buildings_defaultLabel")}</span>
+        <div
+          className="row"
+          style={{
+            alignItems: "center", gap: 12, justifyContent: "space-between",
+            border: "1px solid var(--border)", borderRadius: 10, padding: "10px 12px",
+          }}
+        >
+          <div style={{ display: "flex", gap: 10, alignItems: "center", minWidth: 0 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            <span style={{ fontSize: 14, color: savedLocation ? "var(--text)" : "var(--text-muted)", wordBreak: "break-word" }}>
+              {savedLocation?.address ?? t("userAccount.buildings_noneSet")}
+            </span>
+          </div>
+          <button type="button" className="btn btn-secondary btn-sm" style={{ flexShrink: 0 }} onClick={() => setLocationModalOpen(true)}>
+            {savedLocation ? t("userAccount.buildings_editBtn") : t("userAccount.buildings_addBtn")}
+          </button>
+        </div>
+      </div>
+
       <div className="row" style={{ gap: 12, alignItems: "center" }}>
         <button type="submit" className="btn btn-primary" disabled={isPending}>
           {submitLabel()}
         </button>
         {success && <span style={{ color: "var(--emerald-700)", fontSize: 13 }}>{t("editProfile.saved")}</span>}
       </div>
+
+      <LocationModal open={locationModalOpen} onClose={() => setLocationModalOpen(false)} />
     </form>
   );
 }

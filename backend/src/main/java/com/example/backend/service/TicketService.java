@@ -7,6 +7,8 @@ import com.example.backend.domain.ticket.TicketStatusHistory;
 import com.example.backend.dto.CreateTicketRequest;
 import com.example.backend.dto.OpenTicketSummary;
 import com.example.backend.dto.TicketResponse;
+import com.example.backend.web.dto.response.MatchingOpenTicketResponse;
+import com.example.backend.web.dto.response.RecentActivityResponse;
 import com.example.backend.exception.InvalidTicketStatusTransitionException;
 import com.example.backend.exception.TicketNotFoundException;
 import com.example.backend.exception.UserNotFoundException;
@@ -246,6 +248,86 @@ public class TicketService {
                 .stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    /**
+     * Open tickets that match the given provider's trade categories AND fall
+     * within their service radius, nearest first. Returns an empty list when the
+     * provider has no geocoded location, no categories, or no matches — the UI
+     * renders a graceful empty state in that case.
+     */
+    @Transactional(readOnly = true)
+    public List<MatchingOpenTicketResponse> getMatchingOpenTickets(UUID providerId) {
+        Provider provider = providerRepository.findById(providerId).orElse(null);
+        if (provider == null) return List.of();
+
+        Location pLoc = provider.getLocation();
+        java.util.Set<com.example.backend.domain.user.ServiceCategory> categories = provider.getCategories();
+        if (pLoc == null || pLoc.getLatitude() == null || pLoc.getLongitude() == null
+                || categories == null || categories.isEmpty()) {
+            return List.of();
+        }
+        double radiusKm = provider.getServiceRadiusKm() != null ? provider.getServiceRadiusKm() : 25.0;
+
+        return ticketRepository
+                .findByAssignedServiceProviderIsNullAndStatusOrderByCreatedAtDesc(TicketStatus.PENDING_APPROVAL)
+                .stream()
+                .filter(t -> categories.contains(t.getCategory()))
+                .filter(t -> t.getLocation() != null
+                        && t.getLocation().getLatitude() != null
+                        && t.getLocation().getLongitude() != null)
+                .map(t -> new NearbyTicket(t, haversine(
+                        pLoc.getLatitude(), pLoc.getLongitude(),
+                        t.getLocation().getLatitude(), t.getLocation().getLongitude())))
+                .filter(c -> c.distanceKm <= radiusKm)
+                .sorted(Comparator.comparingDouble(c -> c.distanceKm))
+                .limit(8)
+                .map(c -> new MatchingOpenTicketResponse(
+                        c.ticket.getId(),
+                        c.ticket.getCategory(),
+                        c.ticket.getServiceType(),
+                        c.ticket.getLocation().getCity(),
+                        c.ticket.getEstimatedCost(),
+                        Math.round(c.distanceKm * 10.0) / 10.0))
+                .toList();
+    }
+
+    /**
+     * Recent platform-wide activity (completed / en-route / approved jobs) for
+     * the public landing feed. The actor is the assigned provider, anonymized
+     * to first name + last initial. Customer identity is never exposed.
+     */
+    @Transactional(readOnly = true)
+    public List<RecentActivityResponse> getRecentActivity(int limit) {
+        int capped = Math.max(1, Math.min(limit, 20));
+        List<TicketStatus> statuses = List.of(
+                TicketStatus.COMPLETED, TicketStatus.IN_TRANSIT, TicketStatus.APPROVED);
+
+        return statusHistoryRepository
+                .findRecentActivity(statuses, org.springframework.data.domain.PageRequest.of(0, capped))
+                .stream()
+                .map(h -> {
+                    Ticket t = h.getTicket();
+                    User provider = t.getAssignedServiceProvider();
+                    String actor = anonymizeName(provider);
+                    String city = t.getLocation() != null ? t.getLocation().getCity() : null;
+                    java.math.BigDecimal amount = h.getStatus() == TicketStatus.COMPLETED
+                            ? t.getEstimatedCost() : null;
+                    return new RecentActivityResponse(
+                            actor, t.getCategory(), t.getServiceType(),
+                            city, h.getStatus(), h.getChangedAt(), amount);
+                })
+                .toList();
+    }
+
+    /** "Marko Novak" -> "Marko N." ; falls back gracefully on missing parts. */
+    private static String anonymizeName(User u) {
+        if (u == null) return "A provider";
+        String first = u.getFirstName() != null ? u.getFirstName().trim() : "";
+        String last = u.getLastName() != null ? u.getLastName().trim() : "";
+        if (first.isEmpty() && last.isEmpty()) return "A provider";
+        if (last.isEmpty()) return first;
+        return first + " " + last.charAt(0) + ".";
     }
 
     @Transactional
@@ -680,23 +762,33 @@ public class TicketService {
         ticket.setChatRoomId(saved.getId());
     }
 
+    /**
+     * Build the Location for a ticket. Always creates a NEW, independent
+     * Location row from the request — it must never reuse or overwrite the
+     * customer's saved profile location, so changing a ticket's address can't
+     * mutate their default. Falls back to a copy of the profile location only
+     * when the request carries no address at all.
+     */
     private Location upsertLocation(User user, CreateTicketRequest request) {
-        if (request.getLocation() == null || request.getLocation().isBlank()) {
-            return user.getLocation();
+        Location location = new Location();
+        if (request.getLocation() != null && !request.getLocation().isBlank()) {
+            location.setStreetName(request.getLocation());
+            location.setLatitude(request.getLatitude());
+            location.setLongitude(request.getLongitude());
+        } else if (user.getLocation() != null) {
+            // No address supplied — snapshot the profile location into a fresh row.
+            Location profile = user.getLocation();
+            location.setStreetName(profile.getStreetName());
+            location.setStreetNumber(profile.getStreetNumber());
+            location.setCity(profile.getCity());
+            location.setPostalCode(profile.getPostalCode());
+            location.setCountry(profile.getCountry());
+            location.setLatitude(profile.getLatitude());
+            location.setLongitude(profile.getLongitude());
+        } else {
+            return null;
         }
-
-        Location location = user.getLocation();
-        if (location == null) {
-            location = new Location();
-        }
-        location.setStreetName(request.getLocation());
-        location.setLatitude(request.getLatitude());
-        location.setLongitude(request.getLongitude());
-        location = locationRepository.save(location);
-
-        user.setLocation(location);
-        userRepository.save(user);
-        return location;
+        return locationRepository.save(location);
     }
 
     private String formatProviderName(User provider) {

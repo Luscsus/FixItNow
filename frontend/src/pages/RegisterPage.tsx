@@ -74,9 +74,9 @@ export function RegisterPage() {
 
           <p style={{ textAlign: "center", marginTop: 16, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6 }}>
             {t("register.agreeToTerms")}{" "}
-            <a href="#" style={{ color: "var(--navy-700)", textDecoration: "none" }}>{t("register.termsOfService")}</a>
+            <Link to="/terms" style={{ color: "var(--navy-700)", textDecoration: "none" }}>{t("register.termsOfService")}</Link>
             {" "}{t("register.and")}{" "}
-            <a href="#" style={{ color: "var(--navy-700)", textDecoration: "none" }}>{t("register.privacyPolicy")}</a>.
+            <Link to="/privacy" style={{ color: "var(--navy-700)", textDecoration: "none" }}>{t("register.privacyPolicy")}</Link>.
           </p>
         </div>
       </main>

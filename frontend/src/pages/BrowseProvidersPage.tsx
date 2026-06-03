@@ -7,6 +7,7 @@ import { useProviderSearchQuery } from "@/hooks/useProviderSearchQuery";
 import { useDebounce } from "@/hooks/useDebounce";
 import type { ProviderDto } from "@/services/providerService";
 import { SearchBar } from "@/components/browse/SearchBar";
+import { IconSearch } from "@/components/browse/BrowseIcons";
 import { FilterSidebar } from "@/components/browse/FilterSidebar";
 import { ResultsSection } from "@/components/browse/ResultsSection";
 import { ProvidersMap } from "@/components/browse/ProvidersMap";
@@ -38,6 +39,7 @@ export function BrowseProvidersPage() {
     const cat = routerState?.formState?.category;
     return cat ? [cat] : [];
   });
+  const [query, setQuery]           = useState(() => searchParams.get("q") ?? "");
   const [radiusKm, setRadiusKm]     = useState(() => Number(searchParams.get("radiusKm") ?? "25"));
   const [minPrice, setMinPrice]     = useState(() => searchParams.get("minPrice") ?? "");
   const [maxPrice, setMaxPrice]     = useState(() => searchParams.get("maxPrice") ?? "");
@@ -61,7 +63,7 @@ export function BrowseProvidersPage() {
 
   const activeCoords = locationEnabled ? coords : null;
   const searchQueryParams = {
-    categories: selectedCategories, minPrice, maxPrice,
+    query, categories: selectedCategories, minPrice, maxPrice,
     minYearsOfExperience: minExp,
     latitude: activeCoords?.lat ?? null, longitude: activeCoords?.lon ?? null,
     radiusKm: activeCoords ? radiusKm : null,
@@ -87,6 +89,15 @@ export function BrowseProvidersPage() {
 
   const mapProviders = useMemo((): ProviderDto[] => {
     let providers = allProviders;
+    if (query.trim()) {
+      const q = query.trim().toLowerCase();
+      providers = providers.filter((p) => {
+        const name = `${p.firstName ?? ""} ${p.lastName ?? ""}`.toLowerCase();
+        const bio = (p.bio ?? "").toLowerCase();
+        const cats = (p.categories ?? []).join(" ").toLowerCase();
+        return name.includes(q) || bio.includes(q) || cats.includes(q);
+      });
+    }
     if (selectedCategories.length > 0)
       providers = providers.filter((p) => p.categories.some((c) => selectedCategories.includes(c)));
     if (minPrice) providers = providers.filter((p) => p.pricePerHour >= Number(minPrice));
@@ -98,7 +109,7 @@ export function BrowseProvidersPage() {
         return haversineKm(coords.lat, coords.lon, p.locationLat, p.locationLon) <= radiusKm;
       });
     return providers;
-  }, [allProviders, selectedCategories, minPrice, maxPrice, minExp, locationEnabled, coords, radiusKm]);
+  }, [allProviders, query, selectedCategories, minPrice, maxPrice, minExp, locationEnabled, coords, radiusKm]);
 
   // When GPS is lost, treat "nearest first" as "best match" without mutating state
   const effectiveSortBy = !coords && sortBy === "distance_asc" ? "default" : sortBy;
@@ -142,7 +153,7 @@ export function BrowseProvidersPage() {
   };
 
   const handleReset = () => {
-    setSelectedCategories([]); setRadiusKm(25); setMinPrice(""); setMaxPrice(""); setMinExp(0);
+    setQuery(""); setSelectedCategories([]); setRadiusKm(25); setMinPrice(""); setMaxPrice(""); setMinExp(0);
     setLocationEnabled(false); setPage(1);
   };
 
@@ -202,6 +213,7 @@ export function BrowseProvidersPage() {
 
         <div className="browse-searchbar-wrap" style={{ position: "relative", zIndex: 10 }}>
           <SearchBar
+            query={query} setQuery={setQuery}
             barRef={barRef} selectedCategories={selectedCategories} toggleCategory={toggleCategory}
             clearCategories={() => { setSelectedCategories([]); setPage(1); }}
             radiusKm={radiusKm} setRadiusKm={setRadiusKm} minPrice={minPrice} setMinPrice={setMinPrice}
@@ -212,6 +224,40 @@ export function BrowseProvidersPage() {
             onSearch={handleSearch}
           />
         </div>
+
+        {/* Mobile-only search input (the desktop SearchBar is hidden < 768px) */}
+        {isMobile && (
+          <div style={{ position: "relative", marginBottom: 12 }}>
+            <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: query ? "var(--text)" : "var(--text-muted)", pointerEvents: "none", display: "inline-flex" }}>
+              <IconSearch size={18} />
+            </span>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setPage(1); }}
+              placeholder={t("searchBar.searchPlaceholder")}
+              aria-label={t("searchBar.searchPlaceholder")}
+              enterKeyHint="search"
+              style={{
+                width: "100%", boxSizing: "border-box",
+                padding: "13px 40px 13px 42px", borderRadius: 10,
+                border: "1px solid var(--border)", background: "var(--card)",
+                /* 16px keeps iOS from auto-zooming the viewport on focus */
+                fontSize: 16, color: "var(--text)", fontFamily: "inherit", outline: "none",
+              }}
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => { setQuery(""); setPage(1); }}
+                aria-label={t("searchBar.clearSearch")}
+                style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", border: "none", background: "transparent", color: "var(--text-muted)", fontSize: 22, lineHeight: 1, cursor: "pointer", padding: "4px 8px" }}
+              >
+                ×
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Filters / map toggle bar */}
         <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>

@@ -5,6 +5,8 @@ import { useAllProvidersQuery } from "@/hooks/useAllProvidersQuery";
 import { usePublicOpenTicketsQuery } from "@/hooks/usePublicOpenTicketsQuery";
 import { useActiveCategoriesQuery } from "@/hooks/useActiveCategoriesQuery";
 import { usePublicStatsQuery } from "@/hooks/usePublicStatsQuery";
+import { useRecentActivityQuery } from "@/hooks/useRecentActivityQuery";
+import { initialsOf, avatarStyleFor, timeAgo } from "@/lib/activityFormat";
 import { CATEGORY_META } from "@/components/browse/browseConstants";
 import { classifyCategory } from "@/lib/classifyCategory";
 
@@ -70,7 +72,7 @@ function IconChevron({ size = 14, open = false }: { readonly size?: number; read
 const RADIUS_OPTIONS = [5, 10, 25, 50, 100];
 
 export function UserLanding() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [minPrice, setMinPrice] = useState("");
@@ -87,6 +89,16 @@ export function UserLanding() {
   const { data: publicTickets = [] } = usePublicOpenTicketsQuery();
   const { data: activeCategories = [] } = useActiveCategoriesQuery();
   const { data: stats } = usePublicStatsQuery();
+  const { data: activity = [], isLoading: activityLoading, isError: activityError } = useRecentActivityQuery();
+
+  function activityAction(status: string, categoryLabel: string): string {
+    switch (status) {
+      case "COMPLETED": return t("userLanding.activityCompleted", { category: categoryLabel });
+      case "IN_TRANSIT": return t("userLanding.activityInTransit", { category: categoryLabel });
+      case "APPROVED": return t("userLanding.activityApproved", { category: categoryLabel });
+      default: return t("userLanding.activityUpdated", { category: categoryLabel });
+    }
+  }
 
   const categoryCountMap = useMemo(() => {
     const map: Record<string, number> = {};
@@ -334,28 +346,70 @@ export function UserLanding() {
               </p>
             </div>
 
-            {/* RIGHT column — live card */}
+            {/* RIGHT column — live activity feed (real, platform-wide) */}
             <aside className="live-card">
               <div className="live-card-grid" />
-              <span className="live-pulse">Live · Bay Area</span>
-              <h3 style={{ position: "relative", zIndex: 1, fontSize: 22, fontWeight: 700, lineHeight: 1.2, letterSpacing: "-0.015em", margin: "14px 0 22px", color: "#fff" }}>
+              <span className="live-pulse">{t("userLanding.liveLabel")}</span>
+              <h3 style={{ position: "relative", zIndex: 1, fontSize: 22, fontWeight: 700, lineHeight: 1.2, letterSpacing: "-0.015em", margin: "14px 0 20px", color: "#fff" }}>
                 {t("userLanding.fixedTodayHeadline")}
               </h3>
-              <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
-                {[
-                  { av: "MC", bg: "var(--amber-500)", color: "var(--navy-900)", ago: "2 MIN AGO", name: "Marcus C.", what: "arrived for a sink leak.", where: "Oakwood Bldg C · 2.3 mi" },
-                  { av: "PS", bg: "oklch(0.65 0.06 60)", color: "#fff", ago: "11 MIN AGO", name: "Priya S.", what: "finished an AC service.", where: "Cedar Tower · 5★" },
-                  { av: "SO", bg: "oklch(0.65 0.06 200)", color: "#fff", ago: "28 MIN AGO", name: "Sam O.", what: "swapped a laptop charge board.", where: "FIX-2411 · €185" },
-                  { av: "RV", bg: "oklch(0.65 0.06 130)", color: "#fff", ago: "42 MIN AGO", name: "Renata V.", what: "cleared a clogged main drain.", where: "Howard St · 6th floor" },
-                ].map((item) => (
-                  <div key={item.ago} className="live-feed-item">
-                    <div className="avatar" style={{ background: item.bg, color: item.color }}>{item.av}</div>
-                    <div>
-                      <div style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "rgba(255,255,255,0.55)", letterSpacing: "0.06em" }}>{item.ago}</div>
-                      <div style={{ color: "#fff", fontSize: 13.5, lineHeight: 1.4, marginTop: 3 }}>
-                        <b>{item.name}</b> {item.what}
+
+              <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", gap: 16, minHeight: 220 }}>
+                {activityLoading ? (
+                  [0, 1, 2, 3].map((i) => (
+                    <div key={i} className="live-feed-item" style={{ opacity: 0.5 }}>
+                      <div className="avatar" style={{ background: "rgba(255,255,255,0.12)" }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ height: 9, width: "30%", borderRadius: 4, background: "rgba(255,255,255,0.12)" }} />
+                        <div style={{ height: 12, width: "75%", borderRadius: 4, background: "rgba(255,255,255,0.12)", marginTop: 7 }} />
                       </div>
-                      <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 4 }}>{item.where}</div>
+                    </div>
+                  ))
+                ) : activityError ? (
+                  <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13.5, padding: "12px 0" }}>
+                    {t("userLanding.activityError")}
+                  </div>
+                ) : activity.length === 0 ? (
+                  <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13.5, padding: "12px 0", lineHeight: 1.5 }}>
+                    {t("userLanding.activityEmpty")}
+                  </div>
+                ) : (
+                  activity.slice(0, 4).map((item, idx) => {
+                    const av = avatarStyleFor(item.actorName);
+                    const catLabel = t(`categories.${item.category}`, { defaultValue: item.serviceType });
+                    const meta = [item.city, item.amount != null ? `$${item.amount.toLocaleString()}` : null]
+                      .filter(Boolean).join(" · ");
+                    return (
+                      <div key={`${item.changedAt}-${idx}`} className="live-feed-item">
+                        <div className="avatar" style={{ background: av.bg, color: av.color }}>{initialsOf(item.actorName)}</div>
+                        <div>
+                          <div style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "rgba(255,255,255,0.55)", letterSpacing: "0.06em" }}>
+                            {timeAgo(item.changedAt, i18n.language)}
+                          </div>
+                          <div style={{ color: "#fff", fontSize: 13.5, lineHeight: 1.4, marginTop: 3 }}>
+                            <b>{item.actorName}</b> {activityAction(item.status, catLabel)}
+                          </div>
+                          {meta && <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 4 }}>{meta}</div>}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Real platform totals */}
+              <div style={{ position: "relative", zIndex: 1, marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.1)", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+                {([
+                  { key: "today", label: t("userLanding.metricFixedToday"), value: stats?.completedTicketsToday, accent: "var(--amber-500)" },
+                  { key: "providers", label: t("userLanding.metricActiveProviders"), value: stats?.activeProvidersCount, accent: "#fff" },
+                  { key: "allTime", label: t("userLanding.metricTotalCompleted"), value: stats?.completedTicketsAllTime, accent: "#fff" },
+                ] as const).map((m) => (
+                  <div key={m.key}>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: m.accent, letterSpacing: "-0.02em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+                      {m.value == null ? "—" : m.value.toLocaleString()}
+                    </div>
+                    <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.5)", marginTop: 6, lineHeight: 1.3, fontFamily: "var(--font-mono)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                      {m.label}
                     </div>
                   </div>
                 ))}
@@ -602,9 +656,13 @@ export function UserLanding() {
             </ul>
           </div>
         </div>
-        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 24, display: "flex", justifyContent: "space-between", fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--text-muted)", letterSpacing: "0.05em" }}>
+        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 24, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--text-muted)", letterSpacing: "0.05em" }}>
           <span>{t("userLanding.footerCopyright")}</span>
-          <span>{t("userLanding.footerVersion")}</span>
+          <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
+            <Link to="/terms" style={{ color: "inherit", textDecoration: "none" }}>{t("legal.termsTitle")}</Link>
+            <Link to="/privacy" style={{ color: "inherit", textDecoration: "none" }}>{t("legal.privacyTitle")}</Link>
+            <span>{t("userLanding.footerVersion")}</span>
+          </div>
         </div>
       </footer>
 

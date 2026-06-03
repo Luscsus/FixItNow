@@ -1,7 +1,13 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/context/auth";
+import { useToast } from "@/components/ui/toast";
 import { useAllProvidersQuery } from "@/hooks/useAllProvidersQuery";
 import { usePublicOpenTicketsQuery } from "@/hooks/usePublicOpenTicketsQuery";
+import { useProviderTodayStats } from "@/hooks/useProviderTodayStats";
+import { useMatchingOpenTicketsQuery } from "@/hooks/useMatchingOpenTicketsQuery";
+import { useAcceptTicketMutation } from "@/hooks/useAcceptTicketMutation";
 
 function IconArrow({ size = 14 }: { readonly size?: number }) {
   return (
@@ -60,12 +66,6 @@ function IconPin({ size = 14 }: { readonly size?: number }) {
   );
 }
 
-const INCOMING_JOBS = [
-  { id: "FIX-2418", trade: "PLUMBING",   title: "Leaking shut-off valve, kitchen",         dist: "1.2 mi", payout: "€140–180", urgency: "URGENT" },
-  { id: "FIX-2417", trade: "ELECTRICAL", title: "Outlet sparking, master bedroom",         dist: "2.8 mi", payout: "€120–160", urgency: "TODAY" },
-  { id: "FIX-2416", trade: "HVAC",       title: "AC not cooling, 3-bedroom condo",         dist: "3.4 mi", payout: "€220–290", urgency: "TODAY" },
-];
-
 const PROVIDER_QUOTES = [
   {
     name: "Marcus C.", trade: "Plumbing · Oakland", earnings: "€94k", years: 2,
@@ -79,11 +79,31 @@ const PROVIDER_QUOTES = [
 
 export function ProviderLanding() {
   const { t } = useTranslation();
+  const { role } = useAuth();
+  const { notify } = useToast();
+  const isProvider = role === "PROVIDER";
   const { data: allProviders = [] } = useAllProvidersQuery();
   const { data: publicTickets = [] } = usePublicOpenTicketsQuery();
+  const today = useProviderTodayStats();
+  const { data: matchingJobs = [], isLoading: matchingLoading } = useMatchingOpenTicketsQuery();
+  const acceptMutation = useAcceptTicketMutation();
+  const [acceptingId, setAcceptingId] = useState<number | null>(null);
 
   const openJobsCount = publicTickets.length;
   const providerCount = allProviders.length;
+
+  function handleAccept(id: number) {
+    setAcceptingId(id);
+    acceptMutation.mutate(id, {
+      onSuccess: () => notify(t("providerLanding.jobAccepted"), "success"),
+      onError: () => notify(t("providerLanding.jobAcceptFailed"), "error"),
+      onSettled: () => setAcceptingId(null),
+    });
+  }
+
+  // Today's earnings, split into whole dollars + cents for the hero display.
+  const earnWhole = Math.floor(today.earnings);
+  const earnCents = Math.round((today.earnings - earnWhole) * 100).toString().padStart(2, "0");
 
   return (
     <div style={{ background: "var(--bg-canvas)" }}>
@@ -161,12 +181,24 @@ export function ProviderLanding() {
                 <div>
                   <span className="live-pulse">{t("providerLanding.todayEarnings")}</span>
                   <div style={{ marginTop: 14, fontSize: 38, fontWeight: 700, letterSpacing: "-0.02em", color: "#fff", lineHeight: 1 }}>
-                    <span style={{ color: "var(--amber-500)" }}>€</span>847
-                    <span style={{ fontSize: 18, color: "rgba(255,255,255,0.5)", fontWeight: 500, marginLeft: 4 }}>.50</span>
+                    {today.isLoading ? (
+                      <span style={{ fontSize: 28, color: "rgba(255,255,255,0.6)" }}>…</span>
+                    ) : !today.isProvider ? (
+                      <span style={{ fontSize: 26, color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>{t("providerLanding.todaySignInForStats")}</span>
+                    ) : (
+                      <>
+                        <span style={{ color: "var(--amber-500)" }}>$</span>{earnWhole.toLocaleString()}
+                        <span style={{ fontSize: 18, color: "rgba(255,255,255,0.5)", fontWeight: 500, marginLeft: 4 }}>.{earnCents}</span>
+                      </>
+                    )}
                   </div>
-                  <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.55)", marginTop: 6, fontFamily: "var(--font-mono)", letterSpacing: "0.04em" }}>
-                    +3 JOBS · 6.5 HRS WORKED
-                  </div>
+                  {today.isProvider && !today.isLoading && (
+                    <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.55)", marginTop: 6, fontFamily: "var(--font-mono)", letterSpacing: "0.04em" }}>
+                      {today.isError
+                        ? t("providerLanding.todayStatsError")
+                        : t("providerLanding.todayJobsHours", { jobs: today.jobs, hours: today.hours.toFixed(1) })}
+                    </div>
+                  )}
                 </div>
                 <svg width={110} height={48} viewBox="0 0 110 48" style={{ flexShrink: 0, marginTop: 4 }}>
                   <defs>
@@ -185,37 +217,56 @@ export function ProviderLanding() {
               <div style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: "#fff", letterSpacing: "-0.01em" }}>{t("providerLanding.incomingJobsNearYou")}</span>
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "rgba(255,255,255,0.55)", letterSpacing: "0.06em" }}>
-                  {t("providerLanding.within5mi")}
+                  {t("providerLanding.matchedToYou")}
                 </span>
               </div>
 
-              <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
-                {INCOMING_JOBS.map((j) => (
-                  <div key={j.id} style={{
-                    background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-                    borderRadius: 10, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12,
-                  }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--amber-500)", letterSpacing: "0.08em", fontWeight: 600 }}>{j.trade}</span>
-                        <span style={{
-                          fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.06em",
-                          padding: "1px 6px", borderRadius: 4, fontWeight: 700,
-                          background: j.urgency === "URGENT" ? "rgba(245,158,11,0.18)" : "rgba(255,255,255,0.08)",
-                          color: j.urgency === "URGENT" ? "var(--amber-500)" : "rgba(255,255,255,0.65)",
-                        }}>{j.urgency}</span>
-                      </div>
-                      <div style={{ color: "#fff", fontSize: 13, lineHeight: 1.35, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{j.title}</div>
-                      <div style={{ display: "flex", gap: 10, fontSize: 11.5, color: "rgba(255,255,255,0.55)", marginTop: 4 }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><IconPin size={11} /> {j.dist}</span>
-                        <span>· {j.payout}</span>
-                      </div>
+              <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", gap: 10, minHeight: 180 }}>
+                {!isProvider ? (
+                  <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "20px 16px", textAlign: "center" }}>
+                    <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 13.5, lineHeight: 1.5, marginBottom: 12 }}>
+                      {t("providerLanding.signInToSeeJobs")}
                     </div>
-                    <button style={{ background: "var(--amber-500)", color: "var(--navy-900)", border: 0, borderRadius: 8, padding: "8px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" }}>
-                      {t("providerLanding.accept")}
-                    </button>
+                    <Link to="/login" className="btn btn-primary btn-sm" style={{ textDecoration: "none" }}>
+                      {t("providerLanding.signInCta")}
+                    </Link>
                   </div>
-                ))}
+                ) : matchingLoading ? (
+                  [0, 1, 2].map((i) => (
+                    <div key={i} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "14px", height: 64, opacity: 0.5 }} />
+                  ))
+                ) : matchingJobs.length === 0 ? (
+                  <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "20px 16px", textAlign: "center", color: "rgba(255,255,255,0.6)", fontSize: 13.5, lineHeight: 1.5 }}>
+                    {t("providerLanding.noMatchingJobs")}
+                  </div>
+                ) : (
+                  matchingJobs.map((j) => (
+                    <div key={j.id} style={{
+                      background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+                      borderRadius: 10, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12,
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--amber-500)", letterSpacing: "0.08em", fontWeight: 600 }}>
+                            {t(`categories.${j.category}`, { defaultValue: j.category })}
+                          </span>
+                        </div>
+                        <div style={{ color: "#fff", fontSize: 13, lineHeight: 1.35, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{j.serviceType}</div>
+                        <div style={{ display: "flex", gap: 10, fontSize: 11.5, color: "rgba(255,255,255,0.55)", marginTop: 4 }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><IconPin size={11} /> {j.distanceKm} km</span>
+                          {j.city && <span>· {j.city}</span>}
+                          {j.estimatedCost != null && <span>· ${j.estimatedCost.toLocaleString()}</span>}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleAccept(j.id)}
+                        disabled={acceptingId === j.id}
+                        style={{ background: "var(--amber-500)", color: "var(--navy-900)", border: 0, borderRadius: 8, padding: "8px 12px", fontWeight: 700, fontSize: 12.5, cursor: acceptingId === j.id ? "default" : "pointer", whiteSpace: "nowrap", opacity: acceptingId === j.id ? 0.6 : 1 }}>
+                        {acceptingId === j.id ? t("providerLanding.accepting") : t("providerLanding.accept")}
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
             </aside>
           </div>
@@ -434,9 +485,13 @@ export function ProviderLanding() {
             </ul>
           </div>
         </div>
-        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 24, display: "flex", justifyContent: "space-between", fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--text-muted)", letterSpacing: "0.05em" }}>
+        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 24, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--text-muted)", letterSpacing: "0.05em" }}>
           <span>{t("providerLanding.footerCopyright")}</span>
-          <span>{t("providerLanding.footerVersion")}</span>
+          <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
+            <Link to="/terms" style={{ color: "inherit", textDecoration: "none" }}>{t("legal.termsTitle")}</Link>
+            <Link to="/privacy" style={{ color: "inherit", textDecoration: "none" }}>{t("legal.privacyTitle")}</Link>
+            <span>{t("providerLanding.footerVersion")}</span>
+          </div>
         </div>
       </footer>
 

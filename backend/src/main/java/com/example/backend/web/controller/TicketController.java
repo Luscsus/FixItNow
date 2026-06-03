@@ -124,6 +124,14 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.getOpenTicketsFull());
     }
 
+    @GetMapping("/open/matching")
+    @PreAuthorize("hasRole('PROVIDER')")
+    public ResponseEntity<List<com.example.backend.web.dto.response.MatchingOpenTicketResponse>> getMatchingOpenTickets(
+        @AuthenticationPrincipal UserPrincipal userDetails
+    ) {
+        return ResponseEntity.ok(ticketService.getMatchingOpenTickets(userDetails.getUser().getId()));
+    }
+
     @PostMapping("/{ticketId}/accept")
     @PreAuthorize("hasRole('PROVIDER')")
     public ResponseEntity<TicketResponse> acceptOpenTicket(

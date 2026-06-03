@@ -19,7 +19,42 @@ function mapUser(dto: UserResponseDto): User {
     profilePictureUrl: dto.profilePictureUrl ?? null,
     createdAt: new Date(dto.createdAt),
     notificationPreferences: dto.notificationPreferences ?? {},
+    location: dto.location
+      ? {
+          address: dto.location.address,
+          latitude: dto.location.latitude,
+          longitude: dto.location.longitude,
+        }
+      : null,
   };
+}
+
+export type UpdateUserLocationPayload = {
+  address: string;
+  latitude?: number | null;
+  longitude?: number | null;
+};
+
+/** Save/update the current user's default location. */
+export async function updateUserLocation(
+  accessToken: string,
+  payload: UpdateUserLocationPayload,
+): Promise<User> {
+  const data = await requestJson<UserResponseDto>("/api/v1/users/me/location", {
+    method: "PATCH",
+    headers: authHeader(accessToken),
+    body: JSON.stringify(payload),
+  });
+  return mapUser(data);
+}
+
+/** Remove the current user's default location. */
+export async function deleteUserLocation(accessToken: string): Promise<User> {
+  const data = await requestJson<UserResponseDto>("/api/v1/users/me/location", {
+    method: "DELETE",
+    headers: authHeader(accessToken),
+  });
+  return mapUser(data);
 }
 
 export async function getCurrentUser(accessToken: string): Promise<User> {

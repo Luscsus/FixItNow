@@ -5,7 +5,11 @@ export function usePublicStatsQuery() {
   return useQuery({
     queryKey: ["publicStats"],
     queryFn: getPublicStats,
-    // Numbers move slowly — landing page doesn't need fresh-by-the-second data.
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    // Marketplace numbers move slowly, but the homepage "live" cards should
+    // reflect new completed jobs without a manual reload — refetch on a gentle
+    // interval and whenever the tab regains focus.
+    staleTime: 60 * 1000, // 1 minute
+    refetchInterval: 60 * 1000, // poll every minute for live-ish updates
+    refetchOnWindowFocus: true,
   });
 }

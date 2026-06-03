@@ -4,9 +4,11 @@ import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 import { useRegisterProviderMutation } from "@/hooks/useRegisterProviderMutation";
+import { usePublicStatsQuery } from "@/hooks/usePublicStatsQuery";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { mapZodErrors } from "@/lib/validation";
 import { PasswordInput } from "@/components/ui/PasswordInput";
+import { AuthStat } from "@/components/auth/AuthStat";
 
 type Fields =
   | "firstName" | "lastName" | "email" | "password" | "phoneNumber"
@@ -91,6 +93,7 @@ function IconPhone() {
 export function RegisterProviderPage() {
   const { t } = useTranslation();
   const registerMutation = useRegisterProviderMutation();
+  const { data: stats, isLoading: statsLoading } = usePublicStatsQuery();
 
   const schema = z.object({
     firstName:   z.string().min(1, t("registerProvider.errors.firstNameRequired")),
@@ -103,6 +106,8 @@ export function RegisterProviderPage() {
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", password: "", phoneNumber: "" });
   const [errors, setErrors] = useState<Partial<Record<Fields, string>>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [termsError, setTermsError] = useState(false);
 
   const [selectedTrades, setSelectedTrades] = useState<string[]>([]);
   const [hourlyRate, setHourlyRate] = useState(65);
@@ -151,7 +156,10 @@ export function RegisterProviderPage() {
 
     if (bio.length > BIO_MAX) nextErrors.bio = t("registerProvider.errors.bioMaxLength", { max: BIO_MAX });
 
-    if (Object.keys(nextErrors).length > 0) { setErrors(nextErrors); return; }
+    const termsOk = agreedToTerms;
+    setTermsError(!termsOk);
+
+    if (Object.keys(nextErrors).length > 0 || !termsOk) { setErrors(nextErrors); return; }
     setErrors({});
 
     const categories = TRADES_DATA.filter((tr) => selectedTrades.includes(tr.id)).map((tr) => tr.category);
@@ -249,9 +257,21 @@ export function RegisterProviderPage() {
         </div>
 
         <div className="auth-meta">
-          <div><b>4,200+</b><br />{t("registerProvider.activeProviders")}</div>
-          <div><b>€62</b><br />{t("registerProvider.avgHourlyRate")}</div>
-          <div><b>10%</b><br />{t("registerProvider.platformFee")}</div>
+          <AuthStat
+            loading={statsLoading}
+            value={stats ? stats.activeProvidersCount.toLocaleString() : null}
+            label={t("registerProvider.activeProviders")}
+          />
+          <AuthStat
+            loading={statsLoading}
+            value={stats?.averageHourlyRate != null ? `€${Math.round(stats.averageHourlyRate)}` : null}
+            label={t("registerProvider.avgHourlyRate")}
+          />
+          <AuthStat
+            loading={statsLoading}
+            value={stats?.platformFeePercent != null ? `${stats.platformFeePercent % 1 === 0 ? stats.platformFeePercent : stats.platformFeePercent.toFixed(1)}%` : null}
+            label={t("registerProvider.platformFee")}
+          />
         </div>
       </div>
 
@@ -529,16 +549,27 @@ export function RegisterProviderPage() {
                   <strong>{t("common.note")}:</strong> {t("registerProvider.adminReviewNote")}
                 </p>
 
+                <div className="field">
+                  <label style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5, cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={agreedToTerms}
+                      onChange={(e) => { setAgreedToTerms(e.target.checked); if (e.target.checked) setTermsError(false); }}
+                      style={{ marginTop: 2, flexShrink: 0, width: 16, height: 16, cursor: "pointer" }}
+                    />
+                    <span>
+                      {t("registerProvider.agreeCheckbox")}{" "}
+                      <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "var(--navy-700)", fontWeight: 600 }}>{t("registerProvider.terms")}</a>
+                      {" "}{t("registerProvider.and")}{" "}
+                      <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--navy-700)", fontWeight: 600 }}>{t("registerProvider.privacyPolicy")}</a>.
+                    </span>
+                  </label>
+                  {termsError && <span className="field-error" style={{ marginTop: 6 }}>{t("registerProvider.termsRequired")}</span>}
+                </div>
+
                 <button type="submit" className="btn btn-primary btn-full btn-lg" disabled={registerMutation.isPending}>
                   {registerMutation.isPending ? t("registerProvider.submittingApplication") : t("registerProvider.submitApplication")}
                 </button>
-
-                <p style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center", lineHeight: 1.6 }}>
-                  {t("registerProvider.agreeToTerms")}{" "}
-                  <a href="#" style={{ color: "var(--navy-700)", textDecoration: "none" }}>{t("registerProvider.terms")}</a>
-                  {" "}{t("registerProvider.and")}{" "}
-                  <a href="#" style={{ color: "var(--navy-700)", textDecoration: "none" }}>{t("registerProvider.privacyPolicy")}</a>.
-                </p>
               </form>
             </>
           )}

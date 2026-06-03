@@ -63,6 +63,9 @@ server:
 app:
   name: ${APP_NAME:Backend}
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
+  platform:
+    # Marketplace commission taken from each completed job, as a percentage.
+    fee-percent: ${PLATFORM_FEE_PERCENT:10}
   jwt:
     # Generate a strong secret: openssl rand -base64 64
     secret: ${JWT_SECRET:dGVzdC1zZWNyZXQta2V5LWZvci1kZXZlbG9wbWVudC1vbmx5LW11c3QtY2hhbmdl}

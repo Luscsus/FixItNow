@@ -25,8 +25,28 @@ public class UserSummaryResponse {
     private String profilePictureUrl;
     private LocalDateTime createdAt;
     private Map<String, Boolean> notificationPreferences;
+    /** The user's saved default location, or null if they haven't set one. */
+    private SavedLocation location;
+
+    /** Customer's default location, used to pre-fill the new-ticket form. */
+    @Data
+    @Builder
+    public static class SavedLocation {
+        private String address;
+        private Double latitude;
+        private Double longitude;
+    }
 
     public static UserSummaryResponse from(User u) {
+        SavedLocation loc = null;
+        var l = u.getLocation();
+        if (l != null && l.getStreetName() != null && !l.getStreetName().isBlank()) {
+            loc = SavedLocation.builder()
+                .address(l.getFormattedAddress())
+                .latitude(l.getLatitude())
+                .longitude(l.getLongitude())
+                .build();
+        }
         return UserSummaryResponse.builder()
             .id(u.getId())
             .email(u.getEmail())
@@ -38,6 +58,7 @@ public class UserSummaryResponse {
             .profilePictureUrl(u.getProfilePictureUrl())
             .createdAt(u.getCreatedAt())
             .notificationPreferences(u.getNotificationPreferences() != null ? u.getNotificationPreferences() : new HashMap<>())
+            .location(loc)
             .build();
     }
 }

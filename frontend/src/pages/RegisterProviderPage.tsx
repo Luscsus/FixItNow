@@ -4,9 +4,11 @@ import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 import { useRegisterProviderMutation } from "@/hooks/useRegisterProviderMutation";
+import { usePublicStatsQuery } from "@/hooks/usePublicStatsQuery";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { mapZodErrors } from "@/lib/validation";
 import { PasswordInput } from "@/components/ui/PasswordInput";
+import { AuthStat } from "@/components/auth/AuthStat";
 
 type Fields =
   | "firstName" | "lastName" | "email" | "password" | "phoneNumber"
@@ -68,6 +70,7 @@ function IconPhone() {
 export function RegisterProviderPage() {
   const { t } = useTranslation();
   const registerMutation = useRegisterProviderMutation();
+  const { data: stats, isLoading: statsLoading } = usePublicStatsQuery();
 
   const schema = z.object({
     firstName:   z.string().min(1, t("registerProvider.errors.firstNameRequired")),
@@ -211,9 +214,21 @@ export function RegisterProviderPage() {
         </div>
 
         <div className="auth-meta">
-          <div><b>4,200+</b><br />{t("registerProvider.activeProviders")}</div>
-          <div><b>€62</b><br />{t("registerProvider.avgHourlyRate")}</div>
-          <div><b>10%</b><br />{t("registerProvider.platformFee")}</div>
+          <AuthStat
+            loading={statsLoading}
+            value={stats ? stats.activeProvidersCount.toLocaleString() : null}
+            label={t("registerProvider.activeProviders")}
+          />
+          <AuthStat
+            loading={statsLoading}
+            value={stats?.averageHourlyRate != null ? `€${Math.round(stats.averageHourlyRate)}` : null}
+            label={t("registerProvider.avgHourlyRate")}
+          />
+          <AuthStat
+            loading={statsLoading}
+            value={stats?.platformFeePercent != null ? `${stats.platformFeePercent % 1 === 0 ? stats.platformFeePercent : stats.platformFeePercent.toFixed(1)}%` : null}
+            label={t("registerProvider.platformFee")}
+          />
         </div>
       </div>
 

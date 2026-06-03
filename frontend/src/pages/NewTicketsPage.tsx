@@ -7,6 +7,7 @@ import type { Provider } from "@/domain/admin";
 import { useCreateTicketMutation } from "@/hooks/useCreateTicketMutation";
 import { useActiveCategoriesQuery } from "@/hooks/useActiveCategoriesQuery";
 import { useUploadImageMutation } from "@/hooks/useUploadImageMutation";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useToast } from "@/components/ui/toast";
 import { ProviderAvailabilityPicker } from "@/components/ticket/ProviderAvailabilityPicker";
 import { AddressAutocomplete } from "@/components/tickets/AddressAutocomplete";
@@ -37,6 +38,8 @@ export function NewTicketPage() {
   // Exact coordinates, set when the customer picks an address suggestion.
   // Cleared whenever they edit the text again, so we never send stale coords.
   const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
+  // "SAVED" = use the profile default; "CUSTOM" = type/pick a different address.
+  const [locationMode, setLocationMode] = useState<"SAVED" | "CUSTOM">("CUSTOM");
   const [urgency, setUrgency]       = useState<Urgency | "">(savedForm?.urgency ?? "");
   const [providerMode, setProviderMode] = useState<ProviderMode>(incomingProvider ? "SPECIFIC" : (savedForm?.providerMode ?? "OPEN"));
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(incomingProvider);
@@ -83,6 +86,43 @@ export function NewTicketPage() {
   }
 
   function handleDrop(e: React.DragEvent<HTMLDivElement>) { e.preventDefault(); handleImageFiles(e.dataTransfer.files); }
+
+  const { data: currentUser } = useCurrentUser();
+  const savedLocation = currentUser?.location ?? null;
+
+  // One-time init: default to the saved location when the user has one and
+  // isn't returning to a form that already had a location typed.
+  const locationInitRef = useRef(false);
+  useEffect(() => {
+    if (locationInitRef.current) return;
+    if (savedForm?.location) { locationInitRef.current = true; setLocationMode("CUSTOM"); return; }
+    if (savedLocation?.address && location.trim() === "") {
+      locationInitRef.current = true;
+      setLocationMode("SAVED");
+      setLocation(savedLocation.address);
+      if (savedLocation.latitude != null && savedLocation.longitude != null) {
+        setLocationCoords({ lat: savedLocation.latitude, lng: savedLocation.longitude });
+      }
+    }
+  }, [savedLocation, savedForm, location]);
+
+  // Switch between "use saved" and "enter a different address".
+  function chooseSavedLocation() {
+    setLocationMode("SAVED");
+    if (savedLocation) {
+      setLocation(savedLocation.address);
+      setLocationCoords(
+        savedLocation.latitude != null && savedLocation.longitude != null
+          ? { lat: savedLocation.latitude, lng: savedLocation.longitude }
+          : null,
+      );
+    }
+  }
+  function chooseCustomLocation() {
+    setLocationMode("CUSTOM");
+    setLocation("");
+    setLocationCoords(null);
+  }
 
   useEffect(() => {
     if (createTicketMutation.isSuccess) {
@@ -206,26 +246,67 @@ export function NewTicketPage() {
             <div className="form-grid">
               <div className="field">
                 <label className="field-label">{t("newTicket.locationLabel")}</label>
-                <AddressAutocomplete
-                  value={location}
-                  resolved={locationCoords !== null}
-                  hasError={submitAttempted && !location.trim()}
-                  placeholder={t("newTicket.locationPlaceholder")}
-                  onTextChange={(text) => {
-                    setLocation(text);
-                    // Editing the text invalidates any previously-picked coords.
-                    setLocationCoords(null);
-                  }}
-                  onSelect={(s: AddressSuggestion) => {
-                    setLocation(s.displayName);
-                    setLocationCoords({ lat: s.lat, lng: s.lng });
-                  }}
-                />
+
+                {/* When the user has a saved default, let them clearly choose
+                    between it and a different address. */}
+                {savedLocation && (
+                  <div className="row" style={{ gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      className={`btn btn-sm ${locationMode === "SAVED" ? "btn-primary" : "btn-secondary"}`}
+                      onClick={chooseSavedLocation}
+                    >
+                      {t("newTicket.useSavedLocation")}
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn btn-sm ${locationMode === "CUSTOM" ? "btn-primary" : "btn-secondary"}`}
+                      onClick={chooseCustomLocation}
+                    >
+                      {t("newTicket.useDifferentLocation")}
+                    </button>
+                  </div>
+                )}
+
+                {savedLocation && locationMode === "SAVED" ? (
+                  // Read-only display of the saved default.
+                  <div
+                    className="input-wrap"
+                    style={{ background: "var(--slate-50, #f8fafc)", cursor: "default" }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                    <span style={{ flex: 1, fontSize: 14, color: "var(--text)", wordBreak: "break-word" }}>
+                      {savedLocation.address}
+                    </span>
+                  </div>
+                ) : (
+                  <AddressAutocomplete
+                    value={location}
+                    resolved={locationCoords !== null}
+                    hasError={submitAttempted && !location.trim()}
+                    placeholder={t("newTicket.locationPlaceholder")}
+                    onTextChange={(text) => {
+                      setLocation(text);
+                      // Editing the text invalidates any previously-picked coords.
+                      setLocationCoords(null);
+                    }}
+                    onSelect={(s: AddressSuggestion) => {
+                      setLocation(s.displayName);
+                      setLocationCoords({ lat: s.lat, lng: s.lng });
+                    }}
+                  />
+                )}
+
                 {submitAttempted && !location.trim() ? (
                   <span className="field-error">{t("newTicket.errors.locationRequired")}</span>
                 ) : (
                   <span className="field-hint">
-                    {locationCoords
+                    {locationMode === "SAVED"
+                      ? t("newTicket.savedLocationHint")
+                      : locationCoords
                       ? t("newTicket.locationPinnedHint")
                       : t("newTicket.locationHint")}
                   </span>

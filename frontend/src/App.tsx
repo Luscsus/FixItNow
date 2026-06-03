@@ -14,6 +14,7 @@ import { LoginPage } from "@/pages/LoginPage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { EditProfilePage } from "@/pages/EditProfilePage";
 import { ProviderDashboardPage } from "@/pages/ProviderDashboardPage";
+import { ProviderPayoutsPage } from "@/pages/ProviderPayoutsPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { RegisterProviderPage } from "@/pages/RegisterProviderPage";
 import { RegisterUserPage } from "@/pages/RegisterUserPage";
@@ -68,6 +69,7 @@ function App() {
             path="/dashboard/provider"
             element={<ProviderDashboardPage />}
           />
+          <Route path="/dashboard/provider/payouts" element={<ProviderPayoutsPage />} />
           <Route path="/chat" element={<ChatPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />

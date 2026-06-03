@@ -67,6 +67,27 @@ export type OpenTicketSummaryDto = {
   category: ServiceCategoryDto;
 };
 
+/** An open ticket matched to a provider by trade + radius (nearest first). */
+export type MatchingOpenTicketDto = {
+  id: number;
+  category: ServiceCategoryDto;
+  serviceType: string;
+  city: string | null;
+  estimatedCost: number | null;
+  distanceKm: number;
+};
+
+/** A single anonymized platform-wide activity event for the landing feed. */
+export type RecentActivityDto = {
+  actorName: string;
+  category: ServiceCategoryDto;
+  serviceType: string;
+  city: string | null;
+  status: TicketStatusDto;
+  changedAt: string;
+  amount: number | null;
+};
+
 export type CreateTicketRequestDto = {
   serviceType: string;
   category: ServiceCategoryDto;

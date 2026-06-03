@@ -16,6 +16,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PublicStatsResponse {
 
+    /** Tickets resolved today (since local midnight). */
+    private long completedTicketsToday;
+
     /** Tickets resolved in the last 30 days. */
     private long completedTicketsLast30Days;
 
@@ -45,4 +48,13 @@ public class PublicStatsResponse {
      * transition. Null when no tickets have been approved yet.
      */
     private Long medianResponseMinutes;
+
+    /**
+     * Mean advertised hourly rate across active providers that have a rate on
+     * file. Null when no active provider has set a rate yet.
+     */
+    private Double averageHourlyRate;
+
+    /** Marketplace commission percentage, sourced from configuration. */
+    private double platformFeePercent;
 }

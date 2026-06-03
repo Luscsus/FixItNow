@@ -1,4 +1,4 @@
-import type { CreateTicketRequestDto, OpenTicketSummaryDto, TicketResponseDto } from "@/dto/ticket";
+import type { CreateTicketRequestDto, MatchingOpenTicketDto, OpenTicketSummaryDto, TicketResponseDto } from "@/dto/ticket";
 import type { Ticket, TicketStatus } from "@/domain/ticket";
 import { mapTicket, mapTickets } from "@/mappers/ticketMapper";
 import { requestJson } from "@/services/httpClient";
@@ -96,6 +96,12 @@ export async function declineTicket(ticketId: number, accessToken?: string): Pro
 
 export async function getPublicOpenTickets(): Promise<OpenTicketSummaryDto[]> {
   return requestJson<OpenTicketSummaryDto[]>("/api/tickets/public/open");
+}
+
+export async function getMatchingOpenTickets(accessToken?: string): Promise<MatchingOpenTicketDto[]> {
+  return requestJson<MatchingOpenTicketDto[]>("/api/tickets/open/matching", {
+    headers: authHeader(accessToken),
+  });
 }
 
 export async function issueInvoice(

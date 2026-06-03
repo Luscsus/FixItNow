@@ -7,10 +7,20 @@ import { z } from "zod";
 import { useAuth } from "@/context/auth";
 import type { AuthSession } from "@/domain/auth";
 import { useLoginMutation } from "@/hooks/useLoginMutation";
+import { usePublicStatsQuery } from "@/hooks/usePublicStatsQuery";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { mapZodErrors } from "@/lib/validation";
 import { googleLogin } from "@/services/authService";
 import { PasswordInput } from "@/components/ui/PasswordInput";
+import { AuthStat } from "@/components/auth/AuthStat";
+
+/** Compact response-time label: minutes under an hour, else trimmed hours. */
+function formatResponseTime(minutes: number | null): string | null {
+  if (minutes == null) return null;
+  if (minutes < 60) return `${minutes}m`;
+  const hours = minutes / 60;
+  return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}h`;
+}
 
 const GOOGLE_ENABLED = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
 
@@ -66,6 +76,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const { setSession, setTempToken } = useAuth();
   const loginMutation = useLoginMutation();
+  const { data: stats, isLoading: statsLoading } = usePublicStatsQuery();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -165,9 +176,21 @@ export function LoginPage() {
         </div>
 
         <div className="auth-meta">
-          <div><b>4,200+</b><br />{t("login.verifiedProviders")}</div>
-          <div><b>98%</b><br />{t("login.satisfactionRate")}</div>
-          <div><b>2h</b><br />{t("login.avgResponseTime")}</div>
+          <AuthStat
+            loading={statsLoading}
+            value={stats ? stats.activeProvidersCount.toLocaleString() : null}
+            label={t("login.verifiedProviders")}
+          />
+          <AuthStat
+            loading={statsLoading}
+            value={stats?.averageRating != null ? `${Math.round((stats.averageRating / 5) * 100)}%` : null}
+            label={t("login.satisfactionRate")}
+          />
+          <AuthStat
+            loading={statsLoading}
+            value={formatResponseTime(stats?.medianResponseMinutes ?? null)}
+            label={t("login.avgResponseTime")}
+          />
         </div>
       </div>
 

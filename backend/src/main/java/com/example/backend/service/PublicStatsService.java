@@ -10,6 +10,7 @@ import com.example.backend.web.dto.response.PublicStatsResponse;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,11 +37,16 @@ public class PublicStatsService {
     @PersistenceContext
     private final EntityManager entityManager;
 
+    @Value("${app.platform.fee-percent:10}")
+    private double platformFeePercent;
+
     public PublicStatsResponse getStats() {
         LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+        LocalDateTime startOfToday = java.time.LocalDate.now().atStartOfDay();
 
         long completedAllTime = countCompletedAllTime();
         long completedLast30Days = countCompletedSince(thirtyDaysAgo);
+        long completedToday = countCompletedSince(startOfToday);
 
         Double avgRating = avgRatingOrNull();
         long reviewCount = reviewRepository.count();
@@ -51,7 +57,10 @@ public class PublicStatsService {
         Double sameDayRate = computeSameDayFixRate();
         Long medianResponseMinutes = computeMedianResponseMinutes();
 
+        Double avgHourlyRate = avgHourlyRateOrNull();
+
         return PublicStatsResponse.builder()
+            .completedTicketsToday(completedToday)
             .completedTicketsLast30Days(completedLast30Days)
             .completedTicketsAllTime(completedAllTime)
             .averageRating(avgRating)
@@ -60,6 +69,8 @@ public class PublicStatsService {
             .citiesServedCount(citiesServed)
             .sameDayFixRate(sameDayRate)
             .medianResponseMinutes(medianResponseMinutes)
+            .averageHourlyRate(avgHourlyRate)
+            .platformFeePercent(platformFeePercent)
             .build();
     }
 
@@ -157,6 +168,21 @@ public class PublicStatsService {
             .setParameter("s", UserStatus.ACTIVE)
             .getSingleResult();
         return n == null ? 0L : n.longValue();
+    }
+
+    /**
+     * Mean advertised hourly rate across ACTIVE providers that have a rate set.
+     * Null when no active provider has a rate yet.
+     */
+    private Double avgHourlyRateOrNull() {
+        Number n = (Number) entityManager
+            .createQuery(
+                "SELECT AVG(p.pricePerHour) FROM Provider p " +
+                "WHERE p.status = :s AND p.pricePerHour IS NOT NULL"
+            )
+            .setParameter("s", UserStatus.ACTIVE)
+            .getSingleResult();
+        return n == null ? null : n.doubleValue();
     }
 
     /** Distinct cities across all providers that have a city on file. */

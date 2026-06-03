@@ -4,9 +4,19 @@ import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 import { useRegisterMutation } from "@/hooks/useRegisterMutation";
+import { usePublicStatsQuery } from "@/hooks/usePublicStatsQuery";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { mapZodErrors } from "@/lib/validation";
 import { PasswordInput } from "@/components/ui/PasswordInput";
+import { AuthStat } from "@/components/auth/AuthStat";
+
+/** Compact response-time label: minutes under an hour, else trimmed hours. */
+function formatResponseTime(minutes: number | null): string | null {
+  if (minutes == null) return null;
+  if (minutes < 60) return `${minutes}m`;
+  const hours = minutes / 60;
+  return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}h`;
+}
 
 function passwordStrength(pw: string): number {
   if (pw.length === 0) return 0;
@@ -40,6 +50,7 @@ type Fields = "firstName" | "lastName" | "email" | "password";
 export function RegisterUserPage() {
   const { t } = useTranslation();
   const registerMutation = useRegisterMutation();
+  const { data: stats, isLoading: statsLoading } = usePublicStatsQuery();
 
   const schema = z.object({
     firstName: z.string().min(1, t("registerUser.firstNameRequired")),
@@ -122,9 +133,21 @@ export function RegisterUserPage() {
         </div>
 
         <div className="auth-meta">
-          <div><b>12k+</b><br />{t("registerUser.jobsCompleted")}</div>
-          <div><b>4.9★</b><br />{t("registerUser.avgRating")}</div>
-          <div><b>{t("common.optional").charAt(0).toUpperCase() + t("common.optional").slice(1)}</b><br />{t("registerUser.freeToSignUp")}</div>
+          <AuthStat
+            loading={statsLoading}
+            value={stats ? stats.activeProvidersCount.toLocaleString() : null}
+            label={t("registerUser.verifiedProviders")}
+          />
+          <AuthStat
+            loading={statsLoading}
+            value={stats?.averageRating != null ? `${Math.round((stats.averageRating / 5) * 100)}%` : null}
+            label={t("registerUser.satisfactionRate")}
+          />
+          <AuthStat
+            loading={statsLoading}
+            value={formatResponseTime(stats?.medianResponseMinutes ?? null)}
+            label={t("registerUser.avgResponseTime")}
+          />
         </div>
       </div>
 

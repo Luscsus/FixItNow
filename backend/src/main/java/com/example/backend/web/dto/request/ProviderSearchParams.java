@@ -12,6 +12,9 @@ import java.util.Set;
 @Data
 public class ProviderSearchParams {
 
+    /** Free-text search across provider name, trade/category, and bio. */
+    private String query;
+
     private Set<ServiceCategory> categories;
 
     @DecimalMin(value = "0.0", inclusive = false)

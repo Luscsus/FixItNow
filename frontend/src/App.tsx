@@ -9,6 +9,7 @@ import { AdminProvidersPage } from "@/pages/AdminProvidersPage";
 import { AdminUsersPage } from "@/pages/AdminUsersPage";
 import { AdminTicketsPage } from "@/pages/AdminTicketsPage";
 import { ConfirmEmailPage } from "@/pages/ConfirmEmailPage";
+import { LegalPage } from "@/pages/LegalPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { ProfilePage } from "@/pages/ProfilePage";
@@ -42,6 +43,8 @@ function App() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/two-factor" element={<TwoFactorVerifyPage />} />
+      <Route path="/terms" element={<LegalPage kind="terms" />} />
+      <Route path="/privacy" element={<LegalPage kind="privacy" />} />
 
       {/* Admin console (full-screen, no AppLayout, ADMIN role required) */}
       <Route element={<AdminRoute />}>

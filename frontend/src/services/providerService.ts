@@ -47,6 +47,7 @@ export interface ProviderDto {
 }
 
 export interface ProviderSearchParams {
+  query: string
   categories: string[]
   minPrice: string
   maxPrice: string
@@ -93,6 +94,7 @@ export async function searchProviders(params: URLSearchParams): Promise<Provider
 
 export async function searchProvidersPaged(p: ProviderSearchParams): Promise<PagedProvidersResponse> {
   const sp = new URLSearchParams()
+  if (p.query.trim()) sp.set('query', p.query.trim())
   p.categories.forEach((c) => sp.append('categories', c))
   sp.set('minPrice', p.minPrice || '1')
   sp.set('maxPrice', p.maxPrice || '99999')

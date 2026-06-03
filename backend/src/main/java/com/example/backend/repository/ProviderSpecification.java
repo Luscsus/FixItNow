@@ -32,6 +32,37 @@ public final class ProviderSpecification {
         };
     }
 
+    /**
+     * Free-text match across the provider's first/last name, full name, bio, and
+     * trade category names (e.g. "marko", "plumb", "plumbing" all work). Returns
+     * null (no-op) when the query is blank.
+     */
+    public static Specification<Provider> matchesQuery(String query) {
+        if (query == null || query.isBlank()) return null;
+        String like = "%" + query.trim().toLowerCase() + "%";
+        return (root, criteriaQuery, cb) -> {
+            Expression<String> first = cb.lower(root.get("firstName"));
+            Expression<String> last = cb.lower(root.get("lastName"));
+            Expression<String> full = cb.lower(cb.concat(cb.concat(root.get("firstName"), cb.literal(" ")), root.get("lastName")));
+            Expression<String> bio = cb.lower(root.get("bio"));
+
+            // Category enum-name match via a subquery so pagination counts stay correct.
+            Subquery<UUID> catSub = criteriaQuery.subquery(UUID.class);
+            var catRoot = catSub.from(Provider.class);
+            var catJoin = catRoot.join("categories");
+            catSub.select(catRoot.get("id"))
+                  .where(cb.like(cb.lower(catJoin.as(String.class)), like));
+
+            return cb.or(
+                cb.like(first, like),
+                cb.like(last, like),
+                cb.like(full, like),
+                cb.like(bio, like),
+                root.get("id").in(catSub)
+            );
+        };
+    }
+
     public static Specification<Provider> minPrice(java.math.BigDecimal min) {
         if (min == null) return null;
         return (root, query, cb) -> cb.greaterThanOrEqualTo(root.get("pricePerHour"), min);

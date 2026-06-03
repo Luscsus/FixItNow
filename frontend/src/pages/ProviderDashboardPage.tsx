@@ -7,14 +7,18 @@ import { useOpenTicketsQuery } from "@/hooks/useOpenTicketsQuery";
 import { useProviderTicketsQuery } from "@/hooks/useProviderTicketsQuery";
 import { useUpdateTicketStatusMutation } from "@/hooks/useUpdateTicketStatusMutation";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useToast } from "@/components/ui/toast";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { Pagination, usePaginatedItems } from "@/components/ui/Pagination";
+import { IconSearch } from "@/components/browse/BrowseIcons";
 
 const PAGE_SIZE = 6;
 
 const ACTIVE_STATUSES: TicketStatus[] = ["APPROVED", "IN_TRANSIT", "PENDING_PROVIDER_INVOICE", "PENDING_PAYMENT"];
+
+const PRIORITY_RANK: Record<string, number> = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+type OpenSort = "newest" | "oldest" | "priority" | "budget";
 
 function priorityClass(p: TicketPriority | null): string {
   return p === "CRITICAL" ? "critical" : p === "HIGH" ? "high" : p === "MEDIUM" ? "medium" : "low";
@@ -223,9 +227,48 @@ export function ProviderDashboardPage() {
   const [inboundPage, setInboundPage] = useState(1);
   const [activePage, setActivePage] = useState(1);
   const [openPage, setOpenPage] = useState(1);
+
+  // ── Open-jobs board: filters + sort (client-side over the fetched open list) ──
+  const [openSearch, setOpenSearch] = useState("");
+  const [openCategory, setOpenCategory] = useState<string>("");
+  const [openPriority, setOpenPriority] = useState<string>("");
+  const [openSort, setOpenSort] = useState<OpenSort>("newest");
+  const resetOpenPage = () => setOpenPage(1);
+
+  // Categories actually present in the open list, for the dropdown.
+  const openCategories = useMemo(
+    () => Array.from(new Set(openTickets.map((tk) => tk.category))).sort(),
+    [openTickets],
+  );
+
+  const filteredOpen = useMemo(() => {
+    let list = openTickets;
+    const q = openSearch.trim().toLowerCase();
+    if (q) {
+      list = list.filter((tk) =>
+        (tk.serviceType ?? "").toLowerCase().includes(q) ||
+        (tk.description ?? "").toLowerCase().includes(q) ||
+        (tk.location ?? "").toLowerCase().includes(q),
+      );
+    }
+    if (openCategory) list = list.filter((tk) => tk.category === openCategory);
+    if (openPriority) list = list.filter((tk) => tk.priority === openPriority);
+
+    const sorted = [...list];
+    switch (openSort) {
+      case "newest":   sorted.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()); break;
+      case "oldest":   sorted.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()); break;
+      case "priority": sorted.sort((a, b) => (PRIORITY_RANK[b.priority ?? "LOW"] ?? 0) - (PRIORITY_RANK[a.priority ?? "LOW"] ?? 0)); break;
+      case "budget":   sorted.sort((a, b) => (b.estimatedCost ?? 0) - (a.estimatedCost ?? 0)); break;
+    }
+    return sorted;
+  }, [openTickets, openSearch, openCategory, openPriority, openSort]);
+
+  const openFiltersActive = Boolean(openSearch || openCategory || openPriority);
+
   const inboundPaged = usePaginatedItems(inboundTickets, inboundPage, PAGE_SIZE);
   const activePaged = usePaginatedItems(activeJobs, activePage, PAGE_SIZE);
-  const openPaged = usePaginatedItems(openTickets, openPage, PAGE_SIZE);
+  const openPaged = usePaginatedItems(filteredOpen, openPage, PAGE_SIZE);
 
   const providerName = provider
     ? [provider.firstName, provider.lastName].filter(Boolean).join(" ") || provider.email
@@ -369,20 +412,109 @@ export function ProviderDashboardPage() {
           </div>
         ) : (
           <>
-            <div className="dash-card-grid">
-              {openPaged.pageItems.map((ticket) => (
-                <RequestCard
-                  key={ticket.id}
-                  ticket={ticket}
-                  acceptLabel={t("ticket.actions.acceptAssign")}
-                  isPending={acceptOpen.isPending}
-                  onAccept={() => {
-                    acceptOpen.mutate(ticket.id, { onError: handleAcceptError });
-                  }}
+            {/* Filter + sort bar */}
+            <div
+              style={{
+                display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center",
+                marginBottom: 18, padding: 10,
+                background: "var(--slate-50, #f8fafc)",
+                border: "1px solid var(--border)", borderRadius: 12,
+              }}
+            >
+              {/* Search */}
+              <div style={{ position: "relative", flex: "1 1 220px", minWidth: 160 }}>
+                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: openSearch ? "var(--text)" : "var(--text-muted)", display: "inline-flex", pointerEvents: "none" }}>
+                  <IconSearch size={16} />
+                </span>
+                <input
+                  type="text"
+                  value={openSearch}
+                  onChange={(e) => { setOpenSearch(e.target.value); resetOpenPage(); }}
+                  placeholder={t("dashboard.openFilter_searchPlaceholder")}
+                  aria-label={t("dashboard.openFilter_searchPlaceholder")}
+                  style={{ width: "100%", boxSizing: "border-box", height: 40, padding: "0 12px 0 36px", borderRadius: 9, border: "1px solid var(--border)", background: "#fff", fontSize: 14, color: "var(--text)", fontFamily: "inherit", outline: "none" }}
                 />
-              ))}
+              </div>
+
+              {/* Category */}
+              <select
+                value={openCategory}
+                onChange={(e) => { setOpenCategory(e.target.value); resetOpenPage(); }}
+                aria-label={t("dashboard.openFilter_category")}
+                className="fselect"
+                style={{ width: "auto", flex: "0 1 168px", minWidth: 140, height: 40, minHeight: 0, padding: "0 32px 0 12px", fontSize: 14, borderWidth: 1 }}
+              >
+                <option value="">{t("dashboard.openFilter_allCategories")}</option>
+                {openCategories.map((c) => (
+                  <option key={c} value={c}>{t(`categories.${c}`, { defaultValue: c })}</option>
+                ))}
+              </select>
+
+              {/* Priority */}
+              <select
+                value={openPriority}
+                onChange={(e) => { setOpenPriority(e.target.value); resetOpenPage(); }}
+                aria-label={t("dashboard.openFilter_priority")}
+                className="fselect"
+                style={{ width: "auto", flex: "0 1 156px", minWidth: 132, height: 40, minHeight: 0, padding: "0 32px 0 12px", fontSize: 14, borderWidth: 1 }}
+              >
+                <option value="">{t("dashboard.openFilter_allPriorities")}</option>
+                <option value="CRITICAL">{t("dashboard.priority_critical")}</option>
+                <option value="HIGH">{t("dashboard.priority_high")}</option>
+                <option value="MEDIUM">{t("dashboard.priority_medium")}</option>
+                <option value="LOW">{t("dashboard.priority_low")}</option>
+              </select>
+
+              {/* Divider before sort */}
+              <span style={{ width: 1, alignSelf: "stretch", background: "var(--border)", margin: "2px 0" }} aria-hidden="true" />
+
+              {/* Sort */}
+              <select
+                value={openSort}
+                onChange={(e) => { setOpenSort(e.target.value as OpenSort); resetOpenPage(); }}
+                aria-label={t("dashboard.openFilter_sort")}
+                className="fselect"
+                style={{ width: "auto", flex: "0 1 176px", minWidth: 150, height: 40, minHeight: 0, padding: "0 32px 0 12px", fontSize: 14, borderWidth: 1 }}
+              >
+                <option value="newest">{t("dashboard.openSort_newest")}</option>
+                <option value="oldest">{t("dashboard.openSort_oldest")}</option>
+                <option value="priority">{t("dashboard.openSort_priority")}</option>
+                <option value="budget">{t("dashboard.openSort_budget")}</option>
+              </select>
+
+              {openFiltersActive && (
+                <button
+                  type="button"
+                  onClick={() => { setOpenSearch(""); setOpenCategory(""); setOpenPriority(""); resetOpenPage(); }}
+                  style={{ height: 40, padding: "0 14px", borderRadius: 9, border: "1px solid var(--border)", background: "#fff", color: "var(--text-muted)", fontSize: 13.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+                >
+                  {t("dashboard.openFilter_clear")}
+                </button>
+              )}
             </div>
-            <Pagination page={openPaged.safePage} total={openPaged.totalPages} onChange={setOpenPage} />
+
+            {filteredOpen.length === 0 ? (
+              <div className="card card-pad" style={{ textAlign: "center", padding: "32px 24px", marginBottom: 48 }}>
+                <div style={{ fontSize: 14.5, color: "var(--slate-500)" }}>{t("dashboard.openFilter_noMatches")}</div>
+              </div>
+            ) : (
+              <>
+                <div className="dash-card-grid">
+                  {openPaged.pageItems.map((ticket) => (
+                    <RequestCard
+                      key={ticket.id}
+                      ticket={ticket}
+                      acceptLabel={t("ticket.actions.acceptAssign")}
+                      isPending={acceptOpen.isPending}
+                      onAccept={() => {
+                        acceptOpen.mutate(ticket.id, { onError: handleAcceptError });
+                      }}
+                    />
+                  ))}
+                </div>
+                <Pagination page={openPaged.safePage} total={openPaged.totalPages} onChange={setOpenPage} />
+              </>
+            )}
           </>
         )}
 

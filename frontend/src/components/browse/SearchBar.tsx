@@ -100,6 +100,8 @@ function SegVal({
 }
 
 interface SearchBarProps {
+  query: string;
+  setQuery: (v: string) => void;
   barRef: React.RefObject<HTMLFormElement | null>;
   selectedCategories: string[];
   toggleCategory: (key: string) => void;
@@ -127,6 +129,8 @@ interface SearchBarProps {
 }
 
 export function SearchBar({
+  query,
+  setQuery,
   barRef,
   selectedCategories,
   toggleCategory,
@@ -220,6 +224,34 @@ export function SearchBar({
         alignItems: "stretch",
       }}
     >
+      {/* ── Free-text search ── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "1.4 1 0", minWidth: 0, padding: "0 14px" }}>
+        <span style={{ color: query ? "var(--text)" : "var(--text-muted)", flexShrink: 0, display: "inline-flex" }}><IconSearch /></span>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setPage(1); }}
+          placeholder={t("searchBar.searchPlaceholder")}
+          aria-label={t("searchBar.searchPlaceholder")}
+          style={{
+            flex: 1, minWidth: 0, border: "none", outline: "none", background: "transparent",
+            fontSize: 14, fontWeight: 500, color: "var(--text)", fontFamily: "inherit",
+          }}
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={() => { setQuery(""); setPage(1); }}
+            aria-label={t("searchBar.clearSearch")}
+            style={{ border: "none", background: "transparent", cursor: "pointer", color: "var(--text-muted)", fontSize: 18, lineHeight: 1, padding: "0 2px", flexShrink: 0 }}
+          >
+            ×
+          </button>
+        )}
+      </div>
+
+      {divider}
+
       {/* ── Category ── */}
       <div style={{ position: "relative", flex: "1.3 1 0", minWidth: 0 }}>
         <div {...segProps("category")}>

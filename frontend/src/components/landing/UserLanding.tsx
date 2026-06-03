@@ -656,9 +656,13 @@ export function UserLanding() {
             </ul>
           </div>
         </div>
-        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 24, display: "flex", justifyContent: "space-between", fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--text-muted)", letterSpacing: "0.05em" }}>
+        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 24, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--text-muted)", letterSpacing: "0.05em" }}>
           <span>{t("userLanding.footerCopyright")}</span>
-          <span>{t("userLanding.footerVersion")}</span>
+          <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
+            <Link to="/terms" style={{ color: "inherit", textDecoration: "none" }}>{t("legal.termsTitle")}</Link>
+            <Link to="/privacy" style={{ color: "inherit", textDecoration: "none" }}>{t("legal.privacyTitle")}</Link>
+            <span>{t("userLanding.footerVersion")}</span>
+          </div>
         </div>
       </footer>
 

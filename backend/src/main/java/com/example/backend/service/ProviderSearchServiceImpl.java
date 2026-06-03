@@ -29,6 +29,7 @@ public class ProviderSearchServiceImpl implements ProviderSearchService {
     public Page<ProviderSearchResult> search(ProviderSearchParams params) {
         Specification<Provider> spec = Specification
             .where(ProviderSpecification.isActive())
+            .and(ProviderSpecification.matchesQuery(params.getQuery()))
             .and(ProviderSpecification.hasAnyCategory(params.getCategories()))
             .and(ProviderSpecification.minPrice(params.getMinPrice()))
             .and(ProviderSpecification.maxPrice(params.getMaxPrice()))

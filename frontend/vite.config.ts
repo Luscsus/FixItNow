@@ -15,6 +15,8 @@ export default defineConfig({
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        // Main bundle is ~2.25 MB, above workbox's 2 MiB default; bump to 4 MiB
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },
       manifest: {
         id: '/',

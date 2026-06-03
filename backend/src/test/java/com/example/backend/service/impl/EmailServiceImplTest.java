@@ -63,7 +63,7 @@ class EmailServiceImplTest {
         String content = (String) sentMessage.getContent();
         assertTrue(content.contains("Hi John,"));
         assertTrue(content.contains("http://localhost:3000/confirm-email?token=abc123"));
-        assertTrue(content.contains("Confirm Email"));
+        assertTrue(content.contains("Confirm email address"));
         verify(mailSender).createMimeMessage();
     }
 
@@ -94,8 +94,9 @@ class EmailServiceImplTest {
         String content = (String) sentMessage.getContent();
         assertTrue(content.contains("Hi Mary,"));
         assertTrue(content.contains("http://localhost:3000/reset-password?token=xyz789"));
-        assertTrue(content.contains("Reset Password"));
-        assertTrue(content.contains("This link expires in 2 hours."));
+        assertTrue(content.contains("Reset password"));
+        assertTrue(content.contains("This link expires in"));
+        assertTrue(content.contains("2 hours"));
         verify(mailSender).createMimeMessage();
     }
 }

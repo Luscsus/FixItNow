@@ -9,6 +9,7 @@ import com.example.backend.dto.CreateTicketRequest;
 import com.example.backend.dto.TicketResponse;
 import com.example.backend.security.UserPrincipal;
 import com.example.backend.service.TicketService;
+import com.example.backend.service.TrackingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,11 +42,13 @@ class TicketControllerTest {
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
     private TicketService ticketService;
+    private TrackingService trackingService;
 
     @BeforeEach
     void setUp() {
         ticketService = mock(TicketService.class);
-        TicketController controller = new TicketController(ticketService);
+        trackingService = mock(TrackingService.class);
+        TicketController controller = new TicketController(ticketService, trackingService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
             .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
             .build();

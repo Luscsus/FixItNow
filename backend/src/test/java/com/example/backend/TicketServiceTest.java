@@ -15,6 +15,13 @@ import com.example.backend.repository.ProviderRepository;
 import com.example.backend.repository.TicketRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.LocationRepository;
+import com.example.backend.repository.ChatRoomRepository;
+import com.example.backend.repository.TicketStatusHistoryRepository;
+import com.example.backend.service.CloudinaryService;
+import com.example.backend.service.ChatService;
+import com.example.backend.service.CalendarService;
+import com.example.backend.service.EmailService;
+import com.example.backend.service.NotificationService;
 import com.example.backend.service.TicketService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,6 +56,27 @@ class TicketServiceTest {
 
 	@Mock
 	private ProviderRepository providerRepository;
+
+	@Mock
+	private CloudinaryService cloudinaryService;
+
+	@Mock
+	private ChatRoomRepository chatRoomRepository;
+
+	@Mock
+	private ChatService chatService;
+
+	@Mock
+	private CalendarService calendarService;
+
+	@Mock
+	private TicketStatusHistoryRepository statusHistoryRepository;
+
+	@Mock
+	private EmailService emailService;
+
+	@Mock
+	private NotificationService notificationService;
 
 	@InjectMocks
 	private TicketService ticketService;

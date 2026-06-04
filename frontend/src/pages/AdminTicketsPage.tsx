@@ -10,7 +10,10 @@ import { useToast } from "@/components/ui/toast";
 import { StyledSelect } from "@/components/ui/StyledSelect";
 import { SearchField } from "@/components/ui/SearchField";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Pagination, usePaginatedItems } from "@/components/ui/Pagination";
 import type { Ticket, TicketPriority, TicketStatus } from "@/domain/ticket";
+
+const PAGE_SIZE = 12;
 
 const STATUSES: TicketStatus[] = [
   "PENDING_APPROVAL",
@@ -34,6 +37,7 @@ export function AdminTicketsPage() {
   const { data: tickets = [], isLoading, error } = useAdminTickets();
   const { notify } = useToast();
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [confirmDelete, setConfirmDelete] = useState<Ticket | null>(null);
 
   const update = useAdminUpdateTicketMutation();
@@ -52,6 +56,8 @@ export function AdminTicketsPage() {
       ].join(" ").toLowerCase().includes(q),
     );
   }, [tickets, query]);
+
+  const { pageItems, totalPages, safePage } = usePaginatedItems(filtered, page, PAGE_SIZE);
 
   function handleStatusChange(tk: Ticket, status: string) {
     update.mutate(
@@ -100,7 +106,7 @@ export function AdminTicketsPage() {
           <span style={{ flex: 1 }} />
           <SearchField
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => { setQuery(e.target.value); setPage(1); }}
             placeholder={t("admin.searchTickets")}
             containerStyle={{ maxWidth: 360, minWidth: 240 }}
           />
@@ -132,7 +138,7 @@ export function AdminTicketsPage() {
               <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>{t("admin.noTicketsMatch")}</div>
             )}
 
-            {filtered.map((tk) => (
+            {pageItems.map((tk) => (
               <div key={tk.id} className="admin-table-row" style={{
                 display: "grid",
                 gridTemplateColumns: "minmax(200px, 2fr) 1.2fr 1.2fr 180px 130px 90px",
@@ -199,6 +205,8 @@ export function AdminTicketsPage() {
             ))}
           </div>
         )}
+
+        {!isLoading && !error && <Pagination page={safePage} total={totalPages} onChange={setPage} />}
 
         <p style={{ marginTop: 14, fontSize: 12.5, color: "var(--text-muted)" }}>
           {t("admin.adminNote")}

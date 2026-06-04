@@ -14,7 +14,10 @@ import { getErrorMessage } from "@/lib/errorMessage";
 import { StyledSelect } from "@/components/ui/StyledSelect";
 import { SearchField } from "@/components/ui/SearchField";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Pagination, usePaginatedItems } from "@/components/ui/Pagination";
 import type { AdminUser } from "@/domain/admin";
+
+const PAGE_SIZE = 12;
 
 const AVATAR_COLORS = [
   "#142C5E", "#047857", "#B45309", "#2563EB",
@@ -59,6 +62,7 @@ export function AdminUsersPage() {
   const { data: users = [], isLoading, error } = useAdminUsers();
   const { notify } = useToast();
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [confirmDelete, setConfirmDelete] = useState<AdminUser | null>(null);
   const [confirmPermanent, setConfirmPermanent] = useState<AdminUser | null>(null);
 
@@ -76,6 +80,8 @@ export function AdminUsersPage() {
       `${u.firstName} ${u.lastName} ${u.email} ${u.role}`.toLowerCase().includes(q),
     );
   }, [users, query]);
+
+  const { pageItems, totalPages, safePage } = usePaginatedItems(filtered, page, PAGE_SIZE);
 
   function handleRoleChange(user: AdminUser, role: string) {
     if (role !== "CUSTOMER" && role !== "ADMIN") return;
@@ -146,7 +152,7 @@ export function AdminUsersPage() {
           <span style={{ flex: 1 }} />
           <SearchField
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => { setQuery(e.target.value); setPage(1); }}
             placeholder={t("admin.searchUsers")}
             containerStyle={{ maxWidth: 320, minWidth: 220 }}
           />
@@ -177,7 +183,7 @@ export function AdminUsersPage() {
               <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>{t("admin.noUsersMatch")}</div>
             )}
 
-            {filtered.map((u) => {
+            {pageItems.map((u) => {
               const isProvider = u.role === "PROVIDER";
               const isDeleted = u.status === "DELETED";
               return (
@@ -278,6 +284,8 @@ export function AdminUsersPage() {
             })}
           </div>
         )}
+
+        {!isLoading && !error && <Pagination page={safePage} total={totalPages} onChange={setPage} />}
 
         <p style={{ marginTop: 14, fontSize: 12.5, color: "var(--text-muted)" }}>
           {t("admin.roleChangeNote")}

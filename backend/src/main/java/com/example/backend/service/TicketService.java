@@ -738,8 +738,9 @@ public class TicketService {
     }
 
     private TicketResponse toResponse(Ticket ticket) {
+        // displayName() masks soft-deleted accounts ("Deleted User" / "Former Customer").
         String providerName = ticket.getAssignedServiceProvider() != null
-            ? formatProviderName(ticket.getAssignedServiceProvider())
+            ? ticket.getAssignedServiceProvider().displayName()
             : null;
         UUID providerId = ticket.getAssignedServiceProvider() != null
             ? ticket.getAssignedServiceProvider().getId()
@@ -748,7 +749,7 @@ public class TicketService {
             ? ticket.getAssignedServiceProvider().getProfilePictureUrl()
             : null;
         String submittedByName = ticket.getUser() != null
-            ? formatProviderName(ticket.getUser())
+            ? ticket.getUser().displayName()
             : null;
         String submittedByProfilePictureUrl = ticket.getUser() != null
             ? ticket.getUser().getProfilePictureUrl()

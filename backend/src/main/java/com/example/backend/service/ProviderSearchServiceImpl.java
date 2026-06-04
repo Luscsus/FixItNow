@@ -53,6 +53,10 @@ public class ProviderSearchServiceImpl implements ProviderSearchService {
         // can be initialized before the session closes.
         Provider p = providerRepository.findById(id)
             .orElseThrow(() -> new UserNotFoundException("Provider not found: " + id));
+        // Deleted accounts are hidden from public profiles entirely.
+        if (p.isDeleted() || p.getStatus() == com.example.backend.domain.user.UserStatus.DELETED) {
+            throw new UserNotFoundException("Provider not found: " + id);
+        }
         return ProviderSearchResult.from(p, null);
     }
 

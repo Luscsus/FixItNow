@@ -81,6 +81,22 @@ public class User {
     @Builder.Default
     private Map<String, Boolean> notificationPreferences = new HashMap<>();
 
+    // ─── Soft delete (accounts are never hard-deleted) ──────────────────────
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean deleted = false;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    /** Who performed the deletion (the user themselves, or an admin). */
+    @Column(name = "deleted_by")
+    private UUID deletedBy;
+
+    /** Future use — reason captured at deletion time. */
+    @Column(name = "deletion_reason", length = 500)
+    private String deletionReason;
+
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -88,4 +104,15 @@ public class User {
     @LastModifiedDate
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    /** Display name that masks deleted accounts on record-keeping surfaces. */
+    @Transient
+    public String displayName() {
+        if (deleted) {
+            return role == UserRole.PROVIDER ? "Deleted User" : "Former Customer";
+        }
+        String full = ((firstName != null ? firstName : "") + " "
+            + (lastName != null ? lastName : "")).trim();
+        return full.isBlank() ? email : full;
+    }
 }

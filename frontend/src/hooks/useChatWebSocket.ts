@@ -2,8 +2,11 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import type {
+  ChatError,
   ChatMessage,
   ChatTypingEvent,
+  DeleteMessagePayload,
+  EditMessagePayload,
   SendMessagePayload,
   SendStatusPayload,
 } from '@/domain/chat';
@@ -16,6 +19,8 @@ interface UseChatWebSocketOptions {
   onMessage: (msg: ChatMessage) => void;
   onTyping: (event: ChatTypingEvent) => void;
   onStatusUpdate: (msg: ChatMessage) => void;
+  /** Called when the server rejects a message (rate limit / anti-spam). */
+  onError?: (err: ChatError) => void;
   /** Refresh the access token. Returns the new token or null on failure. */
   refreshSession: () => Promise<string | null>;
 }
@@ -31,18 +36,21 @@ export function useChatWebSocket({
   onMessage,
   onTyping,
   onStatusUpdate,
+  onError,
   refreshSession,
 }: UseChatWebSocketOptions) {
   const clientRef = useRef<Client | null>(null);
   const onMessageRef = useRef(onMessage);
   const onTypingRef = useRef(onTyping);
   const onStatusUpdateRef = useRef(onStatusUpdate);
+  const onErrorRef = useRef(onError);
   const refreshSessionRef = useRef(refreshSession);
   const [connected, setConnected] = useState(false);
 
   useEffect(() => { onMessageRef.current = onMessage; }, [onMessage]);
   useEffect(() => { onTypingRef.current = onTyping; }, [onTyping]);
   useEffect(() => { onStatusUpdateRef.current = onStatusUpdate; }, [onStatusUpdate]);
+  useEffect(() => { onErrorRef.current = onError; }, [onError]);
   useEffect(() => { refreshSessionRef.current = refreshSession; }, [refreshSession]);
 
   useEffect(() => {
@@ -86,6 +94,11 @@ export function useChatWebSocket({
         });
         client.subscribe(`/topic/chat/${chatRoomId}/status`, (frame) => {
           try { onStatusUpdateRef.current(JSON.parse(frame.body) as ChatMessage); }
+          catch { /* ignore */ }
+        });
+        // Per-user error queue — rate-limit / anti-spam rejections land here.
+        client.subscribe('/user/queue/errors', (frame) => {
+          try { onErrorRef.current?.(JSON.parse(frame.body) as ChatError); }
           catch { /* ignore */ }
         });
       },
@@ -132,6 +145,20 @@ export function useChatWebSocket({
     }
   }, []);
 
+  const sendEdit = useCallback((payload: EditMessagePayload) => {
+    const client = clientRef.current;
+    if (!client?.connected) return;
+    try { client.publish({ destination: '/app/chat.edit', body: JSON.stringify(payload) }); }
+    catch (err) { console.error('[chat-ws] edit failed', err); }
+  }, []);
+
+  const sendDelete = useCallback((payload: DeleteMessagePayload) => {
+    const client = clientRef.current;
+    if (!client?.connected) return;
+    try { client.publish({ destination: '/app/chat.delete', body: JSON.stringify(payload) }); }
+    catch (err) { console.error('[chat-ws] delete failed', err); }
+  }, []);
+
   const sendTyping = useCallback((payload: ChatTypingEvent) => {
     const client = clientRef.current;
     if (!client?.connected) return;
@@ -146,5 +173,5 @@ export function useChatWebSocket({
     catch (err) { console.error('[chat-ws] status send failed', err); }
   }, []);
 
-  return { sendMessage, sendTyping, sendStatus, connected };
+  return { sendMessage, sendTyping, sendStatus, sendEdit, sendDelete, connected };
 }

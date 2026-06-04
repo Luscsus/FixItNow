@@ -57,6 +57,14 @@ export async function deleteUserLocation(accessToken: string): Promise<User> {
   return mapUser(data);
 }
 
+/** Soft-deletes the current user's own account. Throws ApiError (with a message) when blocked. */
+export async function deleteOwnAccount(accessToken: string): Promise<void> {
+  await requestJson<{ message: string }>("/api/v1/users/me", {
+    method: "DELETE",
+    headers: authHeader(accessToken),
+  });
+}
+
 export async function getCurrentUser(accessToken: string): Promise<User> {
   const data = await requestJson<UserResponseDto>("/api/v1/users/me", {
     headers: authHeader(accessToken),

@@ -167,6 +167,9 @@ public class AuthServiceImpl implements AuthService {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         User user = principal.getUser();
 
+        if (user.isDeleted() || user.getStatus() == UserStatus.DELETED) {
+            throw new ApiException("This account has been deleted.");
+        }
         if (user.getStatus() == UserStatus.PENDING_APPROVAL) {
             throw new ApiException("Your provider application is still pending approval by an administrator.");
         }
@@ -340,6 +343,9 @@ public class AuthServiceImpl implements AuthService {
                 })
             );
 
+        if (user.isDeleted() || user.getStatus() == UserStatus.DELETED) {
+            throw new ApiException("This account has been deleted.");
+        }
         if (user.getStatus() == UserStatus.PENDING_APPROVAL) {
             throw new ApiException("Your provider application is still pending approval by an administrator.");
         }

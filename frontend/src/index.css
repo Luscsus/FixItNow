@@ -3428,6 +3428,10 @@ input, textarea, select { font: inherit; color: inherit; }
 /* Unread conversations: name + ticket id render heavier so the inbox visually
    surfaces threads that need attention. Returns to baseline weight as soon as
    the row is clicked (notification is marked read upstream). */
+.inbox-row.unread { background: var(--amber-50, #fffbeb); }
+.inbox-row.unread::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--amber-500); }
+.inbox-row.unread.selected { background: var(--navy-50); }
+.inbox-row.unread.selected::before { background: var(--navy-700); }
 .inbox-row.unread .inbox-name { font-weight: 800; color: var(--text); }
 .inbox-row.unread .inbox-name .ticket-id { font-weight: 600; color: var(--text); }
 .inbox-row.unread .inbox-preview { color: var(--text); font-weight: 500; }

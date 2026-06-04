@@ -4,7 +4,9 @@ import {
   changeUserRole,
   deleteUser,
   listAllUsers,
+  permanentlyDeleteUser,
   reactivateUser,
+  restoreUser,
   suspendUser,
 } from "@/services/adminService";
 import type { UserRole } from "@/domain/auth";
@@ -53,6 +55,24 @@ export function useDeleteUserMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteUser(id, accessToken),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: USERS_KEY }),
+  });
+}
+
+export function useRestoreUserMutation() {
+  const { accessToken } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => restoreUser(id, accessToken),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: USERS_KEY }),
+  });
+}
+
+export function usePermanentlyDeleteUserMutation() {
+  const { accessToken } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => permanentlyDeleteUser(id, accessToken),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: USERS_KEY }),
   });
 }

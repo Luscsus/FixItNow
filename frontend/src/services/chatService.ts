@@ -11,6 +11,14 @@ export async function getChatRooms(accessToken: string): Promise<ChatRoomSummary
   });
 }
 
+/** Removes a conversation from the current user's inbox (the other party keeps it). */
+export async function deleteChatRoom(chatRoomId: string, accessToken: string): Promise<void> {
+  await requestJson<void>(`/api/chat/rooms/${chatRoomId}`, {
+    method: 'DELETE',
+    headers: authHeader(accessToken),
+  });
+}
+
 export async function getChatRoom(chatRoomId: string, accessToken: string): Promise<ChatRoomDetails> {
   return requestJson<ChatRoomDetails>(`/api/chat/${chatRoomId}`, {
     headers: authHeader(accessToken),

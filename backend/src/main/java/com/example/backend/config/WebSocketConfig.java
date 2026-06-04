@@ -15,15 +15,17 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final WebSocketAuthChannelInterceptor webSocketAuthChannelInterceptor;
-    private final WebSocketRateLimitInterceptor webSocketRateLimitInterceptor;
 
     @Value("${app.frontend-url:http://localhost:5173}")
     private String frontendUrl;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        registry.enableSimpleBroker("/topic");
+        // "/topic" = broadcast (rooms); "/queue" = per-user point-to-point, used to
+        // deliver rate-limit / anti-spam errors to the offending sender only.
+        registry.enableSimpleBroker("/topic", "/queue");
         registry.setApplicationDestinationPrefixes("/app");
+        registry.setUserDestinationPrefix("/user");
     }
 
     @Override
@@ -35,6 +37,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(webSocketAuthChannelInterceptor, webSocketRateLimitInterceptor);
+        // Message rate limiting is enforced in ChatWebSocketController (so it can
+        // report a graceful error without tearing down the connection), not here.
+        registration.interceptors(webSocketAuthChannelInterceptor);
     }
 }

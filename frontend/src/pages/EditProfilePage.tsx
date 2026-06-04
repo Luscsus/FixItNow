@@ -5,6 +5,7 @@ import { useSEO } from "@/hooks/useSEO";
 import { EditUserProfileForm } from "@/components/edit-profile/EditUserProfileForm";
 import { EditProviderProfileForm } from "@/components/edit-profile/EditProviderProfileForm";
 import { ChangePasswordForm } from "@/components/edit-profile/ChangePasswordForm";
+import { DeleteAccountSection } from "@/components/edit-profile/DeleteAccountSection";
 
 export function EditProfilePage() {
   useSEO({ title: "Edit Profile", robots: "noindex, nofollow" });
@@ -45,6 +46,8 @@ export function EditProfilePage() {
           <ChangePasswordForm />
         </div>
       </section>
+
+      <DeleteAccountSection />
 
       <div style={{ marginTop: 32 }}>
         <Link to="/profile" className="btn btn-secondary">{t("editProfile.backToProfile")}</Link>

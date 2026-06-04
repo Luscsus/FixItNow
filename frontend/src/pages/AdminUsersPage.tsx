@@ -4,10 +4,13 @@ import {
   useAdminUsers,
   useChangeUserRoleMutation,
   useDeleteUserMutation,
+  usePermanentlyDeleteUserMutation,
   useReactivateUserMutation,
+  useRestoreUserMutation,
   useSuspendUserMutation,
 } from "@/hooks/useAdminUsers";
 import { useToast } from "@/components/ui/toast";
+import { getErrorMessage } from "@/lib/errorMessage";
 import { StyledSelect } from "@/components/ui/StyledSelect";
 import { SearchField } from "@/components/ui/SearchField";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -57,11 +60,14 @@ export function AdminUsersPage() {
   const { notify } = useToast();
   const [query, setQuery] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<AdminUser | null>(null);
+  const [confirmPermanent, setConfirmPermanent] = useState<AdminUser | null>(null);
 
   const changeRole = useChangeUserRoleMutation();
   const suspend = useSuspendUserMutation();
   const reactivate = useReactivateUserMutation();
   const remove = useDeleteUserMutation();
+  const restore = useRestoreUserMutation();
+  const permanentRemove = usePermanentlyDeleteUserMutation();
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -108,7 +114,24 @@ export function AdminUsersPage() {
     });
   }
 
-  const busy = changeRole.isPending || suspend.isPending || reactivate.isPending || remove.isPending;
+  function handleRestore(user: AdminUser) {
+    restore.mutate(user.id, {
+      onSuccess: (msg) => notify(msg.text, "success"),
+      onError: (e) => notify(getErrorMessage(e), "error"),
+    });
+  }
+
+  function confirmPermanentDelete() {
+    const user = confirmPermanent;
+    if (!user) return;
+    permanentRemove.mutate(user.id, {
+      onSuccess: (msg) => { notify(msg.text, "success"); setConfirmPermanent(null); },
+      onError: (e) => notify(getErrorMessage(e), "error"),
+    });
+  }
+
+  const busy = changeRole.isPending || suspend.isPending || reactivate.isPending
+    || remove.isPending || restore.isPending || permanentRemove.isPending;
 
   return (
     <section className="admin-page" style={{ flex: 1, overflowY: "auto", padding: "28px 32px 80px" }}>
@@ -213,27 +236,42 @@ export function AdminUsersPage() {
                   <div><StatusBadge status={u.status} /></div>
 
                   <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
-                    {u.status === "SUSPENDED" ? (
-                      <button className="btn btn-sm btn-secondary" disabled={busy} onClick={() => handleReactivate(u)}>
-                        {t("admin.reactivate")}
-                      </button>
+                    {isDeleted ? (
+                      <>
+                        <button className="btn btn-sm btn-secondary" disabled={busy} onClick={() => handleRestore(u)}>
+                          {t("admin.restore")}
+                        </button>
+                        <button
+                          className="btn btn-sm"
+                          disabled={busy}
+                          onClick={() => setConfirmPermanent(u)}
+                          style={{ background: "var(--red-100)", color: "var(--red-700)", border: "1px solid #FCA5A5" }}
+                          title={t("admin.permanentDelete")}
+                        >
+                          {t("admin.permanentDelete")}
+                        </button>
+                      </>
                     ) : (
-                      <button
-                        className="btn btn-sm btn-secondary"
-                        disabled={busy || isDeleted}
-                        onClick={() => handleSuspend(u)}
-                      >
-                        {t("admin.suspend")}
-                      </button>
+                      <>
+                        {u.status === "SUSPENDED" ? (
+                          <button className="btn btn-sm btn-secondary" disabled={busy} onClick={() => handleReactivate(u)}>
+                            {t("admin.reactivate")}
+                          </button>
+                        ) : (
+                          <button className="btn btn-sm btn-secondary" disabled={busy} onClick={() => handleSuspend(u)}>
+                            {t("admin.suspend")}
+                          </button>
+                        )}
+                        <button
+                          className="btn btn-sm"
+                          disabled={busy}
+                          onClick={() => setConfirmDelete(u)}
+                          style={{ background: "var(--red-100)", color: "var(--red-700)", border: "1px solid #FCA5A5" }}
+                        >
+                          {t("common.delete")}
+                        </button>
+                      </>
                     )}
-                    <button
-                      className="btn btn-sm"
-                      disabled={busy || isDeleted}
-                      onClick={() => setConfirmDelete(u)}
-                      style={{ background: "var(--red-100)", color: "var(--red-700)", border: "1px solid #FCA5A5" }}
-                    >
-                      {t("common.delete")}
-                    </button>
                   </div>
                 </div>
               );
@@ -261,6 +299,24 @@ export function AdminUsersPage() {
             <strong style={{ color: "var(--text)" }}>{confirmDelete.firstName} {confirmDelete.lastName}</strong>{" "}
             (<span style={{ fontFamily: "var(--font-mono)", fontSize: 13 }}>{confirmDelete.email}</span>).{" "}
             {t("admin.deleteUser_body")}
+          </>
+        )}
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={confirmPermanent !== null}
+        title={t("admin.permanentDelete_title")}
+        confirmLabel={t("admin.permanentDelete")}
+        loadingLabel={t("admin.deleteUser_loading")}
+        loading={permanentRemove.isPending}
+        onConfirm={confirmPermanentDelete}
+        onCancel={() => setConfirmPermanent(null)}
+      >
+        {confirmPermanent && (
+          <>
+            {t("admin.permanentDelete_body")}{" "}
+            <strong style={{ color: "var(--text)" }}>{confirmPermanent.firstName} {confirmPermanent.lastName}</strong>{" "}
+            (<span style={{ fontFamily: "var(--font-mono)", fontSize: 13 }}>{confirmPermanent.email}</span>).
           </>
         )}
       </ConfirmDialog>

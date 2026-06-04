@@ -7,15 +7,16 @@ import { useSEO } from '@/hooks/useSEO';
 import { useAuth } from '@/context/auth';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { listTickets, listProviderTickets } from '@/services/ticketService';
-import { getChatRoom, getChatRooms, getChatMessages } from '@/services/chatService';
+import { getChatRoom, getChatRooms, getChatMessages, deleteChatRoom } from '@/services/chatService';
 import { getProvider } from '@/services/providerService';
 import { uploadFile as uploadFileToServer } from '@/services/imageService';
 import type { ChatRoomSummary } from '@/domain/chat';
 import { useChatWebSocket } from '@/hooks/useChatWebSocket';
 import type { Ticket, TicketPriority, TicketStatus } from '@/domain/ticket';
-import type { ChatMessage, MessageStatus } from '@/domain/chat';
+import type { ChatError, ChatMessage, MessageStatus, MessageType } from '@/domain/chat';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useNotifications } from '@/hooks/useNotifications';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -140,26 +141,37 @@ function StatusTicks({ status }: { readonly status: MessageStatus }) {
 type Conversation = {
   roomId: string;
   ticketId: number | null;
+  /** Ticket name/title (serviceType) — the primary identifier for the conversation. */
+  title: string;
+  /** Ticket body — shown as secondary preview text. */
   description: string;
   status: TicketStatus | null;
   priority: TicketPriority;
   otherName: string;
   otherProfilePictureUrl: string | null;
+  /** Inbox ordering + preview + unread, from the room summary. */
+  lastMessageContent: string | null;
+  lastMessageType: MessageType | null;
+  lastMessageTimestamp: string | null;
+  unreadCount: number;
 };
 
 const QUICK_REPLY_KEYS = ['chat.quick_0', 'chat.quick_1', 'chat.quick_2', 'chat.quick_3'];
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function InboxRow({ conv, selected, lastMsg, hasUnread, onSelect, locale, yesterdayLabel }: {
+function InboxRow({ conv, selected, unreadCount, timestamp, onSelect, onDelete, deleteTitle, locale, yesterdayLabel }: {
   conv: Conversation;
   selected: boolean;
-  lastMsg: ChatMessage | null;
-  hasUnread: boolean;
+  unreadCount: number;
+  timestamp: string | null;
   onSelect: () => void;
+  onDelete: () => void;
+  deleteTitle: string;
   locale: string;
   yesterdayLabel: string;
 }) {
+  const hasUnread = unreadCount > 0;
   return (
     <div className={`inbox-row${selected ? ' selected' : ''}${hasUnread ? ' unread' : ''}`} onClick={onSelect}>
       <div className="avatar" style={{ width: 36, height: 36, fontSize: 11, background: 'var(--navy-900)', color: 'var(--amber-500)', ...(conv.otherProfilePictureUrl ? { padding: 0, overflow: 'hidden' } : {}) }}>
@@ -168,23 +180,53 @@ function InboxRow({ conv, selected, lastMsg, hasUnread, onSelect, locale, yester
           : getInitials(conv.otherName)}
       </div>
       <div style={{ minWidth: 0 }}>
+        {/* Primary = the other participant's name; secondary = the ticket title. */}
         <div className="inbox-name">
           {conv.otherName}
           {conv.ticketId !== null && <span className="ticket-id">· {formatTicketId(conv.ticketId)}</span>}
         </div>
         <div className="inbox-preview">
-          {lastMsg ? lastMsg.content : conv.description}
+          {conv.title}
         </div>
       </div>
       <div className="inbox-time-col">
-        {lastMsg && <div className="inbox-time">{formatInboxTime(lastMsg.timestamp, locale, yesterdayLabel)}</div>}
-        {hasUnread && <span className="unread-dot" />}
+        {timestamp && <div className="inbox-time">{formatInboxTime(timestamp, locale, yesterdayLabel)}</div>}
+        {hasUnread && (
+          <span
+            aria-label={`${unreadCount} unread`}
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              minWidth: 18, height: 18, padding: '0 5px', borderRadius: 999,
+              background: 'var(--amber-500)', color: 'var(--navy-900)',
+              fontSize: 11, fontWeight: 700, lineHeight: 1,
+            }}
+          >
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+        <button
+          type="button"
+          className="inbox-row-delete"
+          title={deleteTitle}
+          aria-label={deleteTitle}
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          style={{ border: 'none', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, lineHeight: 0 }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+          </svg>
+        </button>
       </div>
     </div>
   );
 }
 
-function MessageBubble({ msg, isMine, senderName, profilePictureUrl, locale, youLabel }: { msg: ChatMessage; isMine: boolean; senderName: string; profilePictureUrl?: string | null; locale: string; youLabel: string }) {
+function MessageBubble({ msg, isMine, senderName, profilePictureUrl, locale, youLabel, onEdit, onDelete, isEditing, editText, onEditTextChange, onSaveEdit, onCancelEdit }: {
+  msg: ChatMessage; isMine: boolean; senderName: string; profilePictureUrl?: string | null; locale: string; youLabel: string;
+  onEdit?: () => void; onDelete?: () => void;
+  isEditing?: boolean; editText?: string; onEditTextChange?: (v: string) => void; onSaveEdit?: () => void; onCancelEdit?: () => void;
+}) {
+  const { t } = useTranslation();
   if (msg.type === 'SYSTEM') {
     return <div className="sys-msg"><span>{msg.content}</span></div>;
   }
@@ -200,9 +242,27 @@ function MessageBubble({ msg, isMine, senderName, profilePictureUrl, locale, you
   const meta = (
     <div className="bubble-meta">
       {isMine ? youLabel : senderName} · {formatMsgTime(msg.timestamp, locale)}
-      {isMine && <> · <StatusTicks status={msg.status} /></>}
+      {msg.editedAt && !msg.deleted && <> · <span style={{ fontStyle: 'italic' }}>{t('chat.edited')}</span></>}
+      {isMine && !msg.deleted && <> · <StatusTicks status={msg.status} /></>}
     </div>
   );
+
+  // A deleted message shows a placeholder for everyone, regardless of type.
+  if (msg.deleted) {
+    return (
+      <div className={`msg-row${isMine ? ' mine' : ''}`}>
+        {avatar}
+        <div>
+          <div className="bubble" style={{ fontStyle: 'italic', color: 'var(--text-muted)', background: 'transparent', border: '1px dashed var(--border)' }}>
+            {t('chat.messageDeleted')}
+          </div>
+          {meta}
+        </div>
+      </div>
+    );
+  }
+
+  const canModify = isMine && msg.type === 'TEXT';
 
   if (msg.type === 'IMAGE') {
     return (
@@ -244,12 +304,47 @@ function MessageBubble({ msg, isMine, senderName, profilePictureUrl, locale, you
     );
   }
 
+  if (isEditing) {
+    return (
+      <div className={`msg-row${isMine ? ' mine' : ''}`}>
+        {avatar}
+        <div style={{ minWidth: 220 }}>
+          <textarea
+            value={editText ?? ''}
+            onChange={(e) => onEditTextChange?.(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSaveEdit?.(); }
+              if (e.key === 'Escape') onCancelEdit?.();
+            }}
+            autoFocus
+            rows={2}
+            style={{ width: '100%', boxSizing: 'border-box', borderRadius: 10, border: '1px solid var(--navy-600)', padding: '8px 10px', fontFamily: 'inherit', fontSize: 14, resize: 'vertical', outline: 'none' }}
+          />
+          <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+            <button className="btn btn-primary btn-sm" onClick={() => onSaveEdit?.()}>{t('chat.editSave')}</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => onCancelEdit?.()}>{t('chat.editCancel')}</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`msg-row${isMine ? ' mine' : ''}`}>
       {avatar}
-      <div>
+      <div className="msg-body" style={{ position: 'relative' }}>
         <div className="bubble">{msg.content}</div>
         {meta}
+        {canModify && (
+          <div className="msg-actions" style={{ display: 'flex', gap: 4, marginTop: 2 }}>
+            <button type="button" onClick={onEdit} className="msg-action-btn" style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11.5, padding: '2px 4px' }}>
+              {t('chat.editMessage')}
+            </button>
+            <button type="button" onClick={onDelete} className="msg-action-btn" style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#B91C1C', fontSize: 11.5, padding: '2px 4px' }}>
+              {t('chat.deleteMessage')}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -297,6 +392,15 @@ export function ChatPage() {
   const [sendError, setSendError] = useState<string | null>(null);
   const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  // Rate-limit / anti-spam feedback (driven by server errors on /user/queue/errors)
+  const [confirmDeleteRoom, setConfirmDeleteRoom] = useState<Conversation | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editText, setEditText] = useState('');
+  const [rateLimitMsg, setRateLimitMsg] = useState<string | null>(null);
+  // Seconds remaining on a send cooldown (counts down to 0 via an interval).
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const lastSendAttemptRef = useRef(0);
+  const prevCooldownRef = useRef(0);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -320,6 +424,11 @@ export function ChatPage() {
     queryKey: ['chatRoomsList'],
     queryFn: () => getChatRooms(accessToken),
     enabled: Boolean(accessToken),
+    // Keep ordering + unread counts fresh for conversations the user isn't
+    // currently viewing (those messages arrive on other rooms' topics). The
+    // open conversation updates instantly via the WebSocket overrides below.
+    refetchInterval: 8000,
+    refetchOnWindowFocus: true,
   });
 
   // Chat room details (to resolve the other participant's UUID)
@@ -361,13 +470,6 @@ export function ChatPage() {
     if (!messagesQuery.data) return [];
     return [...messagesQuery.data].reverse();
   }, [messagesQuery.data]);
-
-  // Unread = messages from the other person in the SELECTED room not yet READ.
-  // Declared AFTER `messages` so the closure captures it correctly.
-  const hasUnreadInSelectedRoom = useMemo(() => {
-    if (!selectedRoomId || !currentUserId) return false;
-    return messages.some(m => m.senderId !== currentUserId && m.status !== 'READ');
-  }, [messages, selectedRoomId, currentUserId]);
 
   // Reset acked set when switching rooms
   useEffect(() => {
@@ -417,14 +519,40 @@ export function ChatPage() {
     }
   }, [currentUserId]);
 
-  const { sendMessage, sendTyping, sendStatus, connected: wsConnected } = useChatWebSocket({
+  // Server rejected a message (rate limit / flood / duplicate / length).
+  // Show a clear message and, when a retry hint is given, start a cooldown that
+  // disables the send button until messaging is allowed again.
+  const handleChatError = useCallback((err: ChatError) => {
+    if (err.code === 'DUPLICATE') setRateLimitMsg(t('chat.rateLimit_duplicate'));
+    else if (err.code === 'TOO_LONG') setRateLimitMsg(t('chat.rateLimit_tooLong'));
+    else setRateLimitMsg(t('chat.rateLimit_tooFast')); // FLOOD / RATE_LIMIT_*
+    if (err.retryAfterSeconds > 0) setCooldownRemaining(err.retryAfterSeconds);
+  }, [t]);
+
+  const { sendMessage, sendTyping, sendStatus, sendEdit, sendDelete, connected: wsConnected } = useChatWebSocket({
     chatRoomId: selectedRoomId,
     accessToken,
     onMessage: upsertMessage,
     onTyping: handleTypingEvent,
     onStatusUpdate: handleStatusUpdate,
+    onError: handleChatError,
     refreshSession,
   });
+
+  // Count the cooldown down once per second.
+  useEffect(() => {
+    if (cooldownRemaining <= 0) return;
+    const id = setInterval(() => setCooldownRemaining((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(id);
+  }, [cooldownRemaining]);
+
+  // Dismiss the banner the moment a running cooldown elapses.
+  useEffect(() => {
+    if (prevCooldownRef.current > 0 && cooldownRemaining === 0) setRateLimitMsg(null);
+    prevCooldownRef.current = cooldownRemaining;
+  }, [cooldownRemaining]);
+
+  const isCoolingDown = cooldownRemaining > 0;
 
   // ── Auto-acknowledge: send DELIVERED, then READ for messages from the other person
   useEffect(() => {
@@ -462,6 +590,7 @@ export function ChatPage() {
         return {
           roomId: room.id,
           ticketId: ticket.id,
+          title: ticket.serviceType?.trim() || ticket.description || room.otherParticipantName,
           description: ticket.description,
           status: ticket.status,
           priority: ticket.priority ?? 'LOW',
@@ -469,6 +598,10 @@ export function ChatPage() {
             ? (ticket.submittedByName ?? room.otherParticipantName)
             : (ticket.assignedServiceProviderName ?? room.otherParticipantName),
           otherProfilePictureUrl: room.otherParticipantProfilePictureUrl,
+          lastMessageContent: room.lastMessageContent,
+          lastMessageType: room.lastMessageType,
+          lastMessageTimestamp: room.lastMessageTimestamp,
+          unreadCount: room.unreadCount,
         };
       }
       // No ticket match — surface the conversation with a fallback so the user
@@ -476,30 +609,19 @@ export function ChatPage() {
       return {
         roomId: room.id,
         ticketId: null,
+        title: room.otherParticipantName,
         description: t('chat.conversation'),
         status: null,
         priority: 'LOW',
         otherName: room.otherParticipantName,
         otherProfilePictureUrl: room.otherParticipantProfilePictureUrl,
+        lastMessageContent: room.lastMessageContent,
+        lastMessageType: room.lastMessageType,
+        lastMessageTimestamp: room.lastMessageTimestamp,
+        unreadCount: room.unreadCount,
       };
     });
   }, [roomsQuery.data, ticketsQuery.data, isProvider]);
-
-  // Filtered list for the sidebar — separate from allConversations so that
-  // selectedConv lookup is never blocked by an active search/tab filter.
-  const conversations: Conversation[] = useMemo(() => {
-    return allConversations
-      .filter(c => {
-        if (!search) return true;
-        const q = search.toLowerCase();
-        return c.otherName.toLowerCase().includes(q) || c.description.toLowerCase().includes(q);
-      })
-      .filter(c => {
-        if (tab === 'active') return c.status !== null && ['APPROVED', 'IN_TRANSIT'].includes(c.status);
-        if (tab === 'unread') return c.roomId === selectedRoomId && hasUnreadInSelectedRoom;
-        return true;
-      });
-  }, [allConversations, search, tab, selectedRoomId, hasUnreadInSelectedRoom]);
 
   // Always look up the selected conversation from the unfiltered list so that
   // navigating to a room via a notification works regardless of the active tab
@@ -524,6 +646,48 @@ export function ChatPage() {
     return messages[messages.length - 1];
   }, [selectedRoomId, messages]);
 
+  const imageLabel = t('chat.preview_image');
+  const fileLabel = t('chat.preview_file');
+
+  // Decorate every conversation with its effective preview / unread / sort key,
+  // applying live overrides for the open room (which the WebSocket keeps current
+  // and whose messages are marked read on open), then sort newest-first. The
+  // backend already returns rooms sorted, but we re-sort so the open conversation
+  // jumps to the top instantly when a message is sent/received — no reload.
+  type DecoratedRow = {
+    conv: Conversation; preview: string; unread: number; iso: string | null; sortKey: number;
+  };
+  const rows: DecoratedRow[] = useMemo(() => {
+    const previewOf = (content: string | null, type: MessageType | null, fallback: string) => {
+      if (!content) return fallback;
+      if (type === 'IMAGE') return imageLabel;
+      if (type === 'FILE') return fileLabel;
+      return content;
+    };
+    const q = search.trim().toLowerCase();
+    return allConversations
+      .filter(c => !q || c.title.toLowerCase().includes(q) || c.otherName.toLowerCase().includes(q) || c.description.toLowerCase().includes(q))
+      .map<DecoratedRow>(c => {
+        const isSelected = c.roomId === selectedRoomId;
+        const live = isSelected ? lastMsgForRoom : null;
+        const iso = live ? live.timestamp : c.lastMessageTimestamp;
+        // Opening a conversation marks it read → 0. Otherwise use the backend
+        // count, falling back to a notification signal for just-arrived messages.
+        let unread = isSelected ? 0 : c.unreadCount;
+        if (!isSelected && unread === 0 && unreadRoomIds.has(c.roomId)) unread = 1;
+        const preview = live
+          ? previewOf(live.content, live.type, c.description)
+          : previewOf(c.lastMessageContent, c.lastMessageType, c.description);
+        return { conv: c, preview, unread, iso, sortKey: iso ? new Date(iso).getTime() : 0 };
+      })
+      .sort((a, b) => b.sortKey - a.sortKey);
+  }, [allConversations, search, selectedRoomId, lastMsgForRoom, unreadRoomIds, imageLabel, fileLabel]);
+
+  const unreadRows = rows.filter(r => r.unread > 0);
+  const readRows = rows.filter(r => r.unread === 0);
+  const activeRows = rows.filter(r => r.conv.status !== null && ['APPROVED', 'IN_TRANSIT'].includes(r.conv.status));
+  const totalUnread = unreadRows.length;
+
   // Auto-scroll the thread to bottom on new messages / typing
   useEffect(() => {
     if (threadRef.current) {
@@ -546,14 +710,56 @@ export function ChatPage() {
     setText('');
     setSendError(null);
     setStagedFiles(prev => { prev.forEach(sf => { if (sf.objectUrl) URL.revokeObjectURL(sf.objectUrl); }); return []; });
+    // After opening, messages get marked READ over the socket; give that a moment
+    // to persist, then refresh the room list so the unread badge clears server-side
+    // (the open room already shows 0 via the live override).
+    window.setTimeout(() => queryClient.invalidateQueries({ queryKey: ['chatRoomsList'] }), 1500);
   };
 
   const handleBack = () => {
     setSearchParams({});
   };
 
+  // ── Delete a conversation from this user's inbox ──
+  async function handleDeleteRoom(conv: Conversation) {
+    try {
+      await deleteChatRoom(conv.roomId, accessToken);
+      if (conv.roomId === selectedRoomId) setSearchParams({});
+      queryClient.invalidateQueries({ queryKey: ['chatRoomsList'] });
+    } catch {
+      // Non-fatal; leave the row in place.
+    } finally {
+      setConfirmDeleteRoom(null);
+    }
+  }
+
+  // ── Edit / delete an individual message (own messages only) ──
+  function startEdit(msg: ChatMessage) {
+    setEditingId(msg.id);
+    setEditText(msg.content);
+  }
+  function saveEdit() {
+    if (editingId == null || !selectedRoomId || !currentUserId) return;
+    const trimmed = editText.trim();
+    if (trimmed.length === 0) return;
+    sendEdit({ messageId: editingId, chatRoomId: selectedRoomId, userId: currentUserId, content: trimmed });
+    setEditingId(null);
+    setEditText('');
+  }
+  function deleteMessage(msg: ChatMessage) {
+    if (!selectedRoomId || !currentUserId) return;
+    sendDelete({ messageId: msg.id, chatRoomId: selectedRoomId, userId: currentUserId });
+  }
+
   const handleSend = async () => {
     setSendError(null);
+    // Respect an active cooldown and a light local flood guard. The server is
+    // still authoritative — these just avoid pointless round-trips.
+    if (isCoolingDown) return;
+    const nowMs = Date.now();
+    if (nowMs - lastSendAttemptRef.current < 400) return;
+    lastSendAttemptRef.current = nowMs;
+
     const hasText = text.trim().length > 0;
     const hasFiles = stagedFiles.length > 0;
     if (!hasText && !hasFiles) return;
@@ -604,6 +810,8 @@ export function ChatPage() {
 
   const handleTextChange = (value: string) => {
     setText(value);
+    // Clear a non-cooldown notice (duplicate / too-long) as soon as they edit.
+    if (rateLimitMsg && !isCoolingDown) setRateLimitMsg(null);
     if (!selectedRoomId || !currentUserId) return;
     sendTyping({ chatRoomId: selectedRoomId, userId: currentUserId, typing: true });
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -665,7 +873,7 @@ export function ChatPage() {
     return groups;
   }, [messages, locale, todayLabel, yesterdayLabel]);
 
-  const canSend = (text.trim().length > 0 || stagedFiles.length > 0) && !isUploading;
+  const canSend = (text.trim().length > 0 || stagedFiles.length > 0) && !isUploading && !isCoolingDown;
 
   return (
     <div className={`chat-shell${selectedRoomId ? ' chat-shell--thread-open' : ''}`}>
@@ -692,7 +900,12 @@ export function ChatPage() {
           </button>
           <button aria-pressed={tab === 'active'} onClick={() => setTab('active')}>{t('chat.tabActive')}</button>
           <button aria-pressed={tab === 'unread'} onClick={() => setTab('unread')}>
-            {t('chat.tabUnread')} {hasUnreadInSelectedRoom && <span className="unread-dot" style={{ marginLeft: 6 }} />}
+            {t('chat.tabUnread')}
+            {totalUnread > 0 && (
+              <span className="mono" style={{ fontSize: '10.5px', color: 'var(--amber-700)', marginLeft: 4, fontWeight: 700 }}>
+                {totalUnread.toString().padStart(2, '0')}
+              </span>
+            )}
           </button>
         </div>
 
@@ -700,21 +913,55 @@ export function ChatPage() {
           {(ticketsQuery.isLoading || roomsQuery.isLoading) && (
             <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>{t('common.loading')}</div>
           )}
-          {!ticketsQuery.isLoading && !roomsQuery.isLoading && conversations.length === 0 && (
+          {!ticketsQuery.isLoading && !roomsQuery.isLoading && rows.length === 0 && (
             <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>{t("chat.noConversations")}</div>
           )}
-          {conversations.map(conv => (
-            <InboxRow
-              key={conv.roomId}
-              conv={conv}
-              selected={conv.roomId === selectedRoomId}
-              lastMsg={conv.roomId === selectedRoomId ? lastMsgForRoom : null}
-              hasUnread={unreadRoomIds.has(conv.roomId)}
-              onSelect={() => selectRoom(conv.roomId)}
-              locale={locale}
-              yesterdayLabel={yesterdayLabel}
-            />
-          ))}
+
+          {(() => {
+            const renderRow = (r: typeof rows[number]) => (
+              <InboxRow
+                key={r.conv.roomId}
+                conv={r.conv}
+                selected={r.conv.roomId === selectedRoomId}
+                unreadCount={r.unread}
+                timestamp={r.iso}
+                onSelect={() => selectRoom(r.conv.roomId)}
+                onDelete={() => setConfirmDeleteRoom(r.conv)}
+                deleteTitle={t('chat.deleteConversation')}
+                locale={locale}
+                yesterdayLabel={yesterdayLabel}
+              />
+            );
+            const sectionHeading = (key: string, label: string, count?: number) => (
+              <div key={key} className="inbox-section-heading" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '12px 20px 6px', fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                {label}{count != null && count > 0 && <span style={{ color: 'var(--amber-700)', fontWeight: 700 }}>{count}</span>}
+              </div>
+            );
+
+            if (tab === 'unread') {
+              return unreadRows.length === 0
+                ? <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>{t('chat.noUnread')}</div>
+                : unreadRows.map(renderRow);
+            }
+            if (tab === 'active') {
+              return activeRows.length === 0
+                ? <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>{t('chat.noConversations')}</div>
+                : activeRows.map(renderRow);
+            }
+            // tab === 'all' → dedicated Unread section, then All Conversations.
+            return (
+              <>
+                {unreadRows.length > 0 && [
+                  sectionHeading('h-unread', t('chat.sectionUnread'), totalUnread),
+                  ...unreadRows.map(renderRow),
+                ]}
+                {readRows.length > 0 && [
+                  unreadRows.length > 0 ? sectionHeading('h-all', t('chat.sectionAll')) : null,
+                  ...readRows.map(renderRow),
+                ]}
+              </>
+            );
+          })()}
         </div>
       </aside>
 
@@ -757,17 +1004,21 @@ export function ChatPage() {
                     : getInitials(selectedConv.otherName)}
                 </div>
                 <div className="conv-name" style={{ minWidth: 0 }}>
+                  {/* Header is tied to the TICKET — its title stays fixed for the
+                      whole conversation, never the latest message or participant. */}
                   <h2>
-                    {selectedConv.otherName}{' '}
-                    <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: 14 }}>
-                      · {categoryLabel}
-                    </span>
+                    {selectedConv.title}
+                    {selectedConv.ticketId !== null && (
+                      <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: 14 }}>
+                        {' '}· {formatTicketId(selectedConv.ticketId)}
+                      </span>
+                    )}
                   </h2>
                   <div className="sub">
-                    {/* Presence/rating aren't tracked yet — show only computed bits.
-                        TODO: presence service + ratings aggregate. */}
-                    {wsConnected && <><span style={{ color: 'var(--emerald-700)' }}>● {t('chat.online')}</span>{subLine && ' · '}</>}
-                    {subLine}
+                    {/* Participant + their role/details live in the sub-line. */}
+                    <span>{selectedConv.otherName} · {categoryLabel}</span>
+                    {wsConnected && <> · <span style={{ color: 'var(--emerald-700)' }}>● {t('chat.online')}</span></>}
+                    {subLine && <> · {subLine}</>}
                   </div>
                 </div>
                 <span style={{ flex: 1 }} />
@@ -828,6 +1079,13 @@ export function ChatPage() {
                     profilePictureUrl={msg.senderId === currentUserId ? currentUserProfilePicUrl : selectedConv.otherProfilePictureUrl}
                     locale={locale}
                     youLabel={youLabel}
+                    onEdit={() => startEdit(msg)}
+                    onDelete={() => deleteMessage(msg)}
+                    isEditing={editingId === msg.id}
+                    editText={editText}
+                    onEditTextChange={setEditText}
+                    onSaveEdit={saveEdit}
+                    onCancelEdit={() => { setEditingId(null); setEditText(''); }}
                   />
                 ))}
               </div>
@@ -949,14 +1207,23 @@ export function ChatPage() {
                 </span>
                 <span style={{ flex: 1 }} />
                 <button className="btn btn-primary btn-sm" onClick={handleSend} disabled={!canSend}>
-                  {isUploading ? t("common.loading") : t("chat.send")}
-                  {!isUploading && (
+                  {isUploading
+                    ? t("common.loading")
+                    : isCoolingDown
+                      ? t("chat.rateLimit_wait", { seconds: cooldownRemaining })
+                      : t("chat.send")}
+                  {!isUploading && !isCoolingDown && (
                     <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
                       <path d="M14 8L2 2l3.5 6L2 14l12-6z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
                     </svg>
                   )}
                 </button>
               </div>
+              {rateLimitMsg && (
+                <div style={{ marginTop: 8, fontSize: 12, color: '#92400e', background: 'var(--amber-50, #fffbeb)', border: '1px solid var(--amber-200, #fde68a)', padding: '7px 10px', borderRadius: 6 }}>
+                  {rateLimitMsg}{isCoolingDown ? ` ${t('chat.rateLimit_retryIn', { seconds: cooldownRemaining })}` : ''}
+                </div>
+              )}
               {sendError && (
                 <div style={{ marginTop: 8, fontSize: 12, color: '#B91C1C', background: '#FEE2E2', padding: '6px 10px', borderRadius: 6 }}>
                   {sendError}
@@ -981,6 +1248,17 @@ export function ChatPage() {
         </div>
       )}
       </div>{/* end .chat-right */}
+
+      <ConfirmDialog
+        open={confirmDeleteRoom !== null}
+        title={t('chat.deleteConversation_title')}
+        confirmLabel={t('chat.deleteConversation')}
+        cancelLabel={t('deleteAccount.cancel')}
+        onConfirm={() => { if (confirmDeleteRoom) handleDeleteRoom(confirmDeleteRoom); }}
+        onCancel={() => setConfirmDeleteRoom(null)}
+      >
+        {t('chat.deleteConversation_body')}
+      </ConfirmDialog>
     </div>
   );
 }

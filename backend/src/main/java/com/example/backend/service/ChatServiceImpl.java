@@ -17,8 +17,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -45,6 +47,14 @@ public class ChatServiceImpl implements ChatService {
         message.setTimestamp(LocalDateTime.now());
 
         ChatMessage saved = chatRepository.save(message);
+        // A new message un-hides the conversation for both participants (like WhatsApp).
+        chatRoomRepository.findById(request.getChatRoomId()).ifPresent(room -> {
+            if (room.isHiddenForCustomer() || room.isHiddenForProvider()) {
+                room.setHiddenForCustomer(false);
+                room.setHiddenForProvider(false);
+                chatRoomRepository.save(room);
+            }
+        });
         notifyRecipientOfNewMessage(saved);
         return toResponse(saved);
     }
@@ -120,19 +130,89 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
+    @Transactional
+    public ChatMessageResponse editMessage(Long messageId, UUID userId, String newContent) {
+        ChatMessage message = chatRepository.findById(messageId)
+            .orElseThrow(() -> new IllegalArgumentException("Message not found"));
+        if (!userId.equals(message.getSenderId())) {
+            throw new org.springframework.security.access.AccessDeniedException("You can only edit your own messages.");
+        }
+        if (message.isDeleted()) {
+            throw new IllegalArgumentException("Cannot edit a deleted message.");
+        }
+        if (message.getType() != MessageType.TEXT) {
+            throw new IllegalArgumentException("Only text messages can be edited.");
+        }
+        if (newContent == null || newContent.isBlank()) {
+            throw new IllegalArgumentException("Message cannot be empty.");
+        }
+        message.setContent(newContent.trim());
+        message.setEditedAt(LocalDateTime.now());
+        return toResponse(chatRepository.save(message));
+    }
+
+    @Override
+    @Transactional
+    public ChatMessageResponse deleteMessage(Long messageId, UUID userId) {
+        ChatMessage message = chatRepository.findById(messageId)
+            .orElseThrow(() -> new IllegalArgumentException("Message not found"));
+        if (!userId.equals(message.getSenderId())) {
+            throw new org.springframework.security.access.AccessDeniedException("You can only delete your own messages.");
+        }
+        message.setDeleted(true);
+        return toResponse(chatRepository.save(message));
+    }
+
+    @Override
+    @Transactional
+    public void hideRoomForUser(UUID chatRoomId, UUID userId) {
+        ChatRoom room = chatRoomRepository.findById(chatRoomId)
+            .orElseThrow(() -> new IllegalArgumentException("Chat room not found"));
+        if (userId.equals(room.getCustomerId())) {
+            room.setHiddenForCustomer(true);
+        } else if (userId.equals(room.getProviderId())) {
+            room.setHiddenForProvider(true);
+        } else {
+            throw new org.springframework.security.access.AccessDeniedException("Not a participant of this conversation.");
+        }
+        chatRoomRepository.save(room);
+    }
+
+    @Override
     public List<UUID> getUserChatRooms(UUID userId) {
         return chatRoomRepository.findRoomIdsForUser(userId);
     }
 
     @Override
     public List<ChatRoomSummaryResponse> getUserChatRoomSummaries(UUID userId) {
-        return chatRoomRepository.findRoomsForUser(userId).stream().map(room -> {
+        return chatRoomRepository.findRoomsForUser(userId).stream()
+            // Skip conversations this user has removed from their own inbox.
+            .filter(room -> !(userId.equals(room.getCustomerId()) ? room.isHiddenForCustomer() : room.isHiddenForProvider()))
+            .map(room -> {
             UUID otherId = userId.equals(room.getCustomerId()) ? room.getProviderId() : room.getCustomerId();
             User other = userRepository.findById(otherId).orElse(null);
-            String name = other != null ? formatUserName(other) : "Unknown";
+            String name = other != null ? other.displayName() : "Unknown"; // masks deleted accounts
             String pic  = other != null ? other.getProfilePictureUrl() : null;
-            return new ChatRoomSummaryResponse(room.getId(), otherId, name, pic);
-        }).toList();
+
+            // Inbox preview + ordering: latest message and this user's unread count.
+            ChatMessage last = chatRepository
+                .findFirstByChatRoomIdOrderByTimestampDesc(room.getId())
+                .orElse(null);
+            long unread = chatRepository.countByChatRoomIdAndRecipientIdAndStatusNot(
+                room.getId(), userId, MessageStatus.READ);
+
+            return new ChatRoomSummaryResponse(
+                room.getId(), otherId, name, pic,
+                last != null ? last.getContent() : null,
+                last != null ? last.getType() : null,
+                last != null ? last.getTimestamp() : null,
+                unread);
+        })
+        // Newest activity first; rooms with no messages sink to the bottom.
+        .sorted(Comparator.comparing(
+            ChatRoomSummaryResponse::getLastMessageTimestamp,
+            Comparator.nullsLast(Comparator.reverseOrder())))
+        .toList();
     }
 
     private String formatUserName(User user) {
@@ -193,12 +273,15 @@ public class ChatServiceImpl implements ChatService {
             message.getSenderId(),
             message.getRecipientId(),
             message.getChatRoomId(),
-            message.getContent(),
+            // Deleted content is never sent to clients — they render a placeholder.
+            message.isDeleted() ? "" : message.getContent(),
             message.getType(),
             message.getStatus(),
             message.getDeliveredAt(),
             message.getReadAt(),
-            message.getTimestamp()
+            message.getTimestamp(),
+            message.getEditedAt(),
+            message.isDeleted()
         );
     }
 }

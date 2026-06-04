@@ -18,6 +18,15 @@ public interface ChatService {
 
     ChatMessageResponse updateStatus(Long messageId, UUID chatRoomId, UUID userId, MessageStatus status);
 
+    /** Edit own message content. */
+    ChatMessageResponse editMessage(Long messageId, UUID userId, String newContent);
+
+    /** Soft-delete own message (content hidden, row kept for audit). */
+    ChatMessageResponse deleteMessage(Long messageId, UUID userId);
+
+    /** Remove a conversation from one participant's inbox (the other party keeps it). */
+    void hideRoomForUser(UUID chatRoomId, UUID userId);
+
     List<UUID> getUserChatRooms(UUID userId);
 
     List<ChatRoomSummaryResponse> getUserChatRoomSummaries(UUID userId);

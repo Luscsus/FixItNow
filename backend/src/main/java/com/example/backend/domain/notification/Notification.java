@@ -33,6 +33,17 @@ public class Notification {
     @Column(columnDefinition = "TEXT")
     private String body;
 
+    // i18next message keys + JSON-encoded interpolation params. When present the
+    // frontend renders these through t(); title/body above are the English fallback.
+    @Column(name = "title_key", length = 255)
+    private String titleKey;
+
+    @Column(name = "body_key", length = 255)
+    private String bodyKey;
+
+    @Column(name = "params_json", columnDefinition = "TEXT")
+    private String paramsJson;
+
     @Column(name = "ticket_id")
     private Long ticketId;
 

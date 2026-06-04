@@ -141,6 +141,15 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.acceptOpenTicket(ticketId, userDetails.getUser().getId()));
     }
 
+    @PostMapping("/{ticketId}/release")
+    @PreAuthorize("hasRole('PROVIDER')")
+    public ResponseEntity<TicketResponse> releaseTicket(
+        @PathVariable Long ticketId,
+        @AuthenticationPrincipal UserPrincipal userDetails
+    ) {
+        return ResponseEntity.ok(ticketService.releaseTicket(ticketId, userDetails.getUser().getId()));
+    }
+
     @DeleteMapping("/{ticketId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> deleteTicket(

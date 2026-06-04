@@ -157,10 +157,7 @@ public class TicketService {
             if (chatBody != null) {
                 postSystemMessage(saved, chatBody);
             }
-            String notifBody = notificationBodyForStatus(newStatus);
-            if (notifBody != null) {
-                notifyCustomerOfStatusChange(saved, notifBody);
-            }
+            notifyCustomerOfStatusChange(saved, newStatus);
         }
         return toResponse(saved);
     }
@@ -350,7 +347,7 @@ public class TicketService {
         Ticket saved = ticketRepository.save(ticket);
         recordHistory(saved, TicketStatus.APPROVED);
         calendarService.syncBookedBlockForTicket(saved);
-        notifyCustomerOfStatusChange(saved, notificationBodyForStatus(TicketStatus.APPROVED));
+        notifyCustomerOfStatusChange(saved, TicketStatus.APPROVED);
         return toResponse(saved);
     }
 
@@ -378,7 +375,50 @@ public class TicketService {
         String acceptedMsg = formatProviderName(provider)
             + " accepted ticket " + formatTicketCode(saved.getId());
         postSystemMessage(saved, acceptedMsg);
-        notifyCustomerOfStatusChange(saved, notificationBodyForStatus(TicketStatus.APPROVED));
+        notifyCustomerOfStatusChange(saved, TicketStatus.APPROVED);
+        return toResponse(saved);
+    }
+
+    /**
+     * Provider-initiated release. The assigned provider steps back from a ticket
+     * they have accepted (APPROVED) but not yet started, returning it to the open
+     * pool (no assignee, PENDING_APPROVAL) so another provider can pick it up.
+     * The booked calendar slot is freed and the chat room is removed so the next
+     * provider starts a clean conversation.
+     */
+    @Transactional
+    public TicketResponse releaseTicket(Long ticketId, UUID providerId) {
+        Ticket ticket = getTicketOrThrow(ticketId);
+        if (ticket.getAssignedServiceProvider() == null
+                || !ticket.getAssignedServiceProvider().getId().equals(providerId)) {
+            throw new AccessDeniedException("Only the assigned provider can release this ticket.");
+        }
+        if (ticket.getStatus() != TicketStatus.APPROVED) {
+            throw new InvalidTicketStatusTransitionException(
+                "Ticket " + ticketId + " can only be released while it is approved (status: "
+                    + ticket.getStatus() + ")");
+        }
+
+        // Hand the ticket back to the open pool.
+        ticket.setAssignedServiceProvider(null);
+        ticket.setStatus(TicketStatus.PENDING_APPROVAL);
+        ticket.setScheduledStartAt(null);
+        ticket.setScheduledEndAt(null);
+
+        // Drop the chat room (cascades to its messages) so the next provider gets
+        // a fresh conversation; a new room is created when someone re-accepts.
+        UUID chatRoomId = ticket.getChatRoomId();
+        ticket.setChatRoomId(null);
+
+        Ticket saved = ticketRepository.save(ticket);
+        if (chatRoomId != null) {
+            chatRoomRepository.deleteById(chatRoomId);
+        }
+        recordHistory(saved, TicketStatus.PENDING_APPROVAL);
+        // Status is now PENDING_APPROVAL, so this removes the BOOKED block.
+        calendarService.syncBookedBlockForTicket(saved);
+        notifyCustomer(saved, "notifications.ticket.body.RELEASED",
+            "Your provider stepped back — the ticket is open for another provider.");
         return toResponse(saved);
     }
 
@@ -399,7 +439,7 @@ public class TicketService {
         calendarService.syncBookedBlockForTicket(saved);
         String invoiceMsg = "Invoice issued · €" + amount.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString() + " · awaiting payment.";
         postSystemMessage(saved, invoiceMsg);
-        notifyCustomerOfStatusChange(saved, notificationBodyForStatus(TicketStatus.PENDING_PAYMENT));
+        notifyCustomerOfStatusChange(saved, TicketStatus.PENDING_PAYMENT);
 
         // Email the invoice PDF to the customer
         try {
@@ -457,7 +497,7 @@ public class TicketService {
         calendarService.syncBookedBlockForTicket(saved);
 
         postSystemMessage(saved, "Payment received · ticket " + formatTicketCode(saved.getId()) + " complete. Thank you!");
-        notifyCustomerOfStatusChange(saved, notificationBodyForStatus(TicketStatus.COMPLETED));
+        notifyCustomerOfStatusChange(saved, TicketStatus.COMPLETED);
         return toResponse(saved);
     }
 
@@ -502,10 +542,7 @@ public class TicketService {
             if (chatBody != null) {
                 postSystemMessage(saved, chatBody);
             }
-            String notifBody = notificationBodyForStatus(newStatus);
-            if (notifBody != null) {
-                notifyCustomerOfStatusChange(saved, notifBody);
-            }
+            notifyCustomerOfStatusChange(saved, newStatus);
         }
         return toResponse(saved);
     }
@@ -573,14 +610,29 @@ public class TicketService {
      * Status changes are always provider-initiated (the status endpoints are PROVIDER-only),
      * so the recipient is the ticket's customer. Failures are swallowed so the ticket op survives.
      */
-    private void notifyCustomerOfStatusChange(Ticket ticket, String body) {
-        if (ticket.getUser() == null || body == null) return;
+    private void notifyCustomerOfStatusChange(Ticket ticket, TicketStatus status) {
+        notifyCustomer(ticket, notificationBodyKeyForStatus(status), notificationBodyForStatus(status));
+    }
+
+    /**
+     * Low-level customer notification for a ticket. {@code fallbackBody} is the English
+     * text stored on the row; {@code bodyKey} is the i18next key the client renders in the
+     * user's language. The title is always "Ticket FIX-XXXX" with the code passed as the
+     * {@code code} interpolation param. No-ops (like the old behaviour) when there's no
+     * customer or no body to show.
+     */
+    private void notifyCustomer(Ticket ticket, String bodyKey, String fallbackBody) {
+        if (ticket.getUser() == null || fallbackBody == null) return;
         try {
+            String code = formatTicketCode(ticket.getId());
             notificationService.notifyTicketStatusChange(
                 ticket.getId(),
                 ticket.getUser().getId(),
-                "Ticket " + formatTicketCode(ticket.getId()),
-                body
+                "Ticket " + code,
+                fallbackBody,
+                "notifications.ticket.title",
+                bodyKey,
+                java.util.Map.of("code", code)
             );
         } catch (RuntimeException ex) {
             System.err.println("[ticket] notification failed for ticket " + ticket.getId() + ": " + ex.getMessage());
@@ -613,6 +665,15 @@ public class TicketService {
             case CANCELLED                -> "Ticket was cancelled.";
             case DECLINED                 -> "Ticket was declined.";
             case PENDING_APPROVAL         -> null;
+        };
+    }
+
+    /** i18next body key for a ticket status change, mirroring {@link #notificationBodyForStatus}. */
+    private String notificationBodyKeyForStatus(TicketStatus to) {
+        return switch (to) {
+            case APPROVED, IN_TRANSIT, PENDING_PROVIDER_INVOICE, PENDING_PAYMENT,
+                 COMPLETED, CANCELLED, DECLINED -> "notifications.ticket.body." + to.name();
+            case PENDING_APPROVAL              -> null;
         };
     }
 

@@ -86,6 +86,14 @@ export async function cancelTicket(ticketId: number, accessToken?: string): Prom
   return mapTicket(data);
 }
 
+export async function releaseTicket(ticketId: number, accessToken?: string): Promise<Ticket> {
+  const data = await requestJson<TicketResponseDto>(`/api/tickets/${ticketId}/release`, {
+    method: "POST",
+    headers: authHeader(accessToken),
+  });
+  return mapTicket(data);
+}
+
 export async function declineTicket(ticketId: number, accessToken?: string): Promise<Ticket> {
   const data = await requestJson<TicketResponseDto>(
     `/api/tickets/${ticketId}/status?newStatus=DECLINED`,

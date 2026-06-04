@@ -194,7 +194,10 @@ public class TrackingService {
             ticket.getId(),
             ticket.getUser().getId(),
             "Your provider is almost there",
-            providerName + " is less than 100 m away for " + code + "."
+            providerName + " is less than 100 m away for " + code + ".",
+            "notifications.nearby.title",
+            "notifications.nearby.body",
+            java.util.Map.of("providerName", providerName, "code", code)
         );
         log.info("Provider-nearby notification fired for ticket {}", ticket.getId());
     }

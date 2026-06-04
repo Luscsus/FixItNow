@@ -7,6 +7,9 @@ import com.example.backend.domain.user.UserRole;
 import com.example.backend.dto.NotificationResponse;
 import com.example.backend.repository.NotificationRepository;
 import com.example.backend.repository.UserRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.AccessDeniedException;
@@ -28,6 +31,9 @@ public class NotificationServiceImpl implements NotificationService {
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final TypeReference<Map<String, String>> PARAMS_TYPE = new TypeReference<>() {};
+
     // De-dup window: if an identical notification was created within this span,
     // skip creating another (guards against the endpoint being hit twice in
     // quick succession, double-submits, retries, etc.).
@@ -35,7 +41,8 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional
-    public void notifyTicketStatusChange(Long ticketId, UUID recipientId, String title, String body) {
+    public void notifyTicketStatusChange(Long ticketId, UUID recipientId, String title, String body,
+                                         String titleKey, String bodyKey, Map<String, String> params) {
         if (recipientId == null || body == null || !isEnabled(recipientId, NotificationType.TICKET_STATUS_CHANGE)) {
             return;
         }
@@ -47,6 +54,9 @@ public class NotificationServiceImpl implements NotificationService {
         n.setType(NotificationType.TICKET_STATUS_CHANGE);
         n.setTitle(title);
         n.setBody(body);
+        n.setTitleKey(titleKey);
+        n.setBodyKey(bodyKey);
+        n.setParamsJson(writeParams(params));
         n.setTicketId(ticketId);
         n.setCreatedAt(LocalDateTime.now());
         broadcast(notificationRepository.save(n));
@@ -54,7 +64,8 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional
-    public void notifyProviderNearby(Long ticketId, UUID recipientId, String title, String body) {
+    public void notifyProviderNearby(Long ticketId, UUID recipientId, String title, String body,
+                                     String titleKey, String bodyKey, Map<String, String> params) {
         if (recipientId == null || body == null || !isEnabled(recipientId, NotificationType.PROVIDER_NEARBY)) {
             return;
         }
@@ -66,6 +77,9 @@ public class NotificationServiceImpl implements NotificationService {
         n.setType(NotificationType.PROVIDER_NEARBY);
         n.setTitle(title);
         n.setBody(body);
+        n.setTitleKey(titleKey);
+        n.setBodyKey(bodyKey);
+        n.setParamsJson(writeParams(params));
         n.setTicketId(ticketId);
         n.setCreatedAt(LocalDateTime.now());
         broadcast(notificationRepository.save(n));
@@ -95,8 +109,14 @@ public class NotificationServiceImpl implements NotificationService {
         } else {
             n.setAggregateCount(n.getAggregateCount() + 1);
         }
+        // The title is the sender's name (a proper noun — not translated); when unknown
+        // we fall back to a localized "New message". The body count is localized via a
+        // pluralized i18next key with the running aggregate count as its param.
         n.setTitle(senderName != null ? senderName : "New message");
         n.setBody(n.getAggregateCount() == 1 ? "Sent you a message" : n.getAggregateCount() + " new messages");
+        n.setTitleKey(senderName != null ? null : "notifications.message.titleFallback");
+        n.setBodyKey("notifications.message.body");
+        n.setParamsJson(writeParams(Map.of("count", String.valueOf(n.getAggregateCount()))));
         n.setCreatedAt(LocalDateTime.now());
         broadcast(notificationRepository.save(n));
     }
@@ -194,11 +214,38 @@ public class NotificationServiceImpl implements NotificationService {
             n.getType(),
             n.getTitle(),
             n.getBody(),
+            n.getTitleKey(),
+            n.getBodyKey(),
+            readParams(n.getParamsJson()),
             n.getTicketId(),
             n.getChatRoomId(),
             n.getAggregateCount(),
             n.isRead(),
             n.getCreatedAt()
         );
+    }
+
+    /** Serialize interpolation params to JSON for storage; null when there's nothing to store. */
+    private String writeParams(Map<String, String> params) {
+        if (params == null || params.isEmpty()) {
+            return null;
+        }
+        try {
+            return OBJECT_MAPPER.writeValueAsString(params);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
+    }
+
+    /** Parse stored params JSON back into a map; null/blank or malformed yields null. */
+    private Map<String, String> readParams(String json) {
+        if (json == null || json.isBlank()) {
+            return null;
+        }
+        try {
+            return OBJECT_MAPPER.readValue(json, PARAMS_TYPE);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
     }
 }

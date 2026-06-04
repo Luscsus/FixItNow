@@ -11,6 +11,7 @@ import {
   useDeclineTicketMutation,
 } from "@/hooks/useConfirmTicketMutation";
 import { useCancelTicketMutation } from "@/hooks/useCancelTicketMutation";
+import { useReleaseTicketMutation } from "@/hooks/useReleaseTicketMutation";
 import { TicketChatPanel } from "@/components/ticket/TicketChatPanel";
 import { IssueInvoicePanel } from "@/components/ticket/IssueInvoicePanel";
 import { LiveTrackingPanel } from "@/components/tracking/LiveTrackingPanel";
@@ -362,9 +363,11 @@ export function TicketDetailPage() {
   const confirmMut = useConfirmTicketMutation();
   const declineMut = useDeclineTicketMutation();
   const cancelMut  = useCancelTicketMutation();
+  const releaseMut = useReleaseTicketMutation();
   const { notify } = useToast();
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [acceptError, setAcceptError] = useState<string | null>(null);
+  const [releaseDialogOpen, setReleaseDialogOpen] = useState(false);
 
   const { data: ticket, isLoading, isError } = useTicketQuery(ticketId);
 
@@ -739,6 +742,11 @@ export function TicketDetailPage() {
                 </>
               );
             })()}
+            {isProvider && ticket.status === "APPROVED" && (
+              <button className="btn btn-danger" disabled={releaseMut.isPending} onClick={() => setReleaseDialogOpen(true)}>
+                {t("ticket.releaseTicket")}
+              </button>
+            )}
             {nextStatus && (
               <button className="btn btn-primary" disabled={updateMut.isPending} onClick={() => updateMut.mutate({ ticketId: ticket.id, status: nextStatus.status })}>
                 {updateMut.isPending ? t("ticket.updating") : nextStatus.label}
@@ -778,6 +786,30 @@ export function TicketDetailPage() {
         }
       >
         {t("ticket.cancelDialog.body", { code: ticketIdStr })}
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={releaseDialogOpen}
+        title={t("ticket.releaseDialog.title")}
+        confirmLabel={t("ticket.releaseDialog.confirm")}
+        loadingLabel={t("ticket.releaseDialog.loading")}
+        cancelLabel={t("ticket.releaseDialog.keep")}
+        loading={releaseMut.isPending}
+        onCancel={() => setReleaseDialogOpen(false)}
+        onConfirm={() =>
+          releaseMut.mutate(ticket.id, {
+            onSuccess: () => {
+              setReleaseDialogOpen(false);
+              notify(t("ticket.releaseDialog.success"), "success");
+              navigate("/dashboard/provider");
+            },
+            onError: (err) => {
+              notify(getErrorMessage(err) || t("ticket.releaseDialog.error"), "error");
+            },
+          })
+        }
+      >
+        {t("ticket.releaseDialog.body", { code: ticketIdStr })}
       </ConfirmDialog>
     </>
   );

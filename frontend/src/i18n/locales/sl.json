@@ -714,6 +714,16 @@
     "cancelTicket": "Prekliči zahtevek",
     "acceptPayoutError": "Pred sprejemom dela morate dodati podatke o izplačilu (bančni račun).",
     "acceptPayoutErrorLink": "Dodaj podatke o izplačilu →",
+    "releaseTicket": "Prekliči dodelitev",
+    "releaseDialog": {
+      "title": "Se želite umakniti s tega zahtevka?",
+      "body": "Ali ste prepričani, da želite preklicati svojo dodelitev zahtevku {{code}}? Vrnil se bo med proste zahtevke, da ga lahko sprejme drug izvajalec, vaš rezervirani termin pa bo sproščen.",
+      "confirm": "Da, prekliči dodelitev",
+      "loading": "Sproščanje…",
+      "keep": "Ostani dodeljen",
+      "success": "Umaknili ste se — zahtevek je na voljo drugemu izvajalcu.",
+      "error": "Zahtevka ni bilo mogoče sprostiti. Poskusite znova."
+    },
     "cancelDialog": {
       "title": "Prekliči ta zahtevek?",
       "body": "Ali ste prepričani, da želite preklicati zahtevek {{code}}? Tega ni mogoče razveljaviti — zahtevek bo zaprt in premaknjen med rešene zahtevke.",
@@ -1334,7 +1344,31 @@
     "markAllRead": "Označi vse kot prebrano",
     "clearAll": "Počisti vse",
     "newMessage": "Novo sporočilo",
-    "ticketUpdate": "Posodobitev zahtevka"
+    "ticketUpdate": "Posodobitev zahtevka",
+    "ticket": {
+      "title": "Zahtevek {{code}}",
+      "body": {
+        "APPROVED": "Izvajalec je sprejel — zahtevek odobren.",
+        "IN_TRANSIT": "Izvajalec označen kot na poti.",
+        "PENDING_PROVIDER_INVOICE": "Delo zaključeno — čaka na račun.",
+        "PENDING_PAYMENT": "Račun prejet — čaka na plačilo.",
+        "COMPLETED": "Zahtevek rešen in zaprt.",
+        "CANCELLED": "Zahtevek je bil preklican.",
+        "DECLINED": "Zahtevek je bil zavrnjen.",
+        "RELEASED": "Vaš izvajalec se je umaknil — zahtevek je na voljo drugemu izvajalcu."
+      }
+    },
+    "nearby": {
+      "title": "Vaš izvajalec je skoraj tu",
+      "body": "{{providerName}} je manj kot 100 m stran za {{code}}."
+    },
+    "message": {
+      "titleFallback": "Novo sporočilo",
+      "body_one": "Poslal vam je sporočilo",
+      "body_two": "{{count}} novi sporočili",
+      "body_few": "{{count}} nova sporočila",
+      "body_other": "{{count}} novih sporočil"
+    }
   },
   "categories": {
     "PLUMBING": "Vodovodna dela",

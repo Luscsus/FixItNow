@@ -712,6 +712,16 @@
     "decline": "Decline",
     "updating": "Updating…",
     "cancelTicket": "Cancel ticket",
+    "releaseTicket": "Cancel assignment",
+    "releaseDialog": {
+      "title": "Step back from this ticket?",
+      "body": "Are you sure you want to cancel your assignment to ticket {{code}}? It will return to the open pool so another provider can accept it, and your booked time slot will be freed.",
+      "confirm": "Yes, cancel assignment",
+      "loading": "Releasing…",
+      "keep": "Stay assigned",
+      "success": "You've stepped back — the ticket is open for another provider.",
+      "error": "Could not release this ticket. Please try again."
+    },
     "cancelDialog": {
       "title": "Cancel this ticket?",
       "body": "Are you sure you want to cancel ticket {{code}}? This can't be undone — the request will be closed and moved to your resolved tickets.",
@@ -1332,7 +1342,29 @@
     "markAllRead": "Mark all read",
     "clearAll": "Clear all",
     "newMessage": "New message",
-    "ticketUpdate": "Ticket update"
+    "ticketUpdate": "Ticket update",
+    "ticket": {
+      "title": "Ticket {{code}}",
+      "body": {
+        "APPROVED": "Provider accepted — ticket approved.",
+        "IN_TRANSIT": "Provider marked as in transit.",
+        "PENDING_PROVIDER_INVOICE": "Work completed — awaiting invoice.",
+        "PENDING_PAYMENT": "Invoice received — payment pending.",
+        "COMPLETED": "Ticket resolved and closed.",
+        "CANCELLED": "Ticket was cancelled.",
+        "DECLINED": "Ticket was declined.",
+        "RELEASED": "Your provider stepped back — the ticket is open for another provider."
+      }
+    },
+    "nearby": {
+      "title": "Your provider is almost there",
+      "body": "{{providerName}} is less than 100 m away for {{code}}."
+    },
+    "message": {
+      "titleFallback": "New message",
+      "body_one": "Sent you a message",
+      "body_other": "{{count}} new messages"
+    }
   },
   "categories": {
     "PLUMBING": "Plumbing",

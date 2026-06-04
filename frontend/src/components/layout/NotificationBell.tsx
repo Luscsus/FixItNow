@@ -9,6 +9,7 @@ import { useNotificationsSocket } from "@/hooks/useNotificationsSocket";
 import { primeNotificationSound } from "@/lib/notificationSound";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { localizeNotification } from "@/lib/notificationText";
 import type { AppNotification } from "@/domain/notification";
 
 interface NotifListBodyProps {
@@ -36,7 +37,9 @@ function NotifListBody({ pad, isLoading, notifications, onItemClick }: NotifList
   }
   return (
     <>
-      {notifications.map((n) => (
+      {notifications.map((n) => {
+        const { title, body } = localizeNotification(n, t);
+        return (
         <button
           key={n.id}
           onClick={() => onItemClick(n)}
@@ -52,14 +55,15 @@ function NotifListBody({ pad, isLoading, notifications, onItemClick }: NotifList
         >
           {n.type === "NEW_MESSAGE" ? <MessageDot /> : <TicketDot />}
           <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{n.title}</span>
-            {n.body && (
-              <span style={{ display: "block", fontSize: 12.5, color: "var(--text-muted)", marginTop: 1 }}>{n.body}</span>
+            <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{title}</span>
+            {body && (
+              <span style={{ display: "block", fontSize: 12.5, color: "var(--text-muted)", marginTop: 1 }}>{body}</span>
             )}
             <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>{formatRelativeTime(n.createdAt)}</span>
           </span>
         </button>
-      ))}
+        );
+      })}
     </>
   );
 }

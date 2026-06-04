@@ -6,6 +6,8 @@ import { env } from '@/config/env';
 import { isTokenExpired } from '@/lib/jwt';
 import { NOTIFICATIONS_QUERY_KEY } from '@/hooks/useNotifications';
 import { playNotificationSound } from '@/lib/notificationSound';
+import { localizeNotification } from '@/lib/notificationText';
+import i18n from '@/i18n/i18n';
 import type { AppNotification } from '@/domain/notification';
 
 const TOKEN_REFRESH_THRESHOLD_MS = 60_000;
@@ -21,9 +23,10 @@ function showNativeNotification(n: AppNotification) {
   if (Notification.permission !== 'granted') return;
   // Don't pop a toast for things the user has already read (e.g. a read-clear frame).
   if (n.read) return;
+  const { title, body } = localizeNotification(n, i18n.t.bind(i18n));
   try {
-    new Notification(n.title, {
-      body: n.body ?? undefined,
+    new Notification(title, {
+      body: body ?? undefined,
       tag: `fixitnow-notif-${n.id}`,
       icon: '/icons/icon-192.png',
     });

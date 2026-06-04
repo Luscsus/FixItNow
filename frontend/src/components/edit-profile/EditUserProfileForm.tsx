@@ -7,7 +7,7 @@ import { useAuth } from "@/context/auth";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { updateCurrentUser, updateProfilePicture } from "@/services/userService";
 import { uploadImage } from "@/services/imageService";
-import { getErrorMessage } from "@/lib/errorMessage";
+import { getErrorMessage, getTranslatedFieldErrors } from "@/lib/errorMessage";
 import { mapZodErrors } from "@/lib/validation";
 import { useUserLocation } from "@/hooks/useUserLocation";
 import { LocationModal } from "@/components/user-account/LocationModal";
@@ -114,7 +114,12 @@ export function EditUserProfileForm() {
       await mutation.mutateAsync();
     } catch (error) {
       setIsUploading(false);
-      setErrors({ firstName: getErrorMessage(error) });
+      const fieldErrors = getTranslatedFieldErrors(error, t);
+      if (fieldErrors) {
+        setErrors(fieldErrors);
+      } else {
+        setErrors({ firstName: getErrorMessage(error) });
+      }
     }
   };
 

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { useRegisterProviderMutation } from "@/hooks/useRegisterProviderMutation";
 import { usePublicStatsQuery } from "@/hooks/usePublicStatsQuery";
 import { getErrorMessage } from "@/lib/errorMessage";
+import { CATEGORY_META } from "@/components/browse/browseConstants";
 import { mapZodErrors } from "@/lib/validation";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { AuthStat } from "@/components/auth/AuthStat";
@@ -15,22 +16,22 @@ type Fields =
   | "trades" | "yearsOfExperience" | "serviceRadiusKm"
   | "locationStreetName" | "locationCity" | "locationPostalCode" | "locationCountry" | "bio";
 
-const TRADES_DATA: { id: string; icon: string; category: string; key: string }[] = [
-  { id: "plumbing",        icon: "🔧", category: "PLUMBING",        key: "plumbing" },
-  { id: "electrical",      icon: "⚡", category: "ELECTRICAL",      key: "electrical" },
-  { id: "hvac",            icon: "❄️", category: "HVAC",            key: "hvac" },
-  { id: "carpentry",       icon: "🪚", category: "CARPENTRY",       key: "carpentry" },
-  { id: "painting",        icon: "🎨", category: "PAINTING",        key: "painting" },
-  { id: "roofing",         icon: "🏠", category: "ROOFING",         key: "roofing" },
-  { id: "appliance_repair",icon: "🔌", category: "APPLIANCE_REPAIR",key: "applianceRepair" },
-  { id: "locksmith",       icon: "🔑", category: "LOCKSMITH",       key: "locksmith" },
-  { id: "cleaning",        icon: "🧹", category: "CLEANING",        key: "cleaning" },
-  { id: "gardening",       icon: "🌱", category: "GARDENING",       key: "gardening" },
-  { id: "pest_control",    icon: "🐜", category: "PEST_CONTROL",    key: "pestControl" },
-  { id: "moving",          icon: "📦", category: "MOVING",          key: "moving" },
-  { id: "tutoring",        icon: "📚", category: "TUTORING",        key: "tutoring" },
-  { id: "it",              icon: "💻", category: "IT_SUPPORT",      key: "it" },
-  { id: "other",           icon: "✨", category: "OTHER",           key: "other" },
+const TRADES_DATA: { id: string; category: string; key: string }[] = [
+  { id: "plumbing",        category: "PLUMBING",        key: "plumbing" },
+  { id: "electrical",      category: "ELECTRICAL",      key: "electrical" },
+  { id: "hvac",            category: "HVAC",            key: "hvac" },
+  { id: "carpentry",       category: "CARPENTRY",       key: "carpentry" },
+  { id: "painting",        category: "PAINTING",        key: "painting" },
+  { id: "roofing",         category: "ROOFING",         key: "roofing" },
+  { id: "appliance_repair",category: "APPLIANCE_REPAIR",key: "applianceRepair" },
+  { id: "locksmith",       category: "LOCKSMITH",       key: "locksmith" },
+  { id: "cleaning",        category: "CLEANING",        key: "cleaning" },
+  { id: "gardening",       category: "GARDENING",       key: "gardening" },
+  { id: "pest_control",    category: "PEST_CONTROL",    key: "pestControl" },
+  { id: "moving",          category: "MOVING",          key: "moving" },
+  { id: "tutoring",        category: "TUTORING",        key: "tutoring" },
+  { id: "it",              category: "IT_SUPPORT",      key: "it" },
+  { id: "other",           category: "OTHER",           key: "other" },
 ];
 
 const BIO_MAX = 2000;
@@ -455,12 +456,15 @@ export function RegisterProviderPage() {
                   </div>
                   <p className="field-hint" style={{ marginBottom: 10 }}>{t("registerProvider.selectAllThatApply")}</p>
                   <div className="trade-grid">
-                    {TRADES_DATA.map((trade) => (
-                      <button key={trade.id} type="button" className="trade-chip" aria-pressed={selectedTrades.includes(trade.id) ? "true" : "false"} onClick={() => toggleTrade(trade.id)}>
-                        <span style={{ fontSize: 14 }}>{trade.icon}</span>
-                        {t(`registerProvider.trades.${trade.key}`)}
-                      </button>
-                    ))}
+                    {TRADES_DATA.map((trade) => {
+                      const Icon = CATEGORY_META[trade.category]?.Icon;
+                      return (
+                        <button key={trade.id} type="button" className="trade-chip" aria-pressed={selectedTrades.includes(trade.id) ? "true" : "false"} onClick={() => toggleTrade(trade.id)}>
+                          {Icon && <Icon size={14} />}
+                          {t(`registerProvider.trades.${trade.key}`)}
+                        </button>
+                      );
+                    })}
                   </div>
                   {errors.trades && (
                     <span className="field-error" style={{ marginTop: 8 }}>

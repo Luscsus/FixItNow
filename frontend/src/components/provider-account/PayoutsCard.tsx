@@ -15,7 +15,7 @@ export function PayoutsCard() {
   const { payouts, totalPaid, pendingTotal, isLoading, isError, refetch, isFetching } = usePayouts();
 
   const fmtMoney = (n: number) =>
-    `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    `€${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const fmtDate = (d: Date) =>
     d.toLocaleDateString(undefined, { month: "short", day: "numeric" }).toUpperCase();
   const statusLabel = (s: PayoutStatus) => t(`providerAccount.payoutStatus_${s.toLowerCase()}`);

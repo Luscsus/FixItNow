@@ -8,6 +8,7 @@ import { usePublicStatsQuery } from "@/hooks/usePublicStatsQuery";
 import { useRecentActivityQuery } from "@/hooks/useRecentActivityQuery";
 import { initialsOf, avatarStyleFor, timeAgo } from "@/lib/activityFormat";
 import { CATEGORY_META } from "@/components/browse/browseConstants";
+import { IconHammer, IconSparkles } from "@/components/browse/BrowseIcons";
 import { classifyCategory } from "@/lib/classifyCategory";
 
 function IconArrow({ size = 14 }: { readonly size?: number }) {
@@ -35,20 +36,6 @@ function IconSpark({ size = 20 }: { readonly size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-    </svg>
-  );
-}
-function IconWrench({ size = 20 }: { readonly size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
-    </svg>
-  );
-}
-function IconCmd({ size = 20 }: { readonly size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 3a3 3 0 00-3 3v12a3 3 0 003 3 3 3 0 003-3 3 3 0 00-3-3H6a3 3 0 00-3 3 3 3 0 003 3 3 3 0 003-3V6a3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3h12a3 3 0 003-3 3 3 0 00-3-3z" />
     </svg>
   );
 }
@@ -250,7 +237,7 @@ export function UserLanding() {
                     <div className="problem-row">
                       {topCategories.map((key) => {
                         const meta = CATEGORY_META[key];
-                        const label = meta?.label ?? key;
+                        const label = t(`categories.${key}`, { defaultValue: meta?.label ?? key });
                         const Icon = meta?.Icon;
                         const active = selectedCategories.includes(key);
                         return (
@@ -377,7 +364,7 @@ export function UserLanding() {
                   activity.slice(0, 4).map((item, idx) => {
                     const av = avatarStyleFor(item.actorName);
                     const catLabel = t(`categories.${item.category}`, { defaultValue: item.serviceType });
-                    const meta = [item.city, item.amount != null ? `$${item.amount.toLocaleString()}` : null]
+                    const meta = [item.city, item.amount != null ? `€${item.amount.toLocaleString()}` : null]
                       .filter(Boolean).join(" · ");
                     return (
                       <div key={`${item.changedAt}-${idx}`} className="live-feed-item">
@@ -442,13 +429,13 @@ export function UserLanding() {
               {t("userLanding.categoriesHeadlineSub")}
             </h2>
           </div>
-          <a href="#" className="btn btn-secondary">
+          <Link to="/browse" className="btn btn-secondary">
             {t("userLanding.seeAllTrades")} <IconArrow size={15} />
-          </a>
+          </Link>
         </div>
 
         <div className="cat-grid">
-          <a className="cat cat-feature" href="#">
+          <Link className="cat cat-feature" to="/browse?categories=PLUMBING">
             <span className="cat-arrow"><IconArrow size={14} /></span>
             <div className="cat-icon"><IconDrop size={22} /></div>
             <div style={{ marginTop: "auto" }}>
@@ -456,41 +443,41 @@ export function UserLanding() {
                 {t("userLanding.mostBooked")}
               </div>
               <div style={{ fontSize: 42, fontWeight: 700, letterSpacing: "-0.025em", lineHeight: 1.05, marginTop: 14, color: "#fff" }}>
-                {t("userLanding.plumbing")}
+                {t("categories.PLUMBING", "Plumbing")}
               </div>
               <div className="cat-count" style={{ color: "rgba(255,255,255,0.5)" }}>
                 {categoryCountMap["PLUMBING"] ?? "…"} {t("userLanding.providersCount", { count: "" }).replace("{{count}} ", "")}
               </div>
             </div>
-          </a>
+          </Link>
 
-          <a className="cat cat-elect" href="#">
+          <Link className="cat cat-elect" to="/browse?categories=ELECTRICAL">
             <span className="cat-arrow"><IconArrow size={14} /></span>
             <div className="cat-icon" style={{ background: "rgba(245,158,11,0.18)", color: "var(--amber-700)" }}><IconBolt size={22} /></div>
-            <div className="cat-name">{t("userLanding.electrical")}</div>
-            <div className="cat-count">{categoryCountMap["ELECTRICAL"] ?? "…"} providers</div>
-          </a>
+            <div className="cat-name">{t("categories.ELECTRICAL", "Electrical")}</div>
+            <div className="cat-count">{categoryCountMap["ELECTRICAL"] ?? "…"} {t("userLanding.providersCount", { count: "" }).replace("{{count}} ", "")}</div>
+          </Link>
 
-          <a className="cat cat-hvac" href="#">
+          <Link className="cat cat-hvac" to="/browse?categories=HVAC">
             <span className="cat-arrow"><IconArrow size={14} /></span>
             <div className="cat-icon" style={{ background: "rgba(30,58,138,0.12)", color: "var(--navy-700)" }}><IconSpark size={22} /></div>
-            <div className="cat-name">{t("userLanding.hvac")}</div>
-            <div className="cat-count">{categoryCountMap["HVAC"] ?? "…"} providers</div>
-          </a>
+            <div className="cat-name">{t("categories.HVAC", "HVAC")}</div>
+            <div className="cat-count">{categoryCountMap["HVAC"] ?? "…"} {t("userLanding.providersCount", { count: "" }).replace("{{count}} ", "")}</div>
+          </Link>
 
-          <a className="cat cat-hard" href="#">
+          <Link className="cat cat-hard" to="/browse?categories=CARPENTRY">
             <span className="cat-arrow"><IconArrow size={14} /></span>
-            <div className="cat-icon"><IconWrench size={22} /></div>
-            <div className="cat-name">{t("userLanding.hardware")}</div>
-            <div className="cat-count">{categoryCountMap["HARDWARE"] ?? "…"} providers</div>
-          </a>
+            <div className="cat-icon"><IconHammer size={22} /></div>
+            <div className="cat-name">{t("categories.CARPENTRY", "Carpentry")}</div>
+            <div className="cat-count">{categoryCountMap["CARPENTRY"] ?? "…"} {t("userLanding.providersCount", { count: "" }).replace("{{count}} ", "")}</div>
+          </Link>
 
-          <a className="cat cat-soft" href="#">
+          <Link className="cat cat-soft" to="/browse?categories=CLEANING">
             <span className="cat-arrow"><IconArrow size={14} /></span>
-            <div className="cat-icon" style={{ background: "rgba(5,150,105,0.18)", color: "var(--emerald-700)" }}><IconCmd size={22} /></div>
-            <div className="cat-name">{t("userLanding.itSoftware")}</div>
-            <div className="cat-count">{categoryCountMap["IT"] ?? "…"} providers</div>
-          </a>
+            <div className="cat-icon" style={{ background: "rgba(5,150,105,0.18)", color: "var(--emerald-700)" }}><IconSparkles size={22} /></div>
+            <div className="cat-name">{t("categories.CLEANING", "Cleaning")}</div>
+            <div className="cat-count">{categoryCountMap["CLEANING"] ?? "…"} {t("userLanding.providersCount", { count: "" }).replace("{{count}} ", "")}</div>
+          </Link>
         </div>
       </section>
 
@@ -633,26 +620,12 @@ export function UserLanding() {
             <h4>{t("userLanding.footerProduct")}</h4>
             <ul>
               <li><a href="#how">{t("userLanding.footerHowItWorks")}</a></li>
-              <li><a href="#">{t("userLanding.footerBrowseProviders")}</a></li>
-              <li><a href="#">{t("userLanding.footerChangelog")}</a></li>
             </ul>
           </div>
           <div>
             <h4>{t("userLanding.footerForProviders")}</h4>
             <ul>
               <li><Link to="/register">{t("userLanding.footerBecomeProvider")}</Link></li>
-              <li><a href="#">{t("userLanding.footerProviderHandbook")}</a></li>
-              <li><a href="#">{t("userLanding.footerPayouts")}</a></li>
-              <li><a href="#">{t("userLanding.footerProviderLogin")}</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4>{t("userLanding.footerCompany")}</h4>
-            <ul>
-              <li><a href="#">{t("userLanding.footerAbout")}</a></li>
-              <li><a href="#">{t("userLanding.footerCareers")}</a></li>
-              <li><a href="#">{t("userLanding.footerPress")}</a></li>
-              <li><a href="#">{t("userLanding.footerContact")}</a></li>
             </ul>
           </div>
         </div>

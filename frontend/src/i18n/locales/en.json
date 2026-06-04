@@ -225,8 +225,10 @@
     "freeToApply": "Free to apply. No subscription. We take a flat 8% from completed jobs — no leads-fees, no monthly cost.",
     "alreadyProvider": "Already a provider? Log in",
     "todayEarnings": "Today · Earnings",
+    "totalEarned": "Total Earned",
     "todaySignInForStats": "Sign in to see today",
     "todayJobsHours": "+{{jobs}} JOBS · {{hours}} HRS WORKED",
+    "totalCompletedJobs": "{{completedJobs}} JOBS COMPLETED",
     "todayStatsError": "Couldn't load today's stats",
     "incomingJobsNearYou": "Incoming jobs near you",
     "within5mi": "WITHIN 5 MI",
@@ -235,6 +237,7 @@
     "accepting": "…",
     "jobAccepted": "Job accepted — find it in your dashboard.",
     "jobAcceptFailed": "Couldn't accept this job. It may have been taken.",
+    "jobAcceptNoPayout": "Add your payout details (bank info) before accepting work. You can set them on your profile.",
     "signInToSeeJobs": "Sign in as a provider to see jobs matched to your trades and area.",
     "signInCta": "Sign in",
     "noMatchingJobs": "No open jobs match your trades and radius right now. We'll keep watching.",
@@ -928,6 +931,11 @@
     "billing_colTicket": "Ticket",
     "billing_colProvider": "Provider",
     "billing_colAmount": "Amount",
+    "billing_colStatus": "Status",
+    "billing_invoices": "invoices",
+    "billing_statusPaid": "Paid",
+    "billing_statusPending": "Pending",
+    "billing_loading": "Loading billing history…",
     "billing_noInvoices": "No invoices yet — your billing history will show up here.",
     "billing_address": "Billing address",
     "billing_name": "Name",
@@ -1497,8 +1505,8 @@
     "budget": "Budget",
     "budgetPerHour": "Budget per hour",
     "customRange": "Custom range",
-    "minPlaceholder": "Min $",
-    "maxPlaceholder": "Max $",
+    "minPlaceholder": "Min €",
+    "maxPlaceholder": "Max €",
     "search": "Search"
   },
   "pagination": {
@@ -1571,5 +1579,18 @@
     "errorPermissionDenied": "Location is blocked for this site. Click the icon left of the address bar → Site settings → Location → Allow, then reload and try again.",
     "errorPositionUnavailable": "Your device couldn't determine its position. Check that location services are on.",
     "errorLocationFailed": "Couldn't read your location — please try again."
+  },
+  "validation": {
+    "required": "This field is required.",
+    "tooLong": "Must be at most {{max}} characters.",
+    "tooShort": "Must be at least {{min}} characters.",
+    "sizeBetween": "Must be between {{min}} and {{max}} characters.",
+    "positive": "Must be a positive number.",
+    "positiveOrZero": "Must be zero or positive.",
+    "min": "Must be at least {{min}}.",
+    "max": "Must be at most {{max}}.",
+    "invalidEmail": "Must be a valid email address.",
+    "invalidFormat": "Invalid format.",
+    "digitsBeforeDecimal": "Must have at most {{max}} digits before the decimal point."
   }
 }

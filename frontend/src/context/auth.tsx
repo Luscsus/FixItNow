@@ -12,6 +12,7 @@ import type { AuthSession, UserRole } from "@/domain/auth";
 import { jwtUserInfo } from "@/lib/jwt";
 import { setAuthRefreshHandler, ApiError } from "@/services/httpClient";
 import { refreshToken as refreshTokenApi } from "@/services/authService";
+import { queryClient } from "@/config/queryClient";
 
 type AuthState = {
   accessToken: string;
@@ -203,6 +204,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearAllStorage();
       // Drop the persistence flag too so the next login starts clean.
       window.localStorage.removeItem(persistentFlagKey);
+      // Clear all cached query data so the next user doesn't see stale data
+      // from the previous session.
+      queryClient.clear();
     };
 
     return {

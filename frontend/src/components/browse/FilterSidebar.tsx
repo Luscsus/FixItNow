@@ -130,7 +130,7 @@ export function FilterSidebar({
           })}
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          {(["Min $", "Max $"] as const).map((ph, i) => (
+          {(["Min €", "Max €"] as const).map((ph, i) => (
             <input key={ph} type="number" min={0} placeholder={ph}
               value={i === 0 ? minPrice : maxPrice}
               onChange={(e) => i === 0 ? setMinPrice(e.target.value) : setMaxPrice(e.target.value)}

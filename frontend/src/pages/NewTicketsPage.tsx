@@ -199,7 +199,7 @@ export function NewTicketPage() {
                 <label className="field-label">{t("newTicket.categoryLabel")}</label>
                 <select className="fselect" value={category} onChange={(e) => setCategory(e.target.value as ServiceCategory)} disabled={loadingCategories}>
                   <option value="" disabled>{loadingCategories ? t("newTicket.categoryLoading") : t("newTicket.categoryPlaceholder")}</option>
-                  {activeCategories.map((value) => (<option key={value} value={value}>{formatCategoryLabel(value)}</option>))}
+                  {activeCategories.map((value) => (<option key={value} value={value}>{t(`categories.${value}`, { defaultValue: formatCategoryLabel(value) })}</option>))}
                 </select>
                 {submitAttempted && !category ? <span className="field-error">{t("newTicket.errors.categoryRequired")}</span> : <span className="field-hint">{t("newTicket.categoryHint")}</span>}
               </div>
@@ -423,7 +423,7 @@ export function NewTicketPage() {
             <h4>{t("newTicket.liveSummary")}</h4>
             <div className="summary-row"><span className="key">{t("newTicket.summaryTicket")}</span><span className="val mono">{ticketId || "—"}</span></div>
             <div className="summary-row"><span className="key">{t("newTicket.summaryTitle")}</span><span className="val">{title || "—"}</span></div>
-            <div className="summary-row"><span className="key">{t("newTicket.summaryCategory")}</span><span className="val">{category ? formatCategoryLabel(category) : "—"}</span></div>
+            <div className="summary-row"><span className="key">{t("newTicket.summaryCategory")}</span><span className="val">{category ? t(`categories.${category}`, { defaultValue: formatCategoryLabel(category) }) : "—"}</span></div>
             <div className="summary-row">
               <span className="key">{t("newTicket.summaryUrgency")}</span>
               <span className="val" style={{ color: urgency ? urgencySummary[urgency].color : "rgba(255,255,255,0.55)" }}>

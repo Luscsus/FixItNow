@@ -809,7 +809,7 @@ input, textarea, select { font: inherit; color: inherit; }
 }
 .cta-dark-overlay {
   position: absolute;
-  right: -10%; top: -50%;
+  right: -16%; top: -50%;
   width: 60%; height: 200%;
   background: var(--navy-900);
   transform: rotate(8deg);
@@ -3664,6 +3664,7 @@ input, textarea, select { font: inherit; color: inherit; }
 .landing-switch-btn {
   position: relative;
   z-index: 1;
+  flex: 1;
   display: inline-flex;
   align-items: center;
   gap: 7px;

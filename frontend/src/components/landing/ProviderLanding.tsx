@@ -7,7 +7,8 @@ import { useAllProvidersQuery } from "@/hooks/useAllProvidersQuery";
 import { usePublicOpenTicketsQuery } from "@/hooks/usePublicOpenTicketsQuery";
 import { useProviderTodayStats } from "@/hooks/useProviderTodayStats";
 import { useMatchingOpenTicketsQuery } from "@/hooks/useMatchingOpenTicketsQuery";
-import { useAcceptTicketMutation } from "@/hooks/useAcceptTicketMutation";
+import { useAcceptTicketMutation } from "@/hooks/useAcceptTicketMutation"
+import { getErrorMessage } from "@/lib/errorMessage";
 
 function IconArrow({ size = 14 }: { readonly size?: number }) {
   return (
@@ -96,14 +97,19 @@ export function ProviderLanding() {
     setAcceptingId(id);
     acceptMutation.mutate(id, {
       onSuccess: () => notify(t("providerLanding.jobAccepted"), "success"),
-      onError: () => notify(t("providerLanding.jobAcceptFailed"), "error"),
+      onError: (err) => {
+        const msg = getErrorMessage(err);
+        const key = msg.includes("payout details") ? "providerLanding.jobAcceptNoPayout" : "providerLanding.jobAcceptFailed";
+        notify(t(key), "error");
+      },
       onSettled: () => setAcceptingId(null),
     });
   }
 
-  // Today's earnings, split into whole dollars + cents for the hero display.
-  const earnWhole = Math.floor(today.earnings);
-  const earnCents = Math.round((today.earnings - earnWhole) * 100).toString().padStart(2, "0");
+  // Total all-time earnings, split into whole + cents for the hero display.
+  const displayAmount = today.totalEarned ?? 0;
+  const earnWhole = Math.floor(displayAmount);
+  const earnCents = Math.round((displayAmount - earnWhole) * 100).toString().padStart(2, "0");
 
   return (
     <div style={{ background: "var(--bg-canvas)" }}>
@@ -179,7 +185,7 @@ export function ProviderLanding() {
               <div className="live-card-grid" />
               <div style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
                 <div>
-                  <span className="live-pulse">{t("providerLanding.todayEarnings")}</span>
+                  <span className="live-pulse">{t("providerLanding.totalEarned")}</span>
                   <div style={{ marginTop: 14, fontSize: 38, fontWeight: 700, letterSpacing: "-0.02em", color: "#fff", lineHeight: 1 }}>
                     {today.isLoading ? (
                       <span style={{ fontSize: 28, color: "rgba(255,255,255,0.6)" }}>…</span>
@@ -187,7 +193,7 @@ export function ProviderLanding() {
                       <span style={{ fontSize: 26, color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>{t("providerLanding.todaySignInForStats")}</span>
                     ) : (
                       <>
-                        <span style={{ color: "var(--amber-500)" }}>$</span>{earnWhole.toLocaleString()}
+                        <span style={{ color: "var(--amber-500)" }}>€</span>{earnWhole.toLocaleString()}
                         <span style={{ fontSize: 18, color: "rgba(255,255,255,0.5)", fontWeight: 500, marginLeft: 4 }}>.{earnCents}</span>
                       </>
                     )}
@@ -196,7 +202,7 @@ export function ProviderLanding() {
                     <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.55)", marginTop: 6, fontFamily: "var(--font-mono)", letterSpacing: "0.04em" }}>
                       {today.isError
                         ? t("providerLanding.todayStatsError")
-                        : t("providerLanding.todayJobsHours", { jobs: today.jobs, hours: today.hours.toFixed(1) })}
+                        : t("providerLanding.totalCompletedJobs", { completedJobs: today.completedJobs })}
                     </div>
                   )}
                 </div>
@@ -240,7 +246,7 @@ export function ProviderLanding() {
                     {t("providerLanding.noMatchingJobs")}
                   </div>
                 ) : (
-                  matchingJobs.map((j) => (
+                  matchingJobs.slice(0, 5).map((j) => (
                     <div key={j.id} style={{
                       background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
                       borderRadius: 10, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12,
@@ -462,26 +468,6 @@ export function ProviderLanding() {
             <ul>
               <li><Link to="/register/provider">{t("providerLanding.footerApplyNow")}</Link></li>
               <li><a href="#provider-how">{t("providerLanding.footerHowItWorks")}</a></li>
-              <li><a href="#">{t("providerLanding.footerProviderHandbook")}</a></li>
-              <li><a href="#">{t("providerLanding.footerPayoutsFees")}</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4>{t("providerLanding.footerTradesWeCover")}</h4>
-            <ul>
-              <li><a href="#">{t("providerLanding.footerPlumbing")}</a></li>
-              <li><a href="#">{t("providerLanding.footerElectrical")}</a></li>
-              <li><a href="#">{t("providerLanding.footerHvac")}</a></li>
-              <li><a href="#">{t("providerLanding.footerAllTrades")}</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4>{t("providerLanding.footerCompany")}</h4>
-            <ul>
-              <li><a href="#">{t("providerLanding.footerAbout")}</a></li>
-              <li><a href="#">{t("providerLanding.footerCareers")}</a></li>
-              <li><a href="#">{t("providerLanding.footerPress")}</a></li>
-              <li><a href="#">{t("providerLanding.footerContact")}</a></li>
             </ul>
           </div>
         </div>

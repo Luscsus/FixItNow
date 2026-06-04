@@ -39,7 +39,7 @@ export function ProviderPayoutsPage() {
 
   const statusLabel = (s: PayoutStatus) => t(`providerAccount.payoutStatus_${s.toLowerCase()}`);
   const fmtDate = (d: Date) => d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-  const fmtMoney = (n: number) => `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmtMoney = (n: number) => `€${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
     <main className="container" style={{ maxWidth: 920, margin: "0 auto", padding: "28px 24px 80px" }}>

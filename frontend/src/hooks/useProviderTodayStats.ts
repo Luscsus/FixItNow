@@ -10,6 +10,10 @@ export interface ProviderTodayStats {
   jobs: number;
   /** Hours worked today, derived from dispatch → completion spans of today's jobs. */
   hours: number;
+  /** Sum of invoiced amounts for all completed jobs (all-time). Null when no completed job has a cost set. */
+  totalEarned: number | null;
+  /** Total number of completed jobs (all-time). */
+  completedJobs: number;
   isProvider: boolean;
   isLoading: boolean;
   isError: boolean;
@@ -45,6 +49,42 @@ function workStartedAt(t: Ticket): Date | null {
   return t.createdAt ?? null;
 }
 
+function billableMinutes(done: Date, t: Ticket): number {
+  const start = workStartedAt(t);
+  if (!start) return 0;
+  const diff = (done.getTime() - start.getTime()) / 60000;
+  return diff > 0 && diff < 24 * 60 ? diff : 0;
+}
+
+function calcAllTime(tickets: Ticket[]): { total: number; hasAnyCost: boolean; completedJobs: number } {
+  let total = 0;
+  let hasAnyCost = false;
+  let completedJobs = 0;
+  for (const t of tickets) {
+    if (t.status !== "COMPLETED") continue;
+    completedJobs += 1;
+    if (t.estimatedCost != null) {
+      total += t.estimatedCost;
+      hasAnyCost = true;
+    }
+  }
+  return { total, hasAnyCost, completedJobs };
+}
+
+function calcToday(tickets: Ticket[]): { earnings: number; jobs: number; minutes: number } {
+  let earnings = 0;
+  let jobs = 0;
+  let minutes = 0;
+  for (const t of tickets) {
+    const done = completedAt(t);
+    if (!done || !isToday(done)) continue;
+    jobs += 1;
+    earnings += t.estimatedCost ?? 0;
+    minutes += billableMinutes(done, t);
+  }
+  return { earnings, jobs, minutes };
+}
+
 /**
  * Today's earnings / jobs / hours for the logged-in provider, derived from
  * their own tickets (the underlying query is PROVIDER-scoped and secured, and
@@ -57,27 +97,15 @@ export function useProviderTodayStats(): ProviderTodayStats {
   const { data: tickets = [], isLoading, isError } = useProviderTicketsQuery();
 
   return useMemo(() => {
-    let earnings = 0;
-    let jobs = 0;
-    let minutes = 0;
-
-    for (const t of tickets) {
-      const done = completedAt(t);
-      if (!done || !isToday(done)) continue;
-      jobs += 1;
-      earnings += t.estimatedCost ?? 0;
-      const start = workStartedAt(t);
-      if (start) {
-        const diffMin = (done.getTime() - start.getTime()) / 60000;
-        // Guard against clock skew / multi-day spans dominating the figure.
-        if (diffMin > 0 && diffMin < 24 * 60) minutes += diffMin;
-      }
-    }
+    const { earnings, jobs, minutes } = calcToday(tickets);
+    const { total: allTimeTotal, hasAnyCost, completedJobs } = calcAllTime(tickets);
 
     return {
       earnings,
       jobs,
       hours: minutes / 60,
+      totalEarned: hasAnyCost ? allTimeTotal : null,
+      completedJobs,
       isProvider,
       isLoading: isProvider && isLoading,
       isError: isProvider && isError,

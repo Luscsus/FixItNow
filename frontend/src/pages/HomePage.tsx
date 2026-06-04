@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { LandingSwitch, type LandingView } from "@/components/landing/LandingSwitch";
 import { UserLanding } from "@/components/landing/UserLanding";
 import { ProviderLanding } from "@/components/landing/ProviderLanding";
+import { useSEO } from "@/hooks/useSEO";
 
 const STORAGE_KEY = "fixitnow.landingView";
 
@@ -22,6 +23,10 @@ function computeDirection(from: LandingView, to: LandingView): "forward" | "back
 }
 
 export function HomePage() {
+  useSEO({
+    canonical: "/",
+  });
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [view, setView] = useState<LandingView>(() => readInitialView(searchParams.get("view")));
   const [direction, setDirection] = useState<"forward" | "back">("forward");

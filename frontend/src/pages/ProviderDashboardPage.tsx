@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { useSEO } from "@/hooks/useSEO";
 import type { Ticket, TicketPriority, TicketStatus } from "@/domain/ticket";
 import { useAcceptTicketMutation } from "@/hooks/useAcceptTicketMutation";
 import { useConfirmTicketMutation, useDeclineTicketMutation } from "@/hooks/useConfirmTicketMutation";
@@ -202,6 +203,7 @@ function ActiveJobCard({ ticket }: { ticket: Ticket }) {
 }
 
 export function ProviderDashboardPage() {
+  useSEO({ title: "Provider Dashboard", robots: "noindex, nofollow" });
   const { t } = useTranslation();
   const { data: provider } = useCurrentProvider();
   const { data: providerTickets = [], isLoading: loadingProvider } = useProviderTicketsQuery();

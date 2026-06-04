@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useSEO } from "@/hooks/useSEO";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTicketQuery } from "@/hooks/useTicketQuery";
 import { useAuth } from "@/context/auth";
@@ -215,6 +216,7 @@ function ImageGallery({ urls }: { readonly urls: string[] }) {
 }
 
 export function TicketDetailPage() {
+  useSEO({ title: "Ticket Details", robots: "noindex, nofollow" });
   const { t, i18n } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();

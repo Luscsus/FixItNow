@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useSEO } from "@/hooks/useSEO";
 import { useActiveCategoriesQuery } from "@/hooks/useActiveCategoriesQuery";
 import { useAllProvidersQuery } from "@/hooks/useAllProvidersQuery";
 import { useProviderSearchQuery } from "@/hooks/useProviderSearchQuery";
@@ -26,6 +27,12 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
 }
 
 export function BrowseProvidersPage() {
+  useSEO({
+    title: "Browse Service Providers",
+    description: "Search and filter trusted local service providers near you. Find plumbers, electricians, handymen and more on FixItNow.",
+    canonical: "/browse",
+  });
+
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();

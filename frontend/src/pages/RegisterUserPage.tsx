@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
+import { useSEO } from "@/hooks/useSEO";
 
 import { useRegisterMutation } from "@/hooks/useRegisterMutation";
 import { usePublicStatsQuery } from "@/hooks/usePublicStatsQuery";
@@ -48,6 +49,7 @@ function IconMail() {
 type Fields = "firstName" | "lastName" | "email" | "password";
 
 export function RegisterUserPage() {
+  useSEO({ title: "Create User Account", robots: "noindex, nofollow" });
   const { t } = useTranslation();
   const registerMutation = useRegisterMutation();
   const { data: stats, isLoading: statsLoading } = usePublicStatsQuery();

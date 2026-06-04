@@ -1,11 +1,13 @@
 import { Link, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/context/auth";
+import { useSEO } from "@/hooks/useSEO";
 import { EditUserProfileForm } from "@/components/edit-profile/EditUserProfileForm";
 import { EditProviderProfileForm } from "@/components/edit-profile/EditProviderProfileForm";
 import { ChangePasswordForm } from "@/components/edit-profile/ChangePasswordForm";
 
 export function EditProfilePage() {
+  useSEO({ title: "Edit Profile", robots: "noindex, nofollow" });
   const { t } = useTranslation();
   const { role } = useAuth();
 

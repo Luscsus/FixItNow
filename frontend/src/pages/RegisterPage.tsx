@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useSEO } from "@/hooks/useSEO";
 
 export function RegisterPage() {
+  useSEO({ title: "Create Account", robots: "noindex, nofollow" });
   const { t } = useTranslation();
 
   return (

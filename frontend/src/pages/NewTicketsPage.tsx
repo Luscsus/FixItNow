@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useSEO } from "@/hooks/useSEO";
 
 import type { TicketPriority, ServiceCategory } from "@/domain/ticket";
 import type { Provider } from "@/domain/admin";
@@ -21,6 +22,7 @@ function formatCategoryLabel(value: string): string {
 }
 
 export function NewTicketPage() {
+  useSEO({ title: "Submit a Request", robots: "noindex, nofollow" });
   const { t } = useTranslation();
   const navigate = useNavigate();
   const routerLocation = useLocation();

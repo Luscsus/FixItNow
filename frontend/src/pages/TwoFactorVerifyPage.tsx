@@ -1,10 +1,12 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useSEO } from "@/hooks/useSEO";
 import { TwoFactorVerifyCard } from "@/components/two-factor/TwoFactorVerifyCard";
 import { useAuth } from "@/context/auth";
 import type { AuthSession } from "@/domain/auth";
 
 export function TwoFactorVerifyPage() {
+  useSEO({ title: "Two-Factor Verification", robots: "noindex, nofollow" });
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { tempToken, setSession } = useAuth();

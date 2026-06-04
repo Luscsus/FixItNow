@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { useSEO } from '@/hooks/useSEO';
 
 import { useAuth } from '@/context/auth';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -268,6 +269,7 @@ function TypingIndicator({ name }: { readonly name: string }) {
 // ─── Main component ──────────────────────────────────────────────────────────
 
 export function ChatPage() {
+  useSEO({ title: "Messages", robots: "noindex, nofollow" });
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
   const todayLabel = t('chat.today');

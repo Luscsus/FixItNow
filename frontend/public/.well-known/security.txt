@@ -1,0 +1,3 @@
+Contact: mailto:info@fixitnow.si
+Expires: 2027-06-04T00:00:00.000Z
+Preferred-Languages: en, sl

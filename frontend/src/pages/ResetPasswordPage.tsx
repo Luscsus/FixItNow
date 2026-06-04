@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
+import { useSEO } from "@/hooks/useSEO";
 
 import { useResetPasswordMutation } from "@/hooks/useResetPasswordMutation";
 import { getErrorMessage } from "@/lib/errorMessage";
@@ -28,6 +29,7 @@ function passwordStrength(pw: string): number {
 }
 
 export function ResetPasswordPage() {
+  useSEO({ title: "Reset Password", robots: "noindex, nofollow" });
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

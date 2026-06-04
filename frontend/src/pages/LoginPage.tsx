@@ -1,4 +1,5 @@
 import { useGoogleLogin } from "@react-oauth/google";
+import { useSEO } from "@/hooks/useSEO";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -71,6 +72,7 @@ function IconMail() {
 }
 
 export function LoginPage() {
+  useSEO({ title: "Sign In", robots: "noindex, nofollow" });
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { setSession, setTempToken } = useAuth();

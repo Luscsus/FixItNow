@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+Allow: /browse
+Allow: /providers
+Allow: /terms
+Allow: /privacy
+
+Disallow: /dashboard/
+Disallow: /profile
+Disallow: /profile/edit
+Disallow: /chat
+Disallow: /tickets/
+Disallow: /login
+Disallow: /register
+Disallow: /register/
+Disallow: /confirm-email
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /two-factor
+
+Sitemap: /sitemap.xml

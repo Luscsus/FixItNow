@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useParams, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/context/auth";
+import { useSEO } from "@/hooks/useSEO";
 import { useCurrentProvider } from "@/hooks/useCurrentProvider";
 import { useProviderByIdQuery } from "@/hooks/useProviderByIdQuery";
 import { useProviderTicketsQuery } from "@/hooks/useProviderTicketsQuery";
@@ -34,9 +35,24 @@ export function ProviderAccountPage() {
   const { data: providerTickets = [] } = useProviderTicketsQuery();
 
   const isOwner = !urlId || ownProfile?.id === urlId;
+  const visitorProvider = stateProvider ?? fetchedProvider;
+  const visitorName = visitorProvider
+    ? [visitorProvider.firstName, visitorProvider.lastName].filter(Boolean).join(" ")
+    : null;
+  const visitorCategories = visitorProvider?.categories?.slice(0, 3).join(", ") ?? "";
+
+  useSEO(
+    urlId && !isOwner && visitorName
+      ? {
+          title: visitorName,
+          description: `Book ${visitorName} on FixItNow${visitorCategories ? ` — ${visitorCategories}` : ""}. View availability, reviews, and contact details.`,
+          canonical: `/providers/${urlId}`,
+        }
+      : { robots: "noindex, nofollow" },
+  );
 
   if (urlId && !isOwner) {
-    return <VisitorProfile provider={stateProvider ?? fetchedProvider} />;
+    return <VisitorProfile provider={visitorProvider} />;
   }
 
   const firstName = ownProfile?.firstName ?? userInfo.firstName;

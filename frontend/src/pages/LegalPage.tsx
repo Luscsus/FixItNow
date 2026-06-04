@@ -1,11 +1,21 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { TERMS, PRIVACY, pickLang, type LegalDoc } from "@/content/legal";
+import { useSEO } from "@/hooks/useSEO";
 
 export function LegalPage({ kind }: { kind: "terms" | "privacy" }) {
   const { t, i18n } = useTranslation();
   const lang = pickLang(i18n.language);
   const doc: LegalDoc = (kind === "terms" ? TERMS : PRIVACY)[lang];
+
+  useSEO({
+    title: kind === "terms" ? "Terms of Service" : "Privacy Policy",
+    description: kind === "terms"
+      ? "Read the FixItNow Terms of Service to understand the rules and guidelines for using our platform."
+      : "Read the FixItNow Privacy Policy to learn how we collect, use, and protect your personal data.",
+    canonical: kind === "terms" ? "/terms" : "/privacy",
+    robots: "noindex, follow",
+  });
 
   return (
     <main style={{ minHeight: "100vh", background: "var(--bg-canvas)" }}>

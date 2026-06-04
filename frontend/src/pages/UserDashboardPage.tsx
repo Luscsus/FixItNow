@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useSEO } from "@/hooks/useSEO";
 
 import type { Ticket, TicketPriority, TicketStatus } from "@/domain/ticket";
 import { useTicketsQuery } from "@/hooks/useTicketsQuery";
@@ -230,6 +231,7 @@ function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick?: () => void 
 }
 
 export function UserDashboardPage() {
+  useSEO({ title: "My Dashboard", robots: "noindex, nofollow" });
   const { t } = useTranslation();
   const { data: tickets = [], isLoading } = useTicketsQuery();
   const [{ filter, page }, setFilterPage] = useState({ filter: "active" as TicketFilter, page: 1 });

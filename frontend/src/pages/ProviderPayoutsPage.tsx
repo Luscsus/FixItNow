@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useSEO } from "@/hooks/useSEO";
 import { Pagination, usePaginatedItems } from "@/components/ui/Pagination";
 import { usePayouts, type PayoutStatus } from "@/hooks/usePayouts";
 
@@ -30,6 +31,7 @@ function StatusBadge({ status, label }: { status: PayoutStatus; label: string })
 }
 
 export function ProviderPayoutsPage() {
+  useSEO({ title: "Payouts", robots: "noindex, nofollow" });
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { payouts, totalPaid, pendingTotal, isLoading, isError, refetch, isFetching } = usePayouts();

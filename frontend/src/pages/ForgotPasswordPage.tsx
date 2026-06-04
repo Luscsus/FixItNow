@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
+import { useSEO } from "@/hooks/useSEO";
 
 import { useForgotPasswordMutation } from "@/hooks/useForgotPasswordMutation";
 import { getErrorMessage } from "@/lib/errorMessage";
@@ -17,6 +18,7 @@ function IconMail() {
 }
 
 export function ForgotPasswordPage() {
+  useSEO({ title: "Forgot Password", robots: "noindex, nofollow" });
   const { t } = useTranslation();
   const forgotMutation = useForgotPasswordMutation();
 

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
+import { useSEO } from "@/hooks/useSEO";
 
 import { useConfirmEmailQuery } from "@/hooks/useConfirmEmailQuery";
 import { useResendEmailConfirmationMutation } from "@/hooks/useResendEmailConfirmationMutation";
@@ -26,6 +27,7 @@ function IconKey() {
 }
 
 export function ConfirmEmailPage() {
+  useSEO({ title: "Confirm Email", robots: "noindex, nofollow" });
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const initialToken = searchParams.get("token") ?? "";

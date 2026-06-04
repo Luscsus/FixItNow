@@ -1105,11 +1105,11 @@
     "support_openTicket": "Open a ticket →",
     "notif_title": "Notifications",
     "notif_inboundRequests_title": "Inbound requests",
-    "notif_inboundRequests_sub": "When a new ticket matches your trade and area",
+    "notif_inboundRequests_sub": "When a customer requests you directly on a new ticket",
     "notif_customerReplies_title": "Customer replies",
     "notif_customerReplies_sub": "When a customer messages you on a ticket",
-    "notif_jobStatusChanges_title": "Job status changes",
-    "notif_jobStatusChanges_sub": "When a ticket you're handling changes status",
+    "notif_paymentReceived_title": "Payment received",
+    "notif_paymentReceived_sub": "When a customer pays and the ticket is completed",
     "notif_reviewsReceived_title": "Reviews received",
     "notif_reviewsReceived_sub": "When a customer leaves you a review",
     "credentials_title": "Credentials & documents",
@@ -1392,6 +1392,18 @@
     "nearby": {
       "title": "Your provider is almost there",
       "body": "{{providerName}} is less than 100 m away for {{code}}."
+    },
+    "inbound": {
+      "title": "Ticket {{code}}",
+      "body": "{{customerName}} requested you for {{service}}."
+    },
+    "payment": {
+      "title": "Ticket {{code}}",
+      "body": "Payment received — {{code}} is complete."
+    },
+    "review": {
+      "title": "New review",
+      "body": "{{reviewerName}} left you a {{rating}}★ review."
     },
     "message": {
       "titleFallback": "New message",

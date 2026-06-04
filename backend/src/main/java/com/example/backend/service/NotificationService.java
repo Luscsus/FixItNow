@@ -22,6 +22,27 @@ public interface NotificationService {
                               String titleKey, String bodyKey, Map<String, String> params);
 
     /**
+     * Create + push an "inbound request" notification to a provider who was
+     * requested directly on a new ticket (preference-gated by {@code inboundRequests}).
+     */
+    void notifyInboundRequest(Long ticketId, UUID recipientId, String title, String body,
+                              String titleKey, String bodyKey, Map<String, String> params);
+
+    /**
+     * Create + push a "payment received" notification to a provider once their
+     * invoice is paid and the ticket completes (preference-gated by {@code paymentReceived}).
+     */
+    void notifyPaymentReceived(Long ticketId, UUID recipientId, String title, String body,
+                               String titleKey, String bodyKey, Map<String, String> params);
+
+    /**
+     * Create + push a "review received" notification to a provider when a customer
+     * leaves them a review (preference-gated by {@code reviewsReceived}). Not ticket-scoped.
+     */
+    void notifyReviewReceived(UUID recipientId, String title, String body,
+                              String titleKey, String bodyKey, Map<String, String> params);
+
+    /**
      * Create or bump the per-chat unread-message notification for the recipient
      * (preference-gated). One notification per chat room; repeat messages increment it.
      */

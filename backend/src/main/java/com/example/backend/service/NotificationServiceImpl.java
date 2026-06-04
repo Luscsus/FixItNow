@@ -43,38 +43,60 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional
     public void notifyTicketStatusChange(Long ticketId, UUID recipientId, String title, String body,
                                          String titleKey, String bodyKey, Map<String, String> params) {
-        if (recipientId == null || body == null || !isEnabled(recipientId, NotificationType.TICKET_STATUS_CHANGE)) {
-            return;
-        }
-        if (isRecentDuplicate(recipientId, NotificationType.TICKET_STATUS_CHANGE, ticketId, body)) {
-            return;
-        }
-        Notification n = new Notification();
-        n.setRecipientId(recipientId);
-        n.setType(NotificationType.TICKET_STATUS_CHANGE);
-        n.setTitle(title);
-        n.setBody(body);
-        n.setTitleKey(titleKey);
-        n.setBodyKey(bodyKey);
-        n.setParamsJson(writeParams(params));
-        n.setTicketId(ticketId);
-        n.setCreatedAt(LocalDateTime.now());
-        broadcast(notificationRepository.save(n));
+        createTicketScoped(NotificationType.TICKET_STATUS_CHANGE, ticketId, recipientId,
+            title, body, titleKey, bodyKey, params);
     }
 
     @Override
     @Transactional
     public void notifyProviderNearby(Long ticketId, UUID recipientId, String title, String body,
                                      String titleKey, String bodyKey, Map<String, String> params) {
-        if (recipientId == null || body == null || !isEnabled(recipientId, NotificationType.PROVIDER_NEARBY)) {
+        createTicketScoped(NotificationType.PROVIDER_NEARBY, ticketId, recipientId,
+            title, body, titleKey, bodyKey, params);
+    }
+
+    @Override
+    @Transactional
+    public void notifyInboundRequest(Long ticketId, UUID recipientId, String title, String body,
+                                     String titleKey, String bodyKey, Map<String, String> params) {
+        createTicketScoped(NotificationType.INBOUND_REQUEST, ticketId, recipientId,
+            title, body, titleKey, bodyKey, params);
+    }
+
+    @Override
+    @Transactional
+    public void notifyPaymentReceived(Long ticketId, UUID recipientId, String title, String body,
+                                      String titleKey, String bodyKey, Map<String, String> params) {
+        createTicketScoped(NotificationType.PAYMENT_RECEIVED, ticketId, recipientId,
+            title, body, titleKey, bodyKey, params);
+    }
+
+    @Override
+    @Transactional
+    public void notifyReviewReceived(UUID recipientId, String title, String body,
+                                     String titleKey, String bodyKey, Map<String, String> params) {
+        // Reviews aren't tied to a ticket, so no ticketId / dedup window applies.
+        createTicketScoped(NotificationType.REVIEW_RECEIVED, null, recipientId,
+            title, body, titleKey, bodyKey, params);
+    }
+
+    /**
+     * Shared create-and-broadcast path for the simple, single-row notification types
+     * (everything except the aggregated NEW_MESSAGE). Preference-gated and de-duplicated
+     * on the (recipient, type, ticketId, body) tuple within {@link #DEDUP_WINDOW}.
+     */
+    private void createTicketScoped(NotificationType type, Long ticketId, UUID recipientId,
+                                    String title, String body, String titleKey, String bodyKey,
+                                    Map<String, String> params) {
+        if (recipientId == null || body == null || !isEnabled(recipientId, type)) {
             return;
         }
-        if (isRecentDuplicate(recipientId, NotificationType.PROVIDER_NEARBY, ticketId, body)) {
+        if (isRecentDuplicate(recipientId, type, ticketId, body)) {
             return;
         }
         Notification n = new Notification();
         n.setRecipientId(recipientId);
-        n.setType(NotificationType.PROVIDER_NEARBY);
+        n.setType(type);
         n.setTitle(title);
         n.setBody(body);
         n.setTitleKey(titleKey);
@@ -184,6 +206,10 @@ public class NotificationServiceImpl implements NotificationService {
             // Proximity alerts are customer-facing and ride along with the
             // customer's status-change preference.
             case PROVIDER_NEARBY      -> "statusChanges";
+            // Provider-facing alerts, each gated by its own toggle.
+            case INBOUND_REQUEST      -> "inboundRequests";
+            case PAYMENT_RECEIVED     -> "paymentReceived";
+            case REVIEW_RECEIVED      -> "reviewsReceived";
         };
         return prefs == null || prefs.getOrDefault(key, true);
     }

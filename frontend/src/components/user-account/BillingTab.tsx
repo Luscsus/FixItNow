@@ -18,7 +18,7 @@ export function BillingTab() {
       tickets
         .filter(
           (tk) =>
-            tk.estimatedCost !== null &&
+            tk.estimatedCost != null &&
             (tk.status === "PENDING_PAYMENT" || tk.status === "COMPLETED"),
         )
         .sort((a, b) => invoiceDate(b).getTime() - invoiceDate(a).getTime()),

@@ -116,6 +116,8 @@ public class TicketService {
             // Opening greeting so the chat isn't empty when the provider opens it
             postSystemMessage(saved, "Ticket " + formatTicketCode(saved.getId())
                 + " · " + saved.getServiceType() + " · awaiting provider response.");
+            // Let the requested provider know a customer picked them directly.
+            notifyProviderOfInboundRequest(saved);
         }
         return toResponse(saved);
     }
@@ -498,6 +500,7 @@ public class TicketService {
 
         postSystemMessage(saved, "Payment received · ticket " + formatTicketCode(saved.getId()) + " complete. Thank you!");
         notifyCustomerOfStatusChange(saved, TicketStatus.COMPLETED);
+        notifyProviderOfPayment(saved);
         return toResponse(saved);
     }
 
@@ -621,6 +624,54 @@ public class TicketService {
      * {@code code} interpolation param. No-ops (like the old behaviour) when there's no
      * customer or no body to show.
      */
+    /**
+     * Notify a directly-requested provider that a customer opened a ticket and picked
+     * them specifically. Fired on ticket creation when an assigned provider is set.
+     * Preference-gated ({@code inboundRequests}); failures are swallowed.
+     */
+    private void notifyProviderOfInboundRequest(Ticket ticket) {
+        User provider = ticket.getAssignedServiceProvider();
+        if (provider == null) return;
+        try {
+            String code = formatTicketCode(ticket.getId());
+            String customer = ticket.getUser() != null ? ticket.getUser().displayName() : "A customer";
+            notificationService.notifyInboundRequest(
+                ticket.getId(),
+                provider.getId(),
+                "Ticket " + code,
+                customer + " requested you for " + ticket.getServiceType() + ".",
+                "notifications.inbound.title",
+                "notifications.inbound.body",
+                java.util.Map.of("code", code, "customerName", customer, "service", ticket.getServiceType())
+            );
+        } catch (RuntimeException ex) {
+            System.err.println("[ticket] inbound-request notification failed for ticket " + ticket.getId() + ": " + ex.getMessage());
+        }
+    }
+
+    /**
+     * Notify the assigned provider that the customer paid the invoice and the ticket
+     * is now complete. Preference-gated ({@code paymentReceived}); failures are swallowed.
+     */
+    private void notifyProviderOfPayment(Ticket ticket) {
+        User provider = ticket.getAssignedServiceProvider();
+        if (provider == null) return;
+        try {
+            String code = formatTicketCode(ticket.getId());
+            notificationService.notifyPaymentReceived(
+                ticket.getId(),
+                provider.getId(),
+                "Ticket " + code,
+                "Payment received — " + code + " is complete.",
+                "notifications.payment.title",
+                "notifications.payment.body",
+                java.util.Map.of("code", code)
+            );
+        } catch (RuntimeException ex) {
+            System.err.println("[ticket] payment notification failed for ticket " + ticket.getId() + ": " + ex.getMessage());
+        }
+    }
+
     private void notifyCustomer(Ticket ticket, String bodyKey, String fallbackBody) {
         if (ticket.getUser() == null || fallbackBody == null) return;
         try {

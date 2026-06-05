@@ -76,6 +76,7 @@ public class SecurityConfig {
                 // requests reach the controller with a null principal (NPE).
                 .requestMatchers(HttpMethod.GET, "/api/v1/providers/me").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/v1/providers/*").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/providers/classify").permitAll()
                 .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                 .anyRequest().authenticated()
             )

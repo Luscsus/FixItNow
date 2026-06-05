@@ -1551,6 +1551,10 @@
     "km": "km",
     "note": "Note"
   },
+  "theme": {
+    "switchToDark": "Switch to dark mode",
+    "switchToLight": "Switch to light mode"
+  },
   "language": {
     "english": "English",
     "slovenian": "Slovenščina",

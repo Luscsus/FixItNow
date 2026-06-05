@@ -5,6 +5,7 @@ import { useAuth } from "@/context/auth";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { MobileNav } from "@/components/layout/MobileNav";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { setLanguage } from "@/i18n/i18n";
 import type { UserRole } from "@/domain/auth";
@@ -83,7 +84,7 @@ function LanguageSelector() {
       {open && (
         <div style={{
           position: "absolute", top: "calc(100% + 6px)", right: 0,
-          minWidth: 140, background: "#fff",
+          minWidth: 140, background: "var(--card)",
           border: "1px solid rgba(15,23,42,0.1)", borderRadius: 10,
           boxShadow: "0 8px 24px rgba(15,23,42,0.12)", overflow: "hidden", zIndex: 50,
         }}>
@@ -158,10 +159,10 @@ export function AppLayout() {
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-canvas)", color: "var(--text)" }}>
       <header style={{
         position: "sticky", top: 0, zIndex: 30,
-        background: "rgba(250, 250, 247, 0.95)",
+        background: "var(--header-bg)",
         backdropFilter: "saturate(180%) blur(12px)",
         WebkitBackdropFilter: "saturate(180%) blur(12px)",
-        borderBottom: "1px solid rgba(15, 23, 42, 0.08)",
+        borderBottom: "1px solid var(--header-border)",
       }}>
         <div className="app-header-inner" style={{
           maxWidth: 1280, margin: "0 auto",
@@ -227,6 +228,9 @@ export function AppLayout() {
           {/* Right side actions */}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
 
+            {/* Dark / light theme toggle */}
+            <ThemeToggle />
+
             {/* Language selector */}
             <LanguageSelector />
 
@@ -256,7 +260,8 @@ export function AppLayout() {
 
             {/* Auth area */}
             {!isAuthenticated ? (
-              <>
+              /* Guest login/sign-up — hidden on mobile (the bottom nav has them) */
+              <span className="app-header-guest-cta" style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
                 <NavLink
                   to="/login"
                   style={{
@@ -273,7 +278,7 @@ export function AppLayout() {
                 <NavLink to="/register" className="btn btn-primary btn-sm">
                   {t("nav.signUp")}
                 </NavLink>
-              </>
+              </span>
             ) : (
               /* Profile avatar + dropdown */
               <div ref={dropdownRef} style={{ position: "relative" }}>
@@ -316,7 +321,7 @@ export function AppLayout() {
                 {dropdownOpen && (
                   <div style={{
                     position: "absolute", top: "calc(100% + 8px)", right: 0,
-                    minWidth: 160, background: "#fff",
+                    minWidth: 160, background: "var(--card)",
                     border: "1px solid rgba(15,23,42,0.1)", borderRadius: 10,
                     boxShadow: "0 8px 24px rgba(15,23,42,0.12)", overflow: "hidden", zIndex: 50,
                   }}>

@@ -238,7 +238,7 @@ export function NotificationBell() {
         <div style={{
           position: "absolute", top: "calc(100% + 8px)", right: 0,
           width: 340, maxWidth: "calc(100vw - 32px)",
-          background: "#fff",
+          background: "var(--card)",
           border: "1px solid rgba(15,23,42,0.1)",
           borderRadius: 10,
           boxShadow: "0 8px 24px rgba(15,23,42,0.12)",

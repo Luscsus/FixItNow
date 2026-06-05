@@ -1553,6 +1553,10 @@
     "km": "km",
     "note": "Opomba"
   },
+  "theme": {
+    "switchToDark": "Preklopi na temni način",
+    "switchToLight": "Preklopi na svetli način"
+  },
   "language": {
     "english": "English",
     "slovenian": "Slovenščina",

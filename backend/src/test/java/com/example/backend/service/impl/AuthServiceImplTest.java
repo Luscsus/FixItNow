@@ -96,7 +96,7 @@ public class AuthServiceImplTest {
 
         // Assert
         assertNotNull(response);
-        assertEquals("Registration successful. Please check your email to verify your account.", response.getMessage());
+        assertEquals("Registration successful. Your account is ready — you can sign in now.", response.getMessage());
 
         // Verify interactions
         verify(userRepository, times(1)).existsByEmail(request.getEmail().toLowerCase());

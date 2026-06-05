@@ -1,6 +1,5 @@
 package com.example.backend;
 
-import com.example.backend.controller.TicketController;
 import com.example.backend.domain.ticket.TicketPriority;
 import com.example.backend.domain.ticket.TicketStatus;
 import com.example.backend.domain.user.ServiceCategory;
@@ -9,6 +8,8 @@ import com.example.backend.dto.CreateTicketRequest;
 import com.example.backend.dto.TicketResponse;
 import com.example.backend.security.UserPrincipal;
 import com.example.backend.service.TicketService;
+import com.example.backend.service.TrackingService;
+import com.example.backend.web.controller.TicketController;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,15 +42,18 @@ class TicketControllerTest {
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
     private TicketService ticketService;
+    private TrackingService trackingService;
 
     @BeforeEach
     void setUp() {
         ticketService = mock(TicketService.class);
-        TicketController controller = new TicketController(ticketService);
+        trackingService = mock(TrackingService.class);
+        TicketController controller = new TicketController(ticketService, trackingService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
             .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
             .build();
         objectMapper = new ObjectMapper();
+        objectMapper.findAndRegisterModules();
         SecurityContextHolder.clearContext();
     }
 
@@ -96,7 +100,6 @@ class TicketControllerTest {
             LocalDateTime.now(),
             null,
             null,
-            null,
             null
         );
         when(ticketService.createTicket(any(), any())).thenReturn(response);
@@ -130,8 +133,6 @@ class TicketControllerTest {
             LocalDateTime.now(),
             "Elektro Servis",
             null,
-            null,
-            "Elektro Servis",
             null
         );
         when(ticketService.getUserTickets(any())).thenReturn(List.of(response));
@@ -156,7 +157,6 @@ class TicketControllerTest {
             TicketPriority.HIGH,
             null,
             LocalDateTime.now(),
-            null,
             null,
             null,
             null
@@ -185,7 +185,6 @@ class TicketControllerTest {
             LocalDateTime.now(),
             null,
             null,
-            null,
             null
         );
         when(ticketService.updateTicketStatus(4L, TicketStatus.IN_TRANSIT)).thenReturn(response);
@@ -210,7 +209,6 @@ class TicketControllerTest {
             TicketPriority.HIGH,
             null,
             LocalDateTime.now(),
-            null,
             null,
             null,
             null

@@ -1,8 +1,11 @@
 package com.example.backend.web.controller;
 
 import com.example.backend.domain.user.ServiceCategory;
+import com.example.backend.service.CategoryClassifierService;
 import com.example.backend.service.ProviderSearchService;
+import com.example.backend.web.dto.request.ClassifyRequest;
 import com.example.backend.web.dto.request.ProviderSearchParams;
+import com.example.backend.web.dto.response.ClassifyResponse;
 import com.example.backend.web.dto.response.ProviderSearchResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,6 +16,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,6 +31,7 @@ import java.util.UUID;
 public class ProviderController {
 
     private final ProviderSearchService providerSearchService;
+    private final CategoryClassifierService categoryClassifierService;
 
     @Operation(
         summary = "Get categories with active providers",
@@ -49,6 +55,16 @@ public class ProviderController {
     @GetMapping("/search")
     public ResponseEntity<Page<ProviderSearchResult>> search(@Valid @ModelAttribute ProviderSearchParams params) {
         return ResponseEntity.ok(providerSearchService.search(params));
+    }
+
+    @Operation(
+        summary = "Classify a problem description into a service category",
+        description = "Uses AI to pick the best matching category key from the provided list."
+    )
+    @PostMapping("/classify")
+    public ResponseEntity<ClassifyResponse> classify(@Valid @RequestBody ClassifyRequest request) {
+        String category = categoryClassifierService.classify(request.getProblemText(), request.getCategories());
+        return ResponseEntity.ok(new ClassifyResponse(category));
     }
 
     @Operation(

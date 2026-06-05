@@ -91,6 +91,10 @@ stripe:
   # application fee on destination charges. The rest goes to the provider.
   application-fee-percent: ${STRIPE_APPLICATION_FEE_PERCENT:10}
 
+gemini:
+  api-key: ${GEMINI_API_KEY:}
+  model: ${GEMINI_MODEL:gemini-2.0-flash-lite}
+
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME:}
   api-key: ${CLOUDINARY_API_KEY:}

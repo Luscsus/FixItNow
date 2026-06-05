@@ -27,6 +27,12 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
 	List<Ticket> findByAssignedServiceProviderIsNullAndStatusOrderByCreatedAtDesc(TicketStatus status);
 
+	/** Count of a customer's tickets currently in any of the given (blocking) states. */
+	long countByUser_IdAndStatusIn(UUID userId, java.util.Collection<TicketStatus> statuses);
+
+	/** Count of a provider's assigned tickets currently in any of the given (blocking) states. */
+	long countByAssignedServiceProvider_IdAndStatusIn(UUID providerId, java.util.Collection<TicketStatus> statuses);
+
 	@Query("select t from Ticket t join fetch t.location l where l.latitude is not null and l.longitude is not null")
 	List<Ticket> findAllWithCoordinates();
 

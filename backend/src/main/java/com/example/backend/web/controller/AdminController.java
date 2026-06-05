@@ -93,6 +93,18 @@ public class AdminController {
         return ResponseEntity.ok(adminService.deleteUser(id));
     }
 
+    @Operation(summary = "Restore a soft-deleted user")
+    @PostMapping("/users/{id}/restore")
+    public ResponseEntity<MessageResponse> restoreUser(@PathVariable UUID id) {
+        return ResponseEntity.ok(adminService.restoreUser(id));
+    }
+
+    @Operation(summary = "Permanently delete a soft-deleted user (irreversible, admin only)")
+    @DeleteMapping("/users/{id}/permanent")
+    public ResponseEntity<MessageResponse> permanentlyDeleteUser(@PathVariable UUID id) {
+        return ResponseEntity.ok(adminService.permanentlyDeleteUser(id));
+    }
+
     @Operation(summary = "Change a user's role", description = "Only CUSTOMER and ADMIN roles are supported. Provider conversions are not allowed.")
     @PutMapping("/users/{id}/role")
     public ResponseEntity<MessageResponse> changeUserRole(

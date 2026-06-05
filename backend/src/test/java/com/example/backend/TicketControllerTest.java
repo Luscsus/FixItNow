@@ -1,6 +1,5 @@
 package com.example.backend;
 
-import com.example.backend.web.controller.TicketController;
 import com.example.backend.domain.ticket.TicketPriority;
 import com.example.backend.domain.ticket.TicketStatus;
 import com.example.backend.domain.user.ServiceCategory;
@@ -10,6 +9,7 @@ import com.example.backend.dto.TicketResponse;
 import com.example.backend.security.UserPrincipal;
 import com.example.backend.service.TicketService;
 import com.example.backend.service.TrackingService;
+import com.example.backend.web.controller.TicketController;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,6 +53,7 @@ class TicketControllerTest {
             .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
             .build();
         objectMapper = new ObjectMapper();
+        objectMapper.findAndRegisterModules();
         SecurityContextHolder.clearContext();
     }
 

@@ -37,6 +37,16 @@ public class ChatController {
         return ResponseEntity.ok(chatService.getUserChatRoomSummaries(userDetails.getUser().getId()));
     }
 
+    @org.springframework.web.bind.annotation.DeleteMapping("/rooms/{chatRoomId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> hideRoom(
+        @PathVariable UUID chatRoomId,
+        @AuthenticationPrincipal UserPrincipal userDetails
+    ) {
+        chatService.hideRoomForUser(chatRoomId, userDetails.getUser().getId());
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{chatRoomId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ChatRoomResponse> getChatRoom(

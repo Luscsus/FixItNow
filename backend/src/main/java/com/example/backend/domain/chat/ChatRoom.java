@@ -39,6 +39,13 @@ public class ChatRoom {
     @Column(name = "provider_id", nullable = false)
     private UUID providerId;
 
+    /** Per-participant inbox hide — the room is removed from that user's list only. */
+    @Column(name = "hidden_for_customer", nullable = false)
+    private boolean hiddenForCustomer = false;
+
+    @Column(name = "hidden_for_provider", nullable = false)
+    private boolean hiddenForProvider = false;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

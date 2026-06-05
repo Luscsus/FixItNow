@@ -634,7 +634,7 @@ export function UserLanding() {
           <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
             <Link to="/terms" style={{ color: "inherit", textDecoration: "none" }}>{t("legal.termsTitle")}</Link>
             <Link to="/privacy" style={{ color: "inherit", textDecoration: "none" }}>{t("legal.privacyTitle")}</Link>
-            <span>{t("userLanding.footerVersion")}</span>
+
           </div>
         </div>
       </footer>

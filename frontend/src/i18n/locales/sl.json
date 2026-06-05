@@ -36,6 +36,10 @@
     "providerLocked": "Spremembe vloge ponudnika se upravljajo prek odobritev ponudnikov.",
     "reactivate": "Reaktiviraj",
     "suspend": "Začasno ustavi",
+    "restore": "Obnovi",
+    "permanentDelete": "Trajno izbriši",
+    "permanentDelete_title": "Trajno izbriši uporabnika",
+    "permanentDelete_body": "S tem trajno odstranite zapis računa (samo skrbnik, nepovratno). Uspe le, če ga ne referencira noben zahtevek, sporočilo ali ocena — sicer ostane mehko izbrisan. Uporabnik:",
     "deleteUser_title": "Izbriši tega uporabnika?",
     "deleteUser_label": "Izbriši uporabnika",
     "deleteUser_loading": "Brišem…",
@@ -863,6 +867,16 @@
       "ticketSubmitted": "Zahtevek je bil uspešno oddan! ✓"
     }
   },
+  "deleteAccount": {
+    "dangerZone": "Nevarno območje",
+    "heading": "Izbris računa",
+    "sectionDesc": "Deaktivirajte račun in odstranite svoj profil s platforme. Vaši pretekli zapisi se ohranijo.",
+    "button": "Izbriši račun",
+    "title": "Izbris računa",
+    "message": "Ali ste prepričani, da želite izbrisati svoj račun? S tem boste deaktivirali račun in odstranili svoj profil s platforme. Vaši pretekli zahtevki, sporočila, računi in transakcije bodo ohranjeni za namene vodenja evidenc.",
+    "cancel": "Prekliči",
+    "deleting": "Brisanje…"
+  },
   "editProfile": {
     "profile": "Profil",
     "edit": "Urejanje",
@@ -1093,11 +1107,11 @@
     "support_openTicket": "Odpri zahtevek →",
     "notif_title": "Obvestila",
     "notif_inboundRequests_title": "Prispele zahteve",
-    "notif_inboundRequests_sub": "Ko nov zahtevek ustreza vaši dejavnosti in območju",
+    "notif_inboundRequests_sub": "Ko vas stranka neposredno izbere na novem zahtevku",
     "notif_customerReplies_title": "Odgovori stranke",
     "notif_customerReplies_sub": "Ko vam stranka pošlje sporočilo na zahtevku",
-    "notif_jobStatusChanges_title": "Spremembe statusa dela",
-    "notif_jobStatusChanges_sub": "Ko se stanje zahtevka, ki ga obravnavate, spremeni",
+    "notif_paymentReceived_title": "Prejeto plačilo",
+    "notif_paymentReceived_sub": "Ko stranka plača in je zahtevek zaključen",
     "notif_reviewsReceived_title": "Prejete ocene",
     "notif_reviewsReceived_sub": "Ko stranka pusti oceno za vas",
     "credentials_title": "Dokazila in dokumenti",
@@ -1191,6 +1205,25 @@
     "you": "Vi",
     "live": "V ŽIVO",
     "connecting": "POVEZ…",
+    "sectionUnread": "Neprebrano",
+    "sectionAll": "Vsi pogovori",
+    "edited": "urejeno",
+    "messageDeleted": "To sporočilo je bilo izbrisano",
+    "editMessage": "Uredi",
+    "deleteMessage": "Izbriši",
+    "editSave": "Shrani",
+    "editCancel": "Prekliči",
+    "deleteConversation": "Izbriši pogovor",
+    "deleteConversation_title": "Izbriši pogovor",
+    "deleteConversation_body": "To odstrani pogovor iz vašega nabiralnika. Sporočila se ohranijo in pogovor se znova prikaže ob novem sporočilu.",
+    "noUnread": "Ni neprebranih sporočil.",
+    "preview_image": "📷 Fotografija",
+    "preview_file": "📎 Priponka",
+    "rateLimit_tooFast": "Sporočila pošiljate prehitro. Počakajte trenutek, preden pošljete naslednje sporočilo.",
+    "rateLimit_duplicate": "To sporočilo ste pravkar poslali. Izogibajte se podvojenim sporočilom.",
+    "rateLimit_tooLong": "To sporočilo je predolgo. Skrajšajte ga.",
+    "rateLimit_wait": "Počakajte {{seconds}}s",
+    "rateLimit_retryIn": "Znova lahko pošljete čez {{seconds}}s.",
     "yesterday": "Včeraj",
     "today": "Danes",
     "phase_PENDING_APPROVAL": "Čaka odobritev",
@@ -1362,6 +1395,18 @@
       "title": "Vaš izvajalec je skoraj tu",
       "body": "{{providerName}} je manj kot 100 m stran za {{code}}."
     },
+    "inbound": {
+      "title": "Zahtevek {{code}}",
+      "body": "{{customerName}} vas je izbral za {{service}}."
+    },
+    "payment": {
+      "title": "Zahtevek {{code}}",
+      "body": "Prejeto plačilo — {{code}} je zaključen."
+    },
+    "review": {
+      "title": "Nova ocena",
+      "body": "{{reviewerName}} vam je pustil oceno {{rating}}★."
+    },
     "message": {
       "titleFallback": "Novo sporočilo",
       "body_one": "Poslal vam je sporočilo",
@@ -1509,6 +1554,10 @@
     "min": "min",
     "km": "km",
     "note": "Opomba"
+  },
+  "theme": {
+    "switchToDark": "Preklopi na temni način",
+    "switchToLight": "Preklopi na svetli način"
   },
   "language": {
     "english": "English",

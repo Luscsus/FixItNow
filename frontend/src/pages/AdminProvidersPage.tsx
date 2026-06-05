@@ -5,7 +5,10 @@ import {
   useDeclineProviderMutation,
   usePendingProviders,
 } from "@/hooks/useAdminProviders";
+import { Pagination, usePaginatedItems } from "@/components/ui/Pagination";
 import type { Provider, ServiceCategory } from "@/domain/admin";
+
+const PAGE_SIZE = 10;
 
 function initials(p: Provider) {
   return `${p.firstName[0] ?? ""}${p.lastName[0] ?? ""}`.toUpperCase();
@@ -37,8 +40,11 @@ export function AdminProvidersPage() {
   const { data: providers = [], isLoading, error } = usePendingProviders();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
   const [declineOpen, setDeclineOpen] = useState(false);
   const [declineReason, setDeclineReason] = useState("");
+
+  const { pageItems, totalPages, safePage } = usePaginatedItems(providers, page, PAGE_SIZE);
 
   const approve = useApproveProviderMutation();
   const decline = useDeclineProviderMutation();
@@ -87,7 +93,6 @@ export function AdminProvidersPage() {
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 32px", position: "relative" }}>
           <span className="eyebrow" style={{ color: "var(--amber-500)" }}>Console · {t("admin.providerReview")}</span>
           <h1 style={{ fontSize: "clamp(28px, 3vw, 40px)", fontWeight: 700, letterSpacing: "-0.025em", margin: "6px 0 8px", color: "#fff", lineHeight: 1.05 }}>
-            <b style={{ color: "var(--amber-500)" }}>{providers.length}</b>{" "}
             {t("admin.waitingReview", { count: providers.length })}
           </h1>
           <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, margin: 0, maxWidth: 560 }}>
@@ -148,7 +153,7 @@ export function AdminProvidersPage() {
               {t("admin.noPendingApps")}
             </div>
           )}
-          {providers.map((p) => {
+          {pageItems.map((p) => {
             const isSelected = (selected?.id === p.id);
             return (
               <button
@@ -198,6 +203,12 @@ export function AdminProvidersPage() {
               </button>
             );
           })}
+
+          {totalPages > 1 && (
+            <div style={{ padding: "0 12px" }}>
+              <Pagination page={safePage} total={totalPages} onChange={setPage} />
+            </div>
+          )}
         </aside>
 
         {/* RIGHT: Detail */}

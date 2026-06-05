@@ -23,13 +23,14 @@ public class ReviewResponse {
 
     public static ReviewResponse from(Review r) {
         var reviewer = r.getReviewer();
-        String name = (reviewer.getFirstName() + " " + reviewer.getLastName()).trim();
+        // displayName() masks soft-deleted reviewers as "Deleted User"/"Former Customer".
+        String name = reviewer.displayName();
         return ReviewResponse.builder()
             .id(r.getId())
             .providerId(r.getProvider().getId())
             .reviewerId(reviewer.getId())
             .reviewerName(name.isEmpty() ? "Anonymous" : name)
-            .reviewerProfilePictureUrl(reviewer.getProfilePictureUrl())
+            .reviewerProfilePictureUrl(reviewer.isDeleted() ? null : reviewer.getProfilePictureUrl())
             .rating(r.getRating())
             .comment(r.getComment())
             .createdAt(r.getCreatedAt())

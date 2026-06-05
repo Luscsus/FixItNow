@@ -26,4 +26,6 @@ public class ChatMessageResponse {
     private LocalDateTime deliveredAt;
     private LocalDateTime readAt;
     private LocalDateTime timestamp;
+    private LocalDateTime editedAt;
+    private boolean deleted;
 }

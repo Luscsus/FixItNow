@@ -50,6 +50,14 @@ public class ChatMessage {
     @Column(name = "timestamp", nullable = false)
     private LocalDateTime timestamp;
 
+    /** Set when the sender edits the message. */
+    @Column(name = "edited_at")
+    private LocalDateTime editedAt;
+
+    /** Soft-deleted by the sender — content hidden but the row is kept for audit. */
+    @Column(name = "deleted", nullable = false)
+    private boolean deleted = false;
+
     public ChatMessage() {}
 
     public ChatMessage(Long id, UUID senderId, UUID recipientId, UUID chatRoomId, String content, MessageType type,

@@ -103,6 +103,22 @@ export async function deleteUser(id: string, accessToken: string): Promise<Messa
   return mapMessageResponse(data);
 }
 
+export async function restoreUser(id: string, accessToken: string): Promise<Message> {
+  const data = await requestJson<MessageResponseDto>(
+    `/api/v1/admin/users/${id}/restore`,
+    { method: "POST", headers: authHeader(accessToken) },
+  );
+  return mapMessageResponse(data);
+}
+
+export async function permanentlyDeleteUser(id: string, accessToken: string): Promise<Message> {
+  const data = await requestJson<MessageResponseDto>(
+    `/api/v1/admin/users/${id}/permanent`,
+    { method: "DELETE", headers: authHeader(accessToken) },
+  );
+  return mapMessageResponse(data);
+}
+
 export async function listAllTickets(accessToken: string): Promise<Ticket[]> {
   const data = await requestJson<TicketResponseDto[]>(
     "/api/v1/admin/tickets",

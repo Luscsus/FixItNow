@@ -32,6 +32,7 @@ public class ReviewServiceImpl implements ReviewService {
     private final ProviderRepository providerRepository;
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Override
     public ReviewResponse upsertReview(UUID reviewerId, UUID providerId, CreateReviewRequest request) {
@@ -62,13 +63,16 @@ public class ReviewServiceImpl implements ReviewService {
         Optional<Review> existing = reviewRepository.findByReviewerIdAndProviderId(reviewerId, providerId);
 
         Review review;
+        boolean isNew = existing.isEmpty();
+        User reviewer;
         if (existing.isPresent()) {
             review = existing.get();
             review.setRating(request.getRating());
             review.setComment(request.getComment());
+            reviewer = review.getReviewer();
             log.info("Updated review {} for provider {}", review.getId(), providerId);
         } else {
-            User reviewer = userRepository.findById(reviewerId)
+            reviewer = userRepository.findById(reviewerId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found."));
             review = Review.builder()
                 .reviewer(reviewer)
@@ -80,7 +84,32 @@ public class ReviewServiceImpl implements ReviewService {
         }
 
         Review saved = reviewRepository.save(review);
+
+        // Only a brand-new review counts as "received" — editing an existing one shouldn't re-alert.
+        if (isNew) {
+            notifyProviderOfReview(providerId, reviewer, saved.getRating());
+        }
         return ReviewResponse.from(saved);
+    }
+
+    /**
+     * Alert a provider that a customer left them a review. Preference-gated
+     * ({@code reviewsReceived}); failures are swallowed so reviewing never breaks.
+     */
+    private void notifyProviderOfReview(UUID providerId, User reviewer, int rating) {
+        try {
+            String reviewerName = reviewer != null ? reviewer.displayName() : "A customer";
+            notificationService.notifyReviewReceived(
+                providerId,
+                "New review",
+                reviewerName + " left you a " + rating + "★ review.",
+                "notifications.review.title",
+                "notifications.review.body",
+                java.util.Map.of("reviewerName", reviewerName, "rating", String.valueOf(rating))
+            );
+        } catch (RuntimeException ex) {
+            log.warn("Review notification failed for provider {}: {}", providerId, ex.getMessage());
+        }
     }
 
     @Override

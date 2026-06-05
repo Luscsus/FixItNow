@@ -1,4 +1,10 @@
-export type NotificationType = 'TICKET_STATUS_CHANGE' | 'NEW_MESSAGE' | 'PROVIDER_NEARBY';
+export type NotificationType =
+  | 'TICKET_STATUS_CHANGE'
+  | 'NEW_MESSAGE'
+  | 'PROVIDER_NEARBY'
+  | 'INBOUND_REQUEST'
+  | 'PAYMENT_RECEIVED'
+  | 'REVIEW_RECEIVED';
 
 export type AppNotification = {
   id: number;

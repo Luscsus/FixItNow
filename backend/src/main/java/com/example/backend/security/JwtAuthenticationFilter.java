@@ -39,11 +39,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String email = jwtTokenProvider.extractEmail(token);
             UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-            UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            // Soft-deleted accounts are immediately locked out — even a still-valid
+            // access token is rejected (they also can't refresh; tokens are revoked).
+            boolean lockedOut = userDetails instanceof UserPrincipal up
+                && up.getUser().isDeleted();
 
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+            if (!lockedOut) {
+                UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
         }
 
         filterChain.doFilter(request, response);

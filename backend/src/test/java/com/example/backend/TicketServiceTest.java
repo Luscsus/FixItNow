@@ -11,15 +11,15 @@ import com.example.backend.dto.TicketResponse;
 import com.example.backend.exception.InvalidTicketStatusTransitionException;
 import com.example.backend.exception.TicketNotFoundException;
 import com.example.backend.exception.UserNotFoundException;
+import com.example.backend.repository.ChatRoomRepository;
 import com.example.backend.repository.ProviderRepository;
 import com.example.backend.repository.TicketRepository;
+import com.example.backend.repository.TicketStatusHistoryRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.LocationRepository;
-import com.example.backend.repository.ChatRoomRepository;
-import com.example.backend.repository.TicketStatusHistoryRepository;
-import com.example.backend.service.CloudinaryService;
-import com.example.backend.service.ChatService;
 import com.example.backend.service.CalendarService;
+import com.example.backend.service.ChatService;
+import com.example.backend.service.CloudinaryService;
 import com.example.backend.service.EmailService;
 import com.example.backend.service.NotificationService;
 import com.example.backend.service.TicketService;
@@ -58,6 +58,9 @@ class TicketServiceTest {
 	private ProviderRepository providerRepository;
 
 	@Mock
+	private TicketStatusHistoryRepository statusHistoryRepository;
+
+	@Mock
 	private CloudinaryService cloudinaryService;
 
 	@Mock
@@ -68,9 +71,6 @@ class TicketServiceTest {
 
 	@Mock
 	private CalendarService calendarService;
-
-	@Mock
-	private TicketStatusHistoryRepository statusHistoryRepository;
 
 	@Mock
 	private EmailService emailService;

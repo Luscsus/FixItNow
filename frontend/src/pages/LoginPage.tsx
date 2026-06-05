@@ -245,7 +245,7 @@ export function LoginPage() {
             </button>
 
             <div className="divider" style={{ position: "relative" }}>
-              <span style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", background: "#fff", padding: "0 12px", fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.05em" }}>
+              <span style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", background: "var(--bg-canvas)", padding: "0 12px", fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.05em" }}>
                 {t("login.or")}
               </span>
             </div>

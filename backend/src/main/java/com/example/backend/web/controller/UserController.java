@@ -47,6 +47,7 @@ public class UserController {
     private final GeocodingService geocodingService;
     private final PasswordEncoder passwordEncoder;
     private final CloudinaryService cloudinaryService;
+    private final com.example.backend.service.AccountDeletionService accountDeletionService;
 
     @Operation(summary = "Get the currently authenticated user's profile (any role).")
     @GetMapping("/users/me")
@@ -105,6 +106,15 @@ public class UserController {
         user.setLocation(null);
         userRepository.save(user);
         return ResponseEntity.ok(UserSummaryResponse.from(user));
+    }
+
+    @Operation(summary = "Soft-delete the current user's own account (data is preserved).")
+    @DeleteMapping("/users/me")
+    public ResponseEntity<com.example.backend.web.dto.response.MessageResponse> deleteOwnAccount(
+        @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        accountDeletionService.deleteOwnAccount(principal.getUser().getId());
+        return ResponseEntity.ok(new com.example.backend.web.dto.response.MessageResponse("Your account has been deleted."));
     }
 
     @Operation(summary = "Get the currently authenticated provider's full profile.")

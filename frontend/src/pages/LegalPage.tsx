@@ -23,7 +23,7 @@ export function LegalPage({ kind }: { kind: "terms" | "privacy" }) {
       <header
         style={{
           borderBottom: "1px solid var(--border)",
-          background: "#fff",
+          background: "var(--card)",
           position: "sticky",
           top: 0,
           zIndex: 10,

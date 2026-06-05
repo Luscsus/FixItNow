@@ -100,4 +100,3 @@ class EmailServiceImplTest {
         verify(mailSender).createMimeMessage();
     }
 }
-

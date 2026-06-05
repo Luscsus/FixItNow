@@ -29,5 +29,9 @@ public interface AdminService {
 
     MessageResponse deleteUser(UUID userId);
 
+    MessageResponse restoreUser(UUID userId);
+
+    MessageResponse permanentlyDeleteUser(UUID userId);
+
     MessageResponse changeUserRole(UUID userId, UserRole newRole, UUID adminId);
 }

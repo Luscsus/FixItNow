@@ -130,8 +130,16 @@ export function NotificationBell() {
   function handleItemClick(n: AppNotification) {
     setOpen(false);
     if (!n.read) markRead.mutate(n.id);
-    if ((n.type === "TICKET_STATUS_CHANGE" || n.type === "PROVIDER_NEARBY") && n.ticketId != null) {
+    const ticketScoped =
+      n.type === "TICKET_STATUS_CHANGE" ||
+      n.type === "PROVIDER_NEARBY" ||
+      n.type === "INBOUND_REQUEST" ||
+      n.type === "PAYMENT_RECEIVED";
+    if (ticketScoped && n.ticketId != null) {
       navigate(`/tickets/${n.ticketId}`);
+    } else if (n.type === "REVIEW_RECEIVED" && currentUser?.id) {
+      // Reviews live on the provider's own public profile.
+      navigate(`/providers/${currentUser.id}`);
     } else if (n.type === "NEW_MESSAGE" && n.chatRoomId) {
       // Invalidate the rooms list and message cache so ChatPage shows fresh data.
       queryClient.invalidateQueries({ queryKey: ["chatRoomsList"] });
@@ -230,7 +238,7 @@ export function NotificationBell() {
         <div style={{
           position: "absolute", top: "calc(100% + 8px)", right: 0,
           width: 340, maxWidth: "calc(100vw - 32px)",
-          background: "#fff",
+          background: "var(--card)",
           border: "1px solid rgba(15,23,42,0.1)",
           borderRadius: 10,
           boxShadow: "0 8px 24px rgba(15,23,42,0.12)",

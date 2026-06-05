@@ -6,14 +6,14 @@ import { useAuth } from "@/context/auth";
 import { useCurrentProvider } from "@/hooks/useCurrentProvider";
 import { updateNotificationPreferences } from "@/services/userService";
 
-type NotifKey = "inboundRequests" | "customerReplies" | "jobStatusChanges" | "reviewsReceived";
+type NotifKey = "inboundRequests" | "customerReplies" | "paymentReceived" | "reviewsReceived";
 
-const NOTIF_KEYS: NotifKey[] = ["inboundRequests", "customerReplies", "jobStatusChanges", "reviewsReceived"];
+const NOTIF_KEYS: NotifKey[] = ["inboundRequests", "customerReplies", "paymentReceived", "reviewsReceived"];
 
 const DEFAULTS: Record<NotifKey, boolean> = {
   inboundRequests: true,
   customerReplies: true,
-  jobStatusChanges: true,
+  paymentReceived: true,
   reviewsReceived: true,
 };
 
@@ -31,7 +31,7 @@ export function NotificationsCard() {
       setPrefs({
         inboundRequests: provider.notificationPreferences.inboundRequests ?? true,
         customerReplies: provider.notificationPreferences.customerReplies ?? true,
-        jobStatusChanges: provider.notificationPreferences.jobStatusChanges ?? true,
+        paymentReceived: provider.notificationPreferences.paymentReceived ?? true,
         reviewsReceived: provider.notificationPreferences.reviewsReceived ?? true,
       });
     }

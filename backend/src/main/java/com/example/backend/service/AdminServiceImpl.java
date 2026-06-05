@@ -129,11 +129,54 @@ public class AdminServiceImpl implements AdminService {
     public MessageResponse deleteUser(UUID userId) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+        user.setDeleted(true);
         user.setStatus(UserStatus.DELETED);
+        user.setDeletedAt(LocalDateTime.now());
+        if (user.getDeletionReason() == null) {
+            user.setDeletionReason("Removed by administrator");
+        }
         userRepository.save(user);
         refreshTokenRepository.revokeAllByUser(user);
-        log.info("User {} marked as deleted", user.getEmail());
+        log.info("User {} soft-deleted by admin", user.getEmail());
         return new MessageResponse("User deleted.");
+    }
+
+    @Override
+    public MessageResponse restoreUser(UUID userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+        if (!user.isDeleted() && user.getStatus() != UserStatus.DELETED) {
+            throw new ApiException("User is not deleted.");
+        }
+        user.setDeleted(false);
+        user.setStatus(UserStatus.ACTIVE);
+        user.setDeletedAt(null);
+        user.setDeletedBy(null);
+        user.setDeletionReason(null);
+        userRepository.save(user);
+        log.info("User {} restored by admin", user.getEmail());
+        return new MessageResponse("User restored.");
+    }
+
+    @Override
+    public MessageResponse permanentlyDeleteUser(UUID userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+        // Only hard-delete an already soft-deleted account, and only when nothing
+        // references it — otherwise referential integrity (tickets/reviews/chats)
+        // blocks it and we surface a clear message instead of a 500.
+        if (!user.isDeleted()) {
+            throw new ApiException("Soft-delete the account first before permanent deletion.");
+        }
+        try {
+            userRepository.delete(user);
+            userRepository.flush();
+        } catch (org.springframework.dao.DataIntegrityViolationException ex) {
+            throw new ApiException(
+                "This account still has linked records (tickets, messages, reviews) and cannot be permanently deleted. It remains soft-deleted for record-keeping.");
+        }
+        log.warn("User {} PERMANENTLY deleted by admin", user.getEmail());
+        return new MessageResponse("User permanently deleted.");
     }
 
     @Override

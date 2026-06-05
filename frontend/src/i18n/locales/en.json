@@ -36,6 +36,10 @@
     "providerLocked": "Provider role changes are managed through provider approvals.",
     "reactivate": "Reactivate",
     "suspend": "Suspend",
+    "restore": "Restore",
+    "permanentDelete": "Delete permanently",
+    "permanentDelete_title": "Permanently delete user",
+    "permanentDelete_body": "This permanently removes the account record (admin only, irreversible). It only succeeds if no tickets, messages, or reviews reference it — otherwise it stays soft-deleted. User:",
     "deleteUser_title": "Delete this user?",
     "deleteUser_label": "Delete user",
     "deleteUser_loading": "Deleting…",
@@ -863,6 +867,16 @@
       "ticketSubmitted": "Ticket successfully submitted! ✓"
     }
   },
+  "deleteAccount": {
+    "dangerZone": "Danger zone",
+    "heading": "Delete your account",
+    "sectionDesc": "Deactivate your account and remove your profile from the platform. Your historical records are preserved.",
+    "button": "Delete Account",
+    "title": "Delete Account",
+    "message": "Are you sure you want to delete your account? This action will deactivate your account and remove your profile from the platform. Your historical tickets, messages, invoices, and transactions will remain for record-keeping purposes.",
+    "cancel": "Cancel",
+    "deleting": "Deleting…"
+  },
   "editProfile": {
     "profile": "Profile",
     "edit": "Edit",
@@ -1093,11 +1107,11 @@
     "support_openTicket": "Open a ticket →",
     "notif_title": "Notifications",
     "notif_inboundRequests_title": "Inbound requests",
-    "notif_inboundRequests_sub": "When a new ticket matches your trade and area",
+    "notif_inboundRequests_sub": "When a customer requests you directly on a new ticket",
     "notif_customerReplies_title": "Customer replies",
     "notif_customerReplies_sub": "When a customer messages you on a ticket",
-    "notif_jobStatusChanges_title": "Job status changes",
-    "notif_jobStatusChanges_sub": "When a ticket you're handling changes status",
+    "notif_paymentReceived_title": "Payment received",
+    "notif_paymentReceived_sub": "When a customer pays and the ticket is completed",
     "notif_reviewsReceived_title": "Reviews received",
     "notif_reviewsReceived_sub": "When a customer leaves you a review",
     "credentials_title": "Credentials & documents",
@@ -1191,6 +1205,25 @@
     "you": "You",
     "live": "LIVE",
     "connecting": "CONNECTING…",
+    "sectionUnread": "Unread",
+    "sectionAll": "All conversations",
+    "edited": "edited",
+    "messageDeleted": "This message was deleted",
+    "editMessage": "Edit",
+    "deleteMessage": "Delete",
+    "editSave": "Save",
+    "editCancel": "Cancel",
+    "deleteConversation": "Delete conversation",
+    "deleteConversation_title": "Delete conversation",
+    "deleteConversation_body": "This removes the conversation from your inbox. The messages are kept and it reappears if a new message arrives.",
+    "noUnread": "No unread messages.",
+    "preview_image": "📷 Photo",
+    "preview_file": "📎 Attachment",
+    "rateLimit_tooFast": "You are sending messages too quickly. Please wait a moment before sending another message.",
+    "rateLimit_duplicate": "You just sent that message. Please avoid sending duplicates.",
+    "rateLimit_tooLong": "That message is too long. Please shorten it.",
+    "rateLimit_wait": "Wait {{seconds}}s",
+    "rateLimit_retryIn": "You can send again in {{seconds}}s.",
     "yesterday": "Yesterday",
     "today": "Today",
     "phase_PENDING_APPROVAL": "Awaiting approval",
@@ -1362,6 +1395,18 @@
       "title": "Your provider is almost there",
       "body": "{{providerName}} is less than 100 m away for {{code}}."
     },
+    "inbound": {
+      "title": "Ticket {{code}}",
+      "body": "{{customerName}} requested you for {{service}}."
+    },
+    "payment": {
+      "title": "Ticket {{code}}",
+      "body": "Payment received — {{code}} is complete."
+    },
+    "review": {
+      "title": "New review",
+      "body": "{{reviewerName}} left you a {{rating}}★ review."
+    },
     "message": {
       "titleFallback": "New message",
       "body_one": "Sent you a message",
@@ -1507,6 +1552,10 @@
     "min": "min",
     "km": "km",
     "note": "Note"
+  },
+  "theme": {
+    "switchToDark": "Switch to dark mode",
+    "switchToLight": "Switch to light mode"
   },
   "language": {
     "english": "English",

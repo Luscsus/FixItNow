@@ -1,25 +1,20 @@
-import { GoogleGenAI } from "@google/genai";
-
 export async function classifyCategory(problemText: string, categories: string[]): Promise<string> {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
-  if (!apiKey || apiKey === "your_gemini_api_key_here" || categories.length === 0) {
-    return categories[0] ?? "OTHER";
+  if (categories.length === 0) return "OTHER";
+
+  const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:8080";
+
+  try {
+    const response = await fetch(`${apiBase}/api/v1/providers/classify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ problemText, categories }),
+    });
+
+    if (!response.ok) return categories[0];
+
+    const data = (await response.json()) as { category?: string };
+    return data.category && categories.includes(data.category) ? data.category : categories[0];
+  } catch {
+    return categories[0];
   }
-
-  const ai = new GoogleGenAI({ apiKey });
-
-  const prompt = `You are a home/office service category classifier. Given a problem description, pick the single best matching category from this exact list:
-${categories.join(", ")}
-
-Problem: "${problemText}"
-
-Respond with ONLY the category key from the list above. No explanation, no punctuation, just the key.`;
-
-  const response = await ai.models.generateContent({
-    model: "gemini-3.1-flash-lite",
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
-  });
-
-  const text = (response.text ?? "").trim().toUpperCase().replace(/[^A-Z_]/g, "");
-  return categories.includes(text) ? text : categories[0];
 }

@@ -55,6 +55,10 @@ public class ConnectService {
                     .setType(AccountCreateParams.Type.EXPRESS)
                     .setCapabilities(
                         AccountCreateParams.Capabilities.builder()
+                            .setCardPayments(
+                                AccountCreateParams.Capabilities.CardPayments.builder()
+                                    .setRequested(true)
+                                    .build())
                             .setTransfers(
                                 AccountCreateParams.Capabilities.Transfers.builder()
                                     .setRequested(true)

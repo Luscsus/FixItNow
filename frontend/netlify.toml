@@ -11,7 +11,7 @@
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       font-src 'self' data: https://fonts.gstatic.com;
       img-src 'self' data: blob: https://*.tile.openstreetmap.org https://res.cloudinary.com https://randomuser.me;
-      connect-src 'self' https://fix-it-now-backend-b27cce84b1a2.herokuapp.com wss://api.fixitnow.si https://generativelanguage.googleapis.com https://accounts.google.com;
+      connect-src 'self' https://fix-it-now-backend-b27cce84b1a2.herokuapp.com wss://fix-it-now-backend-b27cce84b1a2.herokuapp.com wss://api.fixitnow.si https://generativelanguage.googleapis.com https://accounts.google.com;
       frame-src https://accounts.google.com;
       object-src 'none';
       base-uri 'self';

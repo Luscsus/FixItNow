@@ -147,6 +147,9 @@ class TicketControllerTest {
 
     @Test
     void getTicketDetailsEndpointShouldReturnTicket() throws Exception {
+        UserPrincipal principal = authenticatedPrincipal();
+        UUID userId = principal.getUser().getId();
+
         TicketResponse response = new TicketResponse(
             3L,
             "vodovod",
@@ -161,14 +164,14 @@ class TicketControllerTest {
             null,
             null
         );
-        when(ticketService.getTicketDetails(3L)).thenReturn(response);
+        when(ticketService.getTicketDetails(eq(3L), eq(userId))).thenReturn(response);
 
         mockMvc.perform(get("/api/tickets/3"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(3))
             .andExpect(jsonPath("$.location").value("Celje"));
 
-        verify(ticketService).getTicketDetails(3L);
+        verify(ticketService).getTicketDetails(eq(3L), eq(userId));
     }
 
     @Test

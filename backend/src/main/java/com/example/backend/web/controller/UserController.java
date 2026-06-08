@@ -144,6 +144,7 @@ public class UserController {
             .orElseThrow(() -> new ApiException("User not found"));
         user.setFirstName(request.getFirstName().trim());
         user.setLastName(request.getLastName().trim());
+        user.setPhoneNumber(trimToNull(request.getPhoneNumber()));
         userRepository.save(user);
         return ResponseEntity.ok(UserSummaryResponse.from(user));
     }

@@ -208,7 +208,7 @@ export function UserLanding() {
                       transition: "background 0.2s, color 0.2s, border-color 0.2s",
                       ...(smartMatchActive
                         ? { background: "var(--amber-500)", color: "var(--navy-900)", border: "1.5px solid var(--amber-600)" }
-                        : { background: "#fff", color: "var(--text)", border: "1px solid var(--slate-300)" }
+                        : { background: "var(--card)", color: "var(--text)", border: "1px solid var(--slate-300)" }
                       ),
                     }}
                     onClick={handleSmartMatch}
@@ -421,7 +421,7 @@ export function UserLanding() {
 
       {/* ── CATEGORIES ── */}
       <section className="container" id="categories" style={{ paddingTop: 72, paddingBottom: 56 }}>
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 24, marginBottom: 32 }}>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 24, marginBottom: 32, flexWrap: "wrap" }}>
           <div>
             <span className="eyebrow">{t("userLanding.categoriesEyebrow")}</span>
             <h2 className="display-2" style={{ marginTop: 14 }}>
@@ -442,7 +442,7 @@ export function UserLanding() {
               <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--amber-500)", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 600 }}>
                 {t("userLanding.mostBooked")}
               </div>
-              <div style={{ fontSize: 42, fontWeight: 700, letterSpacing: "-0.025em", lineHeight: 1.05, marginTop: 14, color: "#fff" }}>
+              <div style={{ fontSize: "clamp(28px, 8vw, 42px)", fontWeight: 700, letterSpacing: "-0.025em", lineHeight: 1.05, marginTop: 14, color: "#fff" }}>
                 {t("categories.PLUMBING", "Plumbing")}
               </div>
               <div className="cat-count" style={{ color: "rgba(255,255,255,0.5)" }}>

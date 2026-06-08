@@ -23,6 +23,7 @@ public class UserSummaryResponse {
     private UserStatus status;
     private boolean emailVerified;
     private String profilePictureUrl;
+    private String phoneNumber;
     private LocalDateTime createdAt;
     private Map<String, Boolean> notificationPreferences;
     /** The user's saved default location, or null if they haven't set one. */
@@ -61,6 +62,7 @@ public class UserSummaryResponse {
             .status(u.getStatus())
             .emailVerified(u.isEmailVerified())
             .profilePictureUrl(u.getProfilePictureUrl())
+            .phoneNumber(u.getPhoneNumber())
             .createdAt(u.getCreatedAt())
             .notificationPreferences(u.getNotificationPreferences() != null ? u.getNotificationPreferences() : new HashMap<>())
             .location(loc)

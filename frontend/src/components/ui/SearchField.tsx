@@ -31,7 +31,7 @@ export function SearchField({ containerStyle, ...props }: SearchFieldProps) {
           padding: "0 14px 0 38px",
           fontSize: 14,
           color: "var(--text)",
-          background: "#fff",
+          background: "var(--card)",
           border: "1.5px solid var(--border)",
           borderRadius: 10,
           outline: "none",

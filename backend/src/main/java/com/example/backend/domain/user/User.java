@@ -72,6 +72,15 @@ public class User {
     @Column(name = "profile_picture_url", length = 1024)
     private String profilePictureUrl;
 
+    /**
+     * Optional contact phone number (E.164-ish, free-format up to 50 chars).
+     * Lives on the base user so both customers and providers share one column;
+     * providers see a customer's number on their assigned tickets so they can
+     * coordinate the appointment directly.
+     */
+    @Column(name = "phone_number", length = 50)
+    private String phoneNumber;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "location_id")
     private Location location;

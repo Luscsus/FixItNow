@@ -434,7 +434,7 @@ export function ProviderDashboardPage() {
                   onChange={(e) => { setOpenSearch(e.target.value); resetOpenPage(); }}
                   placeholder={t("dashboard.openFilter_searchPlaceholder")}
                   aria-label={t("dashboard.openFilter_searchPlaceholder")}
-                  style={{ width: "100%", boxSizing: "border-box", height: 40, padding: "0 12px 0 36px", borderRadius: 9, border: "1px solid var(--border)", background: "#fff", fontSize: 14, color: "var(--text)", fontFamily: "inherit", outline: "none" }}
+                  style={{ width: "100%", boxSizing: "border-box", height: 40, padding: "0 12px 0 36px", borderRadius: 9, border: "1px solid var(--border)", background: "var(--card)", fontSize: 14, color: "var(--text)", fontFamily: "inherit", outline: "none" }}
                 />
               </div>
 
@@ -488,7 +488,7 @@ export function ProviderDashboardPage() {
                 <button
                   type="button"
                   onClick={() => { setOpenSearch(""); setOpenCategory(""); setOpenPriority(""); resetOpenPage(); }}
-                  style={{ height: 40, padding: "0 14px", borderRadius: 9, border: "1px solid var(--border)", background: "#fff", color: "var(--text-muted)", fontSize: 13.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+                  style={{ height: 40, padding: "0 14px", borderRadius: 9, border: "1px solid var(--border)", background: "var(--card)", color: "var(--text-muted)", fontSize: 13.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
                 >
                   {t("dashboard.openFilter_clear")}
                 </button>

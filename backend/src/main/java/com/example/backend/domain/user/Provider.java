@@ -31,8 +31,9 @@ public class Provider extends User {
     @Column(length = 2000)
     private String bio;
 
-    @Column(length = 50)
-    private String phoneNumber;
+    // phoneNumber now lives on the base User entity (users.phone_number) so it
+    // is shared by customers and providers alike. Inherited getters/setters
+    // (getPhoneNumber/setPhoneNumber) keep existing provider code working.
 
     @ElementCollection(targetClass = ServiceCategory.class, fetch = FetchType.EAGER)
     @CollectionTable(

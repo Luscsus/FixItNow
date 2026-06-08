@@ -86,6 +86,7 @@ public class AuthServiceImpl implements AuthService {
             .role(UserRole.CUSTOMER)
             .status(UserStatus.ACTIVE)
             .emailVerified(false)
+            .phoneNumber(normalizePhone(request.getPhoneNumber()))
             .build();
 
         userRepository.save(user);
@@ -96,6 +97,13 @@ public class AuthServiceImpl implements AuthService {
 
         log.info("Registered new customer: {}", user.getEmail());
         return new MessageResponse("Registration successful. Your account is ready — you can sign in now.");
+    }
+
+    /** Trims a phone number and collapses blank input to null so it stays unset. */
+    private static String normalizePhone(String phone) {
+        if (phone == null) return null;
+        String trimmed = phone.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     @Override
@@ -125,7 +133,7 @@ public class AuthServiceImpl implements AuthService {
             .role(UserRole.PROVIDER)
             .status(UserStatus.PENDING_APPROVAL)
             .emailVerified(true)
-            .phoneNumber(request.getPhoneNumber())
+            .phoneNumber(normalizePhone(request.getPhoneNumber()))
             .location(location)
             .pricePerHour(request.getPricePerHour())
             .yearsOfExperience(request.getYearsOfExperience())

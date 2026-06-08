@@ -11,6 +11,7 @@ export type UserResponseDto = {
   lastName: string;
   emailVerified: boolean;
   profilePictureUrl?: string | null;
+  phoneNumber?: string | null;
   createdAt: string;
   notificationPreferences?: Record<string, boolean> | null;
   location?: SavedLocationDto | null;

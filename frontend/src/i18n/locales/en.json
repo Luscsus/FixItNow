@@ -421,6 +421,10 @@
     "lastNameRequired": "Last name is required.",
     "enterValidEmail": "Enter a valid email.",
     "passwordMinLength": "Password must be at least 8 characters.",
+    "phoneNumber": "Phone number (optional)",
+    "phonePlaceholder": "+386 41 234 567",
+    "phoneHint": "Your provider will use this to reach you about the appointment.",
+    "phoneInvalid": "Enter a valid phone number.",
     "optional": "Optional:"
   },
   "registerProvider": {
@@ -911,7 +915,10 @@
     "error_newPasswordMin": "Password must be at least 8 characters.",
     "error_confirmPassword": "Please confirm your new password.",
     "error_passwordMatch": "Passwords do not match.",
+    "error_phoneNumber": "Enter a valid phone number.",
     "phoneNumber": "Phone number",
+    "phonePlaceholder": "+386 41 234 567",
+    "phoneHint": "Optional. Your provider will use this to reach you about appointments.",
     "serviceCategories": "Service categories",
     "hourlyRate": "Hourly rate (€)",
     "yearsOfExperience": "Years of experience",

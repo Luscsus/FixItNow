@@ -173,11 +173,11 @@ public class PaymentService {
             throw new AccessDeniedException("Only the ticket owner can confirm this payment.");
         }
         if (ticket.getStatus() == TicketStatus.COMPLETED) {
-            return ticketService.getTicketDetails(ticketId);
+            return ticketService.getTicketDetails(ticketId, userId);
         }
         String sessionId = ticket.getStripeCheckoutSessionId();
         if (!enabled || sessionId == null) {
-            return ticketService.getTicketDetails(ticketId);
+            return ticketService.getTicketDetails(ticketId, userId);
         }
         try {
             Session session = Session.retrieve(sessionId);
@@ -187,7 +187,7 @@ public class PaymentService {
         } catch (StripeException e) {
             System.err.println("[payment] confirm failed for ticket " + ticketId + ": " + e.getMessage());
         }
-        return ticketService.getTicketDetails(ticketId);
+        return ticketService.getTicketDetails(ticketId, userId);
     }
 
     /**

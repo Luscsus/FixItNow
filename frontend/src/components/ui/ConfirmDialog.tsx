@@ -47,7 +47,7 @@ export function ConfirmDialog({
       onClick={(e) => { if (e.target === e.currentTarget && !loading) onCancel(); }}
     >
       <div style={{
-        background: "#fff",
+        background: "var(--card)",
         borderRadius: 18,
         padding: 28,
         width: "100%", maxWidth: 440,

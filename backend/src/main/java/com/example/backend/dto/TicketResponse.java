@@ -46,6 +46,12 @@ public class TicketResponse {
     private String submittedByName;
     private UUID submittedById;
     private String submittedByProfilePictureUrl;
+    /**
+     * Customer's contact phone. Privacy-gated: populated ONLY on the single-ticket
+     * detail view and ONLY when the requester is the ticket's assigned provider,
+     * so they can reach the customer about the appointment. Null otherwise.
+     */
+    private String customerPhoneNumber;
     private UUID chatRoomId;
     private LocalDateTime requestedStartAt;
     private LocalDateTime requestedEndAt;

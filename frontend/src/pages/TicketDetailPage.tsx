@@ -136,6 +136,18 @@ function MetaCard({ ticket, labels }: { readonly ticket: Ticket; readonly labels
               <span style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em" }}>{ticket.submittedByName}</span>
             </div>
           )}
+          {/* Customer phone — backend only sends this to the assigned provider. */}
+          {ticket.customerPhoneNumber && (
+            <div style={{ marginTop: 6 }}>
+              <a
+                href={`tel:${ticket.customerPhoneNumber.replace(/\s+/g, "")}`}
+                className="mono"
+                style={{ fontSize: 13, fontWeight: 600, color: "var(--navy-700)", textDecoration: "none", letterSpacing: "0.02em" }}
+              >
+                📞 {ticket.customerPhoneNumber}
+              </a>
+            </div>
+          )}
           <div className="mono" style={{ marginTop: 6, fontSize: 14, letterSpacing: "0.02em" }}>{fmt(ticket.createdAt, locale)}</div>
         </>
       ),

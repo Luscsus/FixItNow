@@ -400,8 +400,9 @@ def db_connect():
 #   locations  → id (BIGSERIAL), latitude, longitude, street_name, street_number,
 #                city, postal_code, country, created_at, updated_at
 #   users      → id (UUID), user_type='PROVIDER', role='PROVIDER', status='ACTIVE',
-#                email_verified=TRUE, location_id=<fk>, profile_picture_url, …
-#   providers  → id=<users.id>, phone_number, price_per_hour,
+#                email_verified=TRUE, location_id=<fk>, profile_picture_url,
+#                phone_number, …
+#   providers  → id=<users.id>, price_per_hour,
 #                years_of_experience, service_radius_km, bio
 #   provider_categories → provider_id, category
 # ──────────────────────────────────────────────────────────────────────────────
@@ -482,7 +483,7 @@ def create_providers_via_db(n: int = 50) -> list[str]:
                          first_name, last_name,
                          role, status,
                          email_verified, two_factor_enabled,
-                         location_id, profile_picture_url,
+                         location_id, profile_picture_url, phone_number,
                          notification_preferences,
                          created_at, updated_at)
                     VALUES
@@ -490,24 +491,24 @@ def create_providers_via_db(n: int = 50) -> list[str]:
                          %s, %s,
                          'PROVIDER', 'ACTIVE',
                          TRUE, FALSE,
-                         %s, %s,
+                         %s, %s, %s,
                          '{}',
                          NOW(), NOW())
                     """,
                     (provider_id, email, SEED_PASSWORD_HASH,
                      first, last,
-                     location_id, pic_url),
+                     location_id, pic_url, random_phone()),
                 )
 
-                # 3. Insert provider row
+                # 3. Insert provider row (phone_number now lives on users)
                 cur.execute(
                     """
                     INSERT INTO providers
-                        (id, phone_number, price_per_hour,
+                        (id, price_per_hour,
                          years_of_experience, service_radius_km, bio)
-                    VALUES (%s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s)
                     """,
-                    (provider_id, random_phone(),
+                    (provider_id,
                      round(random.uniform(15, 80), 2),
                      years,
                      random.choice([20, 30, 50, 75, 100]),

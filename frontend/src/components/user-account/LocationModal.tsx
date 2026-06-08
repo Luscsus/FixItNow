@@ -70,7 +70,7 @@ export function LocationModal({ open, onClose, onSaved }: Readonly<Props>) {
       onClick={(e) => { if (e.target === e.currentTarget && !saveMutation.isPending) onClose(); }}
     >
       <div style={{
-        background: "#fff", borderRadius: 18, padding: 28,
+        background: "var(--card)", borderRadius: 18, padding: 28,
         width: "100%", maxWidth: 480, boxShadow: "var(--shadow-lg)",
         border: "1px solid var(--border)",
       }}>

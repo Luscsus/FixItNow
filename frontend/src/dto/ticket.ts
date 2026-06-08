@@ -48,6 +48,8 @@ export type TicketResponseDto = {
   submittedByName: string | null;
   submittedById?: string | null;
   submittedByProfilePictureUrl?: string | null;
+  /** Customer's phone — present only to the assigned provider on the detail view. */
+  customerPhoneNumber?: string | null;
   chatRoomId?: string | null;
   requestedStartAt: string | null;
   requestedEndAt: string | null;

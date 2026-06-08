@@ -206,7 +206,7 @@ public class TicketService {
     }
 
     @Transactional(readOnly = true)
-    public TicketResponse getTicketDetails(Long ticketId) throws TicketNotFoundException {
+    public TicketResponse getTicketDetails(Long ticketId, UUID requesterId) throws TicketNotFoundException {
         Ticket ticket = getTicketOrThrow(ticketId);
         TicketResponse resp = toResponse(ticket);
         resp.setStatusHistory(
@@ -215,6 +215,7 @@ public class TicketService {
                 .toList()
         );
         attachProviderBankDetails(ticket, resp);
+        attachCustomerPhoneForAssignedProvider(ticket, resp, requesterId);
         return resp;
     }
 
@@ -848,6 +849,21 @@ public class TicketService {
             resp.setBankRecipientStreet(joinNonBlank(loc.getStreetName(), loc.getStreetNumber()));
             resp.setBankRecipientCity(joinNonBlank(loc.getPostalCode(), loc.getCity()));
         }
+    }
+
+    /**
+     * Reveals the customer's phone number to the assigned provider only. Privacy
+     * guard: the number is exposed solely when the requester IS the ticket's
+     * assigned provider, so customers and other providers never see it. The
+     * customer themselves reads their own number from their profile, not here.
+     */
+    private void attachCustomerPhoneForAssignedProvider(Ticket ticket, TicketResponse resp, UUID requesterId) {
+        if (requesterId == null) return;
+        User assigned = ticket.getAssignedServiceProvider();
+        User customer = ticket.getUser();
+        if (assigned == null || customer == null) return;
+        if (!requesterId.equals(assigned.getId())) return;
+        resp.setCustomerPhoneNumber(customer.getPhoneNumber());
     }
 
     /** Joins non-blank parts with a single space, or returns null when all are blank. */

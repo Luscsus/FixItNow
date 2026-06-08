@@ -12,7 +12,10 @@ import { mapZodErrors } from "@/lib/validation";
 import { useUserLocation } from "@/hooks/useUserLocation";
 import { LocationModal } from "@/components/user-account/LocationModal";
 
-type Fields = "firstName" | "lastName";
+type Fields = "firstName" | "lastName" | "phoneNumber";
+
+/** Optional phone: empty, or +/digits with common separators (6–20 chars). */
+const PHONE_RE = /^$|^\+?[0-9 ()./-]{6,20}$/;
 
 export function EditUserProfileForm() {
   const { t } = useTranslation();
@@ -26,9 +29,10 @@ export function EditUserProfileForm() {
   const schema = z.object({
     firstName: z.string().min(1, t("editProfile.error_firstName")),
     lastName: z.string().min(1, t("editProfile.error_lastName")),
+    phoneNumber: z.string().max(50).regex(PHONE_RE, t("editProfile.error_phoneNumber")),
   });
 
-  const [form, setForm] = useState({ firstName: "", lastName: "" });
+  const [form, setForm] = useState({ firstName: "", lastName: "", phoneNumber: "" });
   const [errors, setErrors] = useState<Partial<Record<Fields, string>>>({});
   const [success, setSuccess] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -39,7 +43,11 @@ export function EditUserProfileForm() {
   useEffect(() => {
     if (user) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setForm({ firstName: user.firstName ?? "", lastName: user.lastName ?? "" });
+      setForm({
+        firstName: user.firstName ?? "",
+        lastName: user.lastName ?? "",
+        phoneNumber: user.phoneNumber ?? "",
+      });
     }
   }, [user]);
 
@@ -56,6 +64,7 @@ export function EditUserProfileForm() {
       updateCurrentUser(accessToken, {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
+        phoneNumber: form.phoneNumber.trim() || null,
       }),
     onSuccess: () => {
       setSuccess(true);
@@ -95,6 +104,7 @@ export function EditUserProfileForm() {
     const parsed = schema.safeParse({
       firstName: form.firstName.trim(),
       lastName: form.lastName.trim(),
+      phoneNumber: form.phoneNumber.trim(),
     });
     if (!parsed.success) {
       setErrors(mapZodErrors(parsed.error));
@@ -193,6 +203,16 @@ export function EditUserProfileForm() {
           </div>
           {errors.lastName && <span className="field-error">{errors.lastName}</span>}
         </div>
+      </div>
+
+      {/* Contact phone (optional) */}
+      <div className="field">
+        <label className="field-label" htmlFor="edit-phone">{t("editProfile.phoneNumber")}</label>
+        <div className={`input-wrap${errors.phoneNumber ? " error" : ""}`}>
+          <input id="edit-phone" className="input" type="tel" value={form.phoneNumber} onChange={set("phoneNumber")} autoComplete="tel" placeholder={t("editProfile.phonePlaceholder")} />
+        </div>
+        {errors.phoneNumber && <span className="field-error">{errors.phoneNumber}</span>}
+        <span className="field-hint">{t("editProfile.phoneHint")}</span>
       </div>
 
       {/* Default location */}

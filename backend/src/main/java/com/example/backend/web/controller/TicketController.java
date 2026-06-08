@@ -64,8 +64,12 @@ public class TicketController {
 
     @GetMapping("/{ticketId}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<TicketResponse> getTicketDetails(@PathVariable Long ticketId) {
-        return ResponseEntity.ok(ticketService.getTicketDetails(ticketId));
+    public ResponseEntity<TicketResponse> getTicketDetails(
+        @PathVariable Long ticketId,
+        @AuthenticationPrincipal UserPrincipal userDetails
+    ) {
+        return ResponseEntity.ok(
+            ticketService.getTicketDetails(ticketId, userDetails.getUser().getId()));
     }
 
     /** Last-known live-tracking snapshot for a ticket (customer or assigned provider). */

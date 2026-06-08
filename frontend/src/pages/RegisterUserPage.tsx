@@ -45,8 +45,18 @@ function IconMail() {
     </svg>
   );
 }
+function IconPhone() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M3 2h2.5l1 3-1.5 1a8 8 0 0 0 4 4l1-1.5 3 1V13a1 1 0 0 1-1 1A11 11 0 0 1 2 3a1 1 0 0 1 1-1z" />
+    </svg>
+  );
+}
 
-type Fields = "firstName" | "lastName" | "email" | "password";
+/** Optional phone: empty, or +/digits with common separators (6–20 chars). */
+const PHONE_RE = /^$|^\+?[0-9 ()./-]{6,20}$/;
+
+type Fields = "firstName" | "lastName" | "email" | "password" | "phoneNumber";
 
 export function RegisterUserPage() {
   useSEO({ title: "Create User Account", robots: "noindex, nofollow" });
@@ -59,16 +69,22 @@ export function RegisterUserPage() {
     lastName:  z.string().min(1, t("registerUser.lastNameRequired")),
     email:     z.string().email(t("registerUser.enterValidEmail")),
     password:  z.string().min(8, t("registerUser.passwordMinLength")),
+    phoneNumber: z.string().max(50).regex(PHONE_RE, t("registerUser.phoneInvalid")),
   });
 
-  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", password: "" });
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", password: "", phoneNumber: "" });
   const [errors, setErrors] = useState<Partial<Record<Fields, string>>>({});
   const [submitted, setSubmitted] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [termsError, setTermsError] = useState(false);
 
   const pwStrength = passwordStrength(form.password);
-  const canSubmit = Object.values(form).every((v) => v.trim() !== "");
+  // Phone is optional, so it isn't part of the required-fields gate.
+  const canSubmit =
+    form.firstName.trim() !== "" &&
+    form.lastName.trim() !== "" &&
+    form.email.trim() !== "" &&
+    form.password.trim() !== "";
 
   const set = (field: Fields) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -83,13 +99,17 @@ export function RegisterUserPage() {
       lastName:  form.lastName.trim(),
       email:     form.email.trim(),
       password:  form.password,
+      phoneNumber: form.phoneNumber.trim(),
     });
 
     if (!parsed.success) { setErrors(mapZodErrors(parsed.error)); return; }
     setErrors({});
 
     try {
-      await registerMutation.mutateAsync(parsed.data);
+      await registerMutation.mutateAsync({
+        ...parsed.data,
+        phoneNumber: parsed.data.phoneNumber || undefined,
+      });
       setSubmitted(true);
     } catch (error) {
       setErrors({ email: getErrorMessage(error) });
@@ -225,6 +245,16 @@ export function RegisterUserPage() {
                     <input id="reg-email" className="input" type="email" placeholder={t("registerUser.emailPlaceholder")} autoComplete="email" value={form.email} onChange={set("email")} />
                   </div>
                   {errors.email && <span className="field-error">{errors.email}</span>}
+                </div>
+
+                <div className="field">
+                  <label className="field-label" htmlFor="reg-phone">{t("registerUser.phoneNumber")}</label>
+                  <div className={`input-wrap${errors.phoneNumber ? " error" : ""}`}>
+                    <IconPhone />
+                    <input id="reg-phone" className="input" type="tel" placeholder={t("registerUser.phonePlaceholder")} autoComplete="tel" value={form.phoneNumber} onChange={set("phoneNumber")} />
+                  </div>
+                  {errors.phoneNumber && <span className="field-error">{errors.phoneNumber}</span>}
+                  <span className="field-hint">{t("registerUser.phoneHint")}</span>
                 </div>
 
                 <div className="field">

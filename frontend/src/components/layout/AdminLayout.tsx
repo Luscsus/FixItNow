@@ -46,7 +46,7 @@ export function AdminLayout() {
       {/* Topbar with tabs */}
       <header style={{
         position: "sticky", top: 0, zIndex: 30,
-        background: "rgba(255,255,255,0.95)",
+        background: "var(--header-bg)",
         backdropFilter: "saturate(180%) blur(12px)",
         borderBottom: "1px solid var(--border)",
       }}>
@@ -72,7 +72,7 @@ export function AdminLayout() {
                   textDecoration: "none",
                   padding: "8px 14px",
                   borderRadius: 8,
-                  color: isActive ? "var(--navy-900)" : "var(--text-muted)",
+                  color: isActive ? "var(--text)" : "var(--text-muted)",
                   background: isActive ? "var(--navy-50)" : "transparent",
                   boxShadow: isActive ? "inset 0 -2px 0 var(--amber-500)" : "none",
                   transition: "background 0.12s, color 0.12s",

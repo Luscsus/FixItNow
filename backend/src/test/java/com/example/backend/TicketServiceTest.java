@@ -203,7 +203,8 @@ class TicketServiceTest {
 	@Test
 	void getTicketDetailsShouldThrowWhenMissing() {
 		when(ticketRepository.findById(99L)).thenReturn(Optional.empty());
-		assertThrows(TicketNotFoundException.class, () -> ticketService.getTicketDetails(99L));
+		assertThrows(TicketNotFoundException.class,
+			() -> ticketService.getTicketDetails(99L, java.util.UUID.randomUUID()));
 	}
 
 	@Test

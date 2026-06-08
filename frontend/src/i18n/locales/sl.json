@@ -421,6 +421,10 @@
     "lastNameRequired": "Priimek je obvezen.",
     "enterValidEmail": "Vnesite veljavni e-poštni naslov.",
     "passwordMinLength": "Geslo mora biti dolgo vsaj 8 znakov.",
+    "phoneNumber": "Telefonska številka (neobvezno)",
+    "phonePlaceholder": "+386 41 234 567",
+    "phoneHint": "Izvajalec jo bo uporabil za stik glede termina.",
+    "phoneInvalid": "Vnesite veljavno telefonsko številko.",
     "optional": "Neobvezno:"
   },
   "registerProvider": {
@@ -911,7 +915,10 @@
     "error_newPasswordMin": "Geslo mora imeti vsaj 8 znakov.",
     "error_confirmPassword": "Prosimo potrdite novo geslo.",
     "error_passwordMatch": "Gesli se ne ujemata.",
+    "error_phoneNumber": "Vnesite veljavno telefonsko številko.",
     "phoneNumber": "Telefonska številka",
+    "phonePlaceholder": "+386 41 234 567",
+    "phoneHint": "Neobvezno. Izvajalec jo bo uporabil za stik glede terminov.",
     "serviceCategories": "Storitvene kategorije",
     "hourlyRate": "Urna postavka (€)",
     "yearsOfExperience": "Leta izkušenj",

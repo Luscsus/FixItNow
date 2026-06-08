@@ -17,6 +17,7 @@ function mapUser(dto: UserResponseDto): User {
     lastName: dto.lastName,
     emailVerified: dto.emailVerified,
     profilePictureUrl: dto.profilePictureUrl ?? null,
+    phoneNumber: dto.phoneNumber ?? null,
     createdAt: new Date(dto.createdAt),
     notificationPreferences: dto.notificationPreferences ?? {},
     location: dto.location
@@ -82,6 +83,7 @@ export async function getCurrentProvider(accessToken: string): Promise<Provider>
 export type UpdateUserProfilePayload = {
   firstName: string;
   lastName: string;
+  phoneNumber: string | null;
 };
 
 export async function updateCurrentUser(

@@ -18,6 +18,7 @@ export function mapTicket(dto: TicketResponseDto): Ticket {
     submittedByName: dto.submittedByName ?? null,
     submittedById: dto.submittedById ?? null,
     submittedByProfilePictureUrl: dto.submittedByProfilePictureUrl ?? null,
+    customerPhoneNumber: dto.customerPhoneNumber ?? null,
     chatRoomId: dto.chatRoomId ?? null,
     requestedStartAt: dto.requestedStartAt ? new Date(dto.requestedStartAt) : null,
     requestedEndAt: dto.requestedEndAt ? new Date(dto.requestedEndAt) : null,

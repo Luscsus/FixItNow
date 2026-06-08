@@ -398,7 +398,7 @@ export function ProviderLanding() {
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20 }}>
           {PROVIDER_QUOTES.map((p) => (
-            <div key={p.name} style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 14, padding: "26px 28px", boxShadow: "var(--shadow-sm)", position: "relative" }}>
+            <div key={p.name} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: "26px 28px", boxShadow: "var(--shadow-sm)", position: "relative" }}>
               <div style={{ display: "flex", gap: 3, color: "var(--amber-500)", marginBottom: 14 }}>
                 {[0,1,2,3,4].map((i) => <IconStar key={i} size={14} />)}
               </div>
@@ -495,7 +495,7 @@ function FeatureCard({ icon, title, body, tint }: {
   }[tint];
 
   return (
-    <div style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 14, padding: "24px 22px", transition: "transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease", cursor: "default" }}
+    <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: "24px 22px", transition: "transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease", cursor: "default" }}
       onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "var(--shadow-md)"; }}
       onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
     >

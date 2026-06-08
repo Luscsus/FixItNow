@@ -300,8 +300,7 @@ public class TicketService {
     @Transactional(readOnly = true)
     public List<RecentActivityResponse> getRecentActivity(int limit) {
         int capped = Math.max(1, Math.min(limit, 20));
-        List<TicketStatus> statuses = List.of(
-                TicketStatus.COMPLETED, TicketStatus.IN_TRANSIT, TicketStatus.APPROVED);
+        List<TicketStatus> statuses = List.of(TicketStatus.COMPLETED);
 
         return statusHistoryRepository
                 .findRecentActivity(statuses, org.springframework.data.domain.PageRequest.of(0, capped))

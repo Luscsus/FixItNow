@@ -713,7 +713,9 @@
       "success": "Payment received — thank you! Your ticket is now complete.",
       "cancelled": "Payment was cancelled. You can try again anytime.",
       "startError": "Could not start the payment. Please try again.",
-      "confirmError": "We couldn't confirm your payment yet. If you were charged, it will update shortly."
+      "confirmError": "We couldn't confirm your payment yet. If you were charged, it will update shortly.",
+      "receivedSuccess": "Payment recorded — the ticket is now complete.",
+      "receivedError": "Could not mark the payment as received. Please try again."
     },
     "backToDashboardBtn": "← Back to dashboard",
     "declining": "Declining…",
@@ -774,7 +776,8 @@
       "acceptAssign": "Accept & assign →",
       "confirmSchedule": "Confirm & schedule →",
       "accept": "Accept →",
-      "markPendingPayment": "Mark as Pending Payment →"
+      "markPendingPayment": "Mark as Pending Payment →",
+      "markPaymentReceived": "Mark Payment Received →"
     },
     "activityFiled": "filed"
   },

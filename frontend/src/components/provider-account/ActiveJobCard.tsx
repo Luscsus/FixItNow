@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useProviderTicketsQuery } from "@/hooks/useProviderTicketsQuery";
 import { useUpdateTicketStatusMutation } from "@/hooks/useUpdateTicketStatusMutation";
+import { useMarkPaymentReceivedMutation } from "@/hooks/useMarkPaymentReceivedMutation";
 import { Pagination, usePaginatedItems } from "@/components/ui/Pagination";
 import type { Ticket, TicketStatus } from "@/domain/ticket";
 
@@ -43,6 +44,7 @@ function ActiveJob({ ticket }: { ticket: Ticket }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const updateMut = useUpdateTicketStatusMutation();
+  const paymentReceivedMut = useMarkPaymentReceivedMutation();
 
   const STATUS_PILL: Record<string, string> = {
     APPROVED:                 t("ticket.pills.accepted"),
@@ -160,6 +162,15 @@ function ActiveJob({ ticket }: { ticket: Ticket }) {
               onClick={(e) => { e.stopPropagation(); updateMut.mutate({ ticketId: ticket.id, status: next.status }); }}
             >
               {updateMut.isPending ? t("providerAccount.activeJobs_updating") : next.label}
+            </button>
+          )}
+          {ticket.status === "PENDING_PAYMENT" && (
+            <button
+              className="btn btn-primary"
+              disabled={paymentReceivedMut.isPending}
+              onClick={(e) => { e.stopPropagation(); paymentReceivedMut.mutate(ticket.id); }}
+            >
+              {paymentReceivedMut.isPending ? t("providerAccount.activeJobs_updating") : t("ticket.actions.markPaymentReceived")}
             </button>
           )}
         </div>

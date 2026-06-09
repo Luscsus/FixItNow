@@ -164,6 +164,22 @@ export async function confirmPayment(
   return mapTicket(data);
 }
 
+/**
+ * Provider-only: records that payment was received out-of-band (e.g. cash) for a
+ * ticket awaiting payment, advancing it to COMPLETED. The backend enforces that
+ * only the assigned provider may call this.
+ */
+export async function markPaymentReceived(
+  ticketId: number,
+  accessToken?: string,
+): Promise<Ticket> {
+  const data = await requestJson<TicketResponseDto>(
+    `/api/tickets/${ticketId}/payment/received`,
+    { method: "POST", headers: authHeader(accessToken) },
+  );
+  return mapTicket(data);
+}
+
 export async function getNearbyTickets(
   latitude: number,
   longitude: number,

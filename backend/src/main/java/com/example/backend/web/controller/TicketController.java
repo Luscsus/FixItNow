@@ -107,6 +107,17 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.updateTicketStatus(ticketId, newStatus));
     }
 
+    /** Assigned provider records an out-of-band payment, completing the ticket. */
+    @PostMapping("/{ticketId}/payment/received")
+    @PreAuthorize("hasRole('PROVIDER')")
+    public ResponseEntity<TicketResponse> markPaymentReceived(
+        @PathVariable Long ticketId,
+        @AuthenticationPrincipal UserPrincipal userDetails
+    ) {
+        return ResponseEntity.ok(
+            ticketService.markPaymentReceivedByProvider(ticketId, userDetails.getUser().getId()));
+    }
+
     @PostMapping("/{ticketId}/cancel")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<TicketResponse> cancelTicket(

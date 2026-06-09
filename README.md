@@ -126,4 +126,3 @@ Contributions are welcome! Create a branch (`feature/name`), commit your changes
 ## Links
 
 - **Live app:** [fixitnow.si](https://fixitnow.si)
-- **Repository:** [github.com/Luscsus/FixItNow](https://github.com/Luscsus/FixItNow)

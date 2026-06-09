@@ -22,6 +22,14 @@ An online marketplace that connects customers with trusted local service provide
 
 **FixItNow** brings households and tradespeople together in one place. A customer submits a repair request (e.g. plumbing, electrical, cleaning), the system matches them with a suitable provider nearby, and the whole flow — from agreement through live chat to payment — happens inside the app. It solves the problem of slow and opaque searching for reliable help.
 
+## User roles
+
+FixItNow has three kinds of users, each with their own view of the app:
+
+- **Customer** — reports a problem as a request, gets matched with a nearby provider, chats and tracks the provider's arrival live, and pays for the completed job by card.
+- **Provider** — the tradesperson (plumber, electrician, handyman, etc.) who browses and accepts requests in their service area, schedules and does the work, communicates with the customer, and receives payouts.
+- **Administrator** — moderates the platform from an admin dashboard: manages users and providers, oversees requests, and keeps the marketplace running smoothly.
+
 ## Key features
 
 - **Requests** — submit, track status, and view repair history
@@ -114,6 +122,10 @@ npm run dev                 # app on http://localhost:5173
 Visit **http://localhost:5173** in your browser. 
 
 > The integrations (Stripe, Brevo email, Gemini smart search, Cloudinary) stay disabled until you add their keys to `backend/.env`. See the [backend README](backend/README.md) for the full list.
+
+## Deployment diagram
+
+![Deployment diagram](docs/deployment-diagram.png)
 
 ## Screenshots
 

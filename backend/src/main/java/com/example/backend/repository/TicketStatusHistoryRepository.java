@@ -16,13 +16,15 @@ public interface TicketStatusHistoryRepository extends JpaRepository<TicketStatu
 
     /**
      * Most-recent status transitions of interest, for the public activity feed.
-     * Only includes events on tickets that have an assigned provider (so we can
-     * attribute the action).
+     * Includes every matching event regardless of whether a provider is assigned;
+     * a job completed via an admin override never gets an assigned provider, but
+     * it is still a completed job and must show in the feed (and stay consistent
+     * with the public completed-ticket counters). The actor is anonymized in the
+     * service, falling back gracefully when no provider is attributed.
      */
     @Query("SELECT h FROM TicketStatusHistory h " +
            "JOIN h.ticket t " +
            "WHERE h.status IN :statuses " +
-           "AND t.assignedServiceProvider IS NOT NULL " +
            "ORDER BY h.changedAt DESC")
     List<TicketStatusHistory> findRecentActivity(@Param("statuses") List<TicketStatus> statuses, Pageable pageable);
 }

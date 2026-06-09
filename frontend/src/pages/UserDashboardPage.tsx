@@ -32,14 +32,14 @@ function priorityBadgeClass(priority: TicketPriority | null) {
         : "urgency urgency-low";
 }
 
-function priorityLabel(priority: TicketPriority | null) {
+function priorityKey(priority: TicketPriority | null) {
   return priority === "CRITICAL"
-    ? "Critical"
+    ? "dashboard.priority_critical"
     : priority === "HIGH"
-      ? "High"
+      ? "dashboard.priority_high"
       : priority === "MEDIUM"
-        ? "Med"
-        : "Low";
+        ? "dashboard.priority_medium"
+        : "dashboard.priority_low";
 }
 
 type StepState = "done" | "current" | "empty";
@@ -63,7 +63,13 @@ function statusToSteps(status: TicketStatus): StepState[] {
   }
 }
 
-const PHASE_LABELS = ["Filed", "Approved", "Working", "Invoice", "Done"] as const;
+const PHASE_LABEL_KEYS = [
+  "dashboard.phase_filed",
+  "dashboard.phase_approved",
+  "dashboard.phase_working",
+  "dashboard.phase_invoice",
+  "dashboard.phase_done",
+] as const;
 
 function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick?: () => void }) {
   const { t } = useTranslation();
@@ -81,7 +87,7 @@ function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick?: () => void 
           <span className="ticket-cat">· {ticket.serviceType}</span>
           <span className="grow" />
           <span className={priorityBadgeClass(ticket.priority)}>
-            {priorityLabel(ticket.priority)}
+            {t(priorityKey(ticket.priority))}
           </span>
         </div>
 
@@ -111,11 +117,11 @@ function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick?: () => void 
               ))}
             </div>
             <div className="phase-labels">
-              {PHASE_LABELS.map((label, i) => {
+              {PHASE_LABEL_KEYS.map((labelKey, i) => {
                 const s = steps[i];
                 return (
-                  <span key={label} className={s === "done" ? "ok" : s === "current" ? "now" : undefined}>
-                    {label}
+                  <span key={labelKey} className={s === "done" ? "ok" : s === "current" ? "now" : undefined}>
+                    {t(labelKey)}
                   </span>
                 );
               })}

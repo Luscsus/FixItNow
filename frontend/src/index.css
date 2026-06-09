@@ -2921,6 +2921,15 @@ input, textarea, select { font: inherit; color: inherit; }
   background: var(--navy-50);
 }
 
+/* In dark mode the light selection fills wash out the card text, so keep the
+   card surface and let only the colored border mark the selection. */
+[data-theme="dark"] .urg-card[aria-pressed="true"].critical,
+[data-theme="dark"] .urg-card[aria-pressed="true"].high,
+[data-theme="dark"] .urg-card[aria-pressed="true"].medium,
+[data-theme="dark"] .urg-card[aria-pressed="true"].low {
+  background: var(--card);
+}
+
 .urg-card.low .urg-dot {
   background: var(--slate-400);
 }

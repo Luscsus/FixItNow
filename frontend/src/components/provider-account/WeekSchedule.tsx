@@ -90,7 +90,16 @@ function eventPropsForType(type: TimeBlockType) {
   }
 }
 
-const DAY_ABBR = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+// Indexed by Date.getDay() (0 = Sunday). Resolved via i18n in the header renderer.
+const DAY_ABBR_KEYS = [
+  "providerAccount.schedule_day_sun",
+  "providerAccount.schedule_day_mon",
+  "providerAccount.schedule_day_tue",
+  "providerAccount.schedule_day_wed",
+  "providerAccount.schedule_day_thu",
+  "providerAccount.schedule_day_fri",
+  "providerAccount.schedule_day_sat",
+];
 
 function EventContent({ arg, editable }: { arg: EventContentArg; editable: boolean }) {
   const { t } = useTranslation();
@@ -108,8 +117,7 @@ function EventContent({ arg, editable }: { arg: EventContentArg; editable: boole
     if (b.type === "BOOKED") {
       const owner = (b as TimeBlock).title;
       if (owner && owner.trim()) return owner.trim();
-      const pub = (b as PublicTimeBlock).label;
-      if (pub && pub.trim()) return pub.trim();
+      // Public calendars send a generic "Busy" label; show a localized version instead.
       return t("providerAccount.schedule_booked");
     }
     if (b.type === "AVAILABLE") return t("providerAccount.schedule_available");
@@ -241,7 +249,7 @@ export function WeekSchedule({ providerId, editable }: WeekScheduleProps) {
       <div className="panel-title">
         <span className="num">03</span>
         <span className="label">
-          {isMobile ? dayLabel(rangeStart) : `This week · ${weekRangeLabel(rangeStart)}`}
+          {isMobile ? dayLabel(rangeStart) : `${t("providerAccount.schedule_thisWeek")} · ${weekRangeLabel(rangeStart)}`}
         </span>
         <span className="rule" />
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -315,7 +323,7 @@ export function WeekSchedule({ providerId, editable }: WeekScheduleProps) {
                   display: "block",
                 }}
               >
-                {DAY_ABBR[arg.date.getDay()]}
+                {t(DAY_ABBR_KEYS[arg.date.getDay()])}
               </span>
               <b
                 style={{

@@ -50,6 +50,14 @@ public class ConnectService {
 
         try {
             String accountId = provider.getStripeAccountId();
+            // A stored account ID may be stale — e.g. created under a different
+            // Stripe key, or in a different (test/live) mode than the one now
+            // configured. In that case Stripe rejects any account-link request,
+            // so verify it still exists on this platform and recreate if not.
+            if (accountId != null && !accountId.isBlank() && !accountExists(accountId)) {
+                provider.setStripeAccountId(null);
+                accountId = null;
+            }
             if (accountId == null || accountId.isBlank()) {
                 AccountCreateParams.Builder params = AccountCreateParams.builder()
                     .setType(AccountCreateParams.Type.EXPRESS)
@@ -84,6 +92,22 @@ public class ConnectService {
             return com.stripe.model.AccountLink.create(linkParams).getUrl();
         } catch (StripeException e) {
             throw new ApiException("Could not start Stripe onboarding: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Returns true if the connected account still exists under the currently
+     * configured Stripe key. A stale ID (wrong key, or test vs live mismatch)
+     * resolves to false so the caller can recreate the account.
+     */
+    private boolean accountExists(String accountId) {
+        try {
+            Account.retrieve(accountId);
+            return true;
+        } catch (StripeException e) {
+            System.err.println("[connect] stored account " + accountId
+                + " is not retrievable, will recreate: " + e.getMessage());
+            return false;
         }
     }
 

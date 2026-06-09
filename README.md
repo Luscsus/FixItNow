@@ -12,7 +12,7 @@ An online marketplace that connects customers with trusted local service provide
 [![Heroku](https://img.shields.io/badge/Heroku-deployed-430098?logo=heroku)](https://fixitnow.si)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](../../pulls)
 
-[🌐 Open the app](https://fixitnow.si) · [🐛 Report a bug](../../issues) · [🤝 Contribute](#-contributing)
+[🌐 fixitnow.si](https://fixitnow.si) · [🐛 Report a bug](../../issues) · [🤝 Contribute](#-contributing)
 
 </div>
 
@@ -122,12 +122,6 @@ Visit **http://localhost:5173** in your browser.
 ## Contributing
 
 Contributions are welcome! Create a branch (`feature/name`), commit your changes, and open a Pull Request. For bugs and suggestions, use [Issues](../../issues).
-
-## Authors
-
-- **Alan Labaš**
-- **Luka Grobelnik**
-- **Jan Mrkonjić**
 
 ## Links
 

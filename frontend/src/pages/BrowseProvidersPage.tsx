@@ -97,10 +97,11 @@ export function BrowseProvidersPage() {
     if (query.trim()) {
       const q = query.trim().toLowerCase();
       providers = providers.filter((p) => {
+        // Match name or trade only (mirrors the backend search) — bio is excluded
+        // so a short fragment doesn't match nearly every provider via their bio.
         const name = `${p.firstName ?? ""} ${p.lastName ?? ""}`.toLowerCase();
-        const bio = (p.bio ?? "").toLowerCase();
         const cats = (p.categories ?? []).join(" ").toLowerCase();
-        return name.includes(q) || bio.includes(q) || cats.includes(q);
+        return name.includes(q) || cats.includes(q);
       });
     }
     if (selectedCategories.length > 0)

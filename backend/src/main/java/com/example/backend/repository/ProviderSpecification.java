@@ -44,7 +44,6 @@ public final class ProviderSpecification {
             Expression<String> first = cb.lower(root.get("firstName"));
             Expression<String> last = cb.lower(root.get("lastName"));
             Expression<String> full = cb.lower(cb.concat(cb.concat(root.get("firstName"), cb.literal(" ")), root.get("lastName")));
-            Expression<String> bio = cb.lower(root.get("bio"));
 
             // Category enum-name match via a subquery so pagination counts stay correct.
             Subquery<UUID> catSub = criteriaQuery.subquery(UUID.class);
@@ -53,11 +52,30 @@ public final class ProviderSpecification {
             catSub.select(catRoot.get("id"))
                   .where(cb.like(cb.lower(catJoin.as(String.class)), like));
 
+            // Relevance ordering so the closest matches surface first: providers
+            // whose name STARTS WITH the query rank above mere substring matches,
+            // which rank above trade-only matches; ties break alphabetically.
+            // Skipped for the COUNT query (ORDER BY is invalid there and Postgres
+            // would reject ordering by a non-aggregated CASE in a count select).
+            if (criteriaQuery != null
+                    && criteriaQuery.getResultType() != Long.class
+                    && criteriaQuery.getResultType() != long.class) {
+                String prefix = query.trim().toLowerCase() + "%";
+                Expression<Object> rank = cb.selectCase()
+                    .when(cb.or(cb.like(first, prefix), cb.like(last, prefix)), 0)
+                    .when(cb.or(cb.like(first, like), cb.like(last, like), cb.like(full, like)), 1)
+                    .otherwise(2);
+                criteriaQuery.orderBy(cb.asc(rank), cb.asc(first), cb.asc(last));
+            }
+
+            // Match the provider's name or trade only — NOT the free-text bio.
+            // The UI promises "search by name or trade", and bio matching turned a
+            // short fragment like "ala" into a near-universal match (most Slovenian
+            // bios contain "inštalacije", which contains "ala").
             return cb.or(
                 cb.like(first, like),
                 cb.like(last, like),
                 cb.like(full, like),
-                cb.like(bio, like),
                 root.get("id").in(catSub)
             );
         };

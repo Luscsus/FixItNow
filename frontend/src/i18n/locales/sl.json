@@ -713,7 +713,9 @@
       "success": "Plačilo prejeto — hvala! Vaš zahtevek je zdaj zaključen.",
       "cancelled": "Plačilo je bilo preklicano. Poskusite lahko kadar koli znova.",
       "startError": "Plačila ni bilo mogoče začeti. Poskusite znova.",
-      "confirmError": "Plačila še nismo mogli potrditi. Če je bila bremenitev izvedena, se bo kmalu posodobila."
+      "confirmError": "Plačila še nismo mogli potrditi. Če je bila bremenitev izvedena, se bo kmalu posodobila.",
+      "receivedSuccess": "Plačilo zabeleženo — zahtevek je zdaj zaključen.",
+      "receivedError": "Plačila ni bilo mogoče označiti kot prejeto. Poskusite znova."
     },
     "backToDashboardBtn": "← Nazaj na nadzorno ploščo",
     "declining": "Zavračanje…",
@@ -776,7 +778,8 @@
       "acceptAssign": "Sprejmi in dodeli →",
       "confirmSchedule": "Potrdi in razporedi →",
       "accept": "Sprejmi →",
-      "markPendingPayment": "Označi kot čaka plačilo →"
+      "markPendingPayment": "Označi kot čaka plačilo →",
+      "markPaymentReceived": "Označi plačilo kot prejeto →"
     },
     "activityFiled": "je oddal zahtevek"
   },
@@ -1131,6 +1134,14 @@
     "completedJobs_completed": "Zaključeno",
     "completedJobs_cancelled": "Preklicano",
     "completedJobs_declined": "Zavrnjeno",
+    "schedule_thisWeek": "Ta teden",
+    "schedule_day_mon": "PON",
+    "schedule_day_tue": "TOR",
+    "schedule_day_wed": "SRE",
+    "schedule_day_thu": "ČET",
+    "schedule_day_fri": "PET",
+    "schedule_day_sat": "SOB",
+    "schedule_day_sun": "NED",
     "schedule_today": "Danes",
     "schedule_blockTime": "+ Blokiranje časa",
     "schedule_booked": "Zasedeno",
@@ -1359,6 +1370,11 @@
     "priority_high": "Visoko",
     "priority_medium": "Srednje",
     "priority_low": "Nizko",
+    "phase_filed": "Oddano",
+    "phase_approved": "Odobreno",
+    "phase_working": "V delu",
+    "phase_invoice": "Račun",
+    "phase_done": "Zaključeno",
     "openSort_newest": "Najnovejše najprej",
     "openSort_oldest": "Najstarejše najprej",
     "openSort_priority": "Najvišja prioriteta",

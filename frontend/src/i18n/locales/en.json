@@ -713,7 +713,9 @@
       "success": "Payment received — thank you! Your ticket is now complete.",
       "cancelled": "Payment was cancelled. You can try again anytime.",
       "startError": "Could not start the payment. Please try again.",
-      "confirmError": "We couldn't confirm your payment yet. If you were charged, it will update shortly."
+      "confirmError": "We couldn't confirm your payment yet. If you were charged, it will update shortly.",
+      "receivedSuccess": "Payment recorded — the ticket is now complete.",
+      "receivedError": "Could not mark the payment as received. Please try again."
     },
     "backToDashboardBtn": "← Back to dashboard",
     "declining": "Declining…",
@@ -776,7 +778,8 @@
       "acceptAssign": "Accept & assign →",
       "confirmSchedule": "Confirm & schedule →",
       "accept": "Accept →",
-      "markPendingPayment": "Mark as Pending Payment →"
+      "markPendingPayment": "Mark as Pending Payment →",
+      "markPaymentReceived": "Mark Payment Received →"
     },
     "activityFiled": "filed"
   },
@@ -1131,6 +1134,14 @@
     "completedJobs_completed": "Completed",
     "completedJobs_cancelled": "Cancelled",
     "completedJobs_declined": "Declined",
+    "schedule_thisWeek": "This week",
+    "schedule_day_mon": "MON",
+    "schedule_day_tue": "TUE",
+    "schedule_day_wed": "WED",
+    "schedule_day_thu": "THU",
+    "schedule_day_fri": "FRI",
+    "schedule_day_sat": "SAT",
+    "schedule_day_sun": "SUN",
     "schedule_today": "Today",
     "schedule_blockTime": "+ Block time",
     "schedule_booked": "Booked",
@@ -1359,6 +1370,11 @@
     "priority_high": "High",
     "priority_medium": "Medium",
     "priority_low": "Low",
+    "phase_filed": "Filed",
+    "phase_approved": "Approved",
+    "phase_working": "Working",
+    "phase_invoice": "Invoice",
+    "phase_done": "Done",
     "openSort_newest": "Newest first",
     "openSort_oldest": "Oldest first",
     "openSort_priority": "Highest priority",

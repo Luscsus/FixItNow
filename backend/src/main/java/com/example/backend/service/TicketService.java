@@ -504,6 +504,28 @@ public class TicketService {
         return toResponse(saved);
     }
 
+    /**
+     * Provider-initiated payment confirmation. The assigned provider records that
+     * they received payment out-of-band (e.g. cash or a direct transfer) for a
+     * ticket awaiting payment, which advances it to COMPLETED. Only the ticket's
+     * assigned provider may call this; the completion itself reuses the shared
+     * {@link #markTicketPaid} logic (no Stripe payment-intent), so it stays
+     * idempotent with the webhook/confirm paths.
+     */
+    @Transactional
+    public TicketResponse markPaymentReceivedByProvider(Long ticketId, UUID providerId) {
+        Ticket ticket = getTicketOrThrow(ticketId);
+        if (ticket.getAssignedServiceProvider() == null
+                || !ticket.getAssignedServiceProvider().getId().equals(providerId)) {
+            throw new AccessDeniedException("Only the assigned provider can mark this ticket as paid.");
+        }
+        if (ticket.getStatus() != TicketStatus.PENDING_PAYMENT) {
+            throw new InvalidTicketStatusTransitionException(
+                "Payment can only be recorded for a ticket awaiting payment (current: " + ticket.getStatus() + ")");
+        }
+        return markTicketPaid(ticketId, null);
+    }
+
     @Transactional
     public void deleteTicket(Long ticketId, UUID userId) {
         Ticket ticket = getTicketOrThrow(ticketId);

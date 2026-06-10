@@ -13,6 +13,7 @@ import {
 } from "@/hooks/useConfirmTicketMutation";
 import { useCancelTicketMutation } from "@/hooks/useCancelTicketMutation";
 import { useReleaseTicketMutation } from "@/hooks/useReleaseTicketMutation";
+import { useMarkPaymentReceivedMutation } from "@/hooks/useMarkPaymentReceivedMutation";
 import { TicketChatPanel } from "@/components/ticket/TicketChatPanel";
 import { IssueInvoicePanel } from "@/components/ticket/IssueInvoicePanel";
 import { LiveTrackingPanel } from "@/components/tracking/LiveTrackingPanel";
@@ -378,6 +379,7 @@ export function TicketDetailPage() {
   const declineMut = useDeclineTicketMutation();
   const cancelMut  = useCancelTicketMutation();
   const releaseMut = useReleaseTicketMutation();
+  const paymentReceivedMut = useMarkPaymentReceivedMutation();
   const { notify } = useToast();
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [acceptError, setAcceptError] = useState<string | null>(null);
@@ -764,6 +766,20 @@ export function TicketDetailPage() {
             {nextStatus && (
               <button className="btn btn-primary" disabled={updateMut.isPending} onClick={() => updateMut.mutate({ ticketId: ticket.id, status: nextStatus.status })}>
                 {updateMut.isPending ? t("ticket.updating") : nextStatus.label}
+              </button>
+            )}
+            {isProvider && ticket.status === "PENDING_PAYMENT" && (
+              <button
+                className="btn btn-primary"
+                disabled={paymentReceivedMut.isPending}
+                onClick={() =>
+                  paymentReceivedMut.mutate(ticket.id, {
+                    onSuccess: () => notify(t("ticket.payment.receivedSuccess"), "success"),
+                    onError: (err) => notify(getErrorMessage(err) || t("ticket.payment.receivedError"), "error"),
+                  })
+                }
+              >
+                {paymentReceivedMut.isPending ? t("ticket.updating") : t("ticket.actions.markPaymentReceived")}
               </button>
             )}
             {role !== "PROVIDER" && ticket.status === "PENDING_APPROVAL" && (

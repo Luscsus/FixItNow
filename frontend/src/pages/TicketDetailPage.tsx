@@ -517,7 +517,7 @@ export function TicketDetailPage() {
         time: fmt(entry.changedAt, locale), date: fmtDate(entry.changedAt, locale),
         text: (
           <>
-            <b style={{ textTransform: "capitalize" }}>{entry.status.replace(/_/g, " ").toLowerCase()}</b>
+            <b>{stepLabels[entry.status] ?? entry.status.replace(/_/g, " ").toLowerCase()}</b>
             {" — "}
             {activityLabels[entry.status] ?? entry.status}
           </>

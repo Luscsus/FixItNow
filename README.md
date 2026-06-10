@@ -136,7 +136,7 @@ Visit **http://localhost:5173** in your browser.
   </tr>
   <tr>
     <td align="center"><img src="docs/screenshot-phone.png" alt="Mobile screenshot" width="220" /></td>
-    <td align="center"><img src="docs/screenshot-phone2.jpg" alt="Mobile screenshot" width="220" /></td>
+    <td align="center"><img src="docs/screenshot-phone2.png" alt="Mobile screenshot" width="220" /></td>
   </tr>
 </table>
 

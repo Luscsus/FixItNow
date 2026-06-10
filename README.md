@@ -129,15 +129,16 @@ Visit **http://localhost:5173** in your browser.
 
 ## Screenshots
 
-<div align="center">
-
-<img src="docs/screenshot-1.png" alt="Desktop screenshot" width="420" />
-<img src="docs/screenshot-2.png" alt="Desktop screenshot" width="420" />
-
-<img src="docs/screenshot-phone.png" alt="Mobile screenshot" width="220" />
-<img src="docs/screenshot-phone2.jpg" alt="Mobile screenshot" width="220" />
-
-</div>
+<table align="center">
+  <tr>
+    <td align="center"><img src="docs/screenshot-1.png" alt="Desktop screenshot" width="380" /></td>
+    <td align="center"><img src="docs/screenshot-2.png" alt="Desktop screenshot" width="380" /></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshot-phone.png" alt="Mobile screenshot" width="220" /></td>
+    <td align="center"><img src="docs/screenshot-phone2.jpg" alt="Mobile screenshot" width="220" /></td>
+  </tr>
+</table>
 
 ## Contributing
 

@@ -134,8 +134,8 @@ Visit **http://localhost:5173** in your browser.
 <img src="docs/screenshot-1.png" alt="Desktop screenshot" width="420" />
 <img src="docs/screenshot-2.png" alt="Desktop screenshot" width="420" />
 
-<img src="docs/screenshot-3.png" alt="Desktop screenshot" width="420" />
 <img src="docs/screenshot-phone.png" alt="Mobile screenshot" width="220" />
+<img src="docs/screenshot-phone2.jpg" alt="Mobile screenshot" width="220" />
 
 </div>
 

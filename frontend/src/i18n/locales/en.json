@@ -1290,7 +1290,20 @@
     "messagingUnavailable": "Messaging unavailable — no provider yet",
     "sending": "Sending…",
     "conversation": "Conversation",
-    "roleLabel": "Chat"
+    "roleLabel": "Chat",
+    "system": {
+      "created": "Ticket {{code}} · {{serviceType}} · awaiting provider response.",
+      "accepted": "{{provider}} accepted ticket {{code}}",
+      "invoiceIssued": "Invoice issued · €{{amount}} · awaiting payment.",
+      "paymentReceived": "Payment received · ticket {{code}} complete. Thank you!",
+      "APPROVED": "Ticket {{code}} approved · awaiting provider en-route.",
+      "IN_TRANSIT": "Provider is en route · ticket {{code}}.",
+      "PENDING_PROVIDER_INVOICE": "Work complete · awaiting provider invoice.",
+      "PENDING_PAYMENT": "Invoice issued · awaiting payment.",
+      "COMPLETED": "Ticket {{code}} marked complete. Thanks!",
+      "CANCELLED": "Ticket {{code}} was cancelled.",
+      "DECLINED": "Ticket {{code}} was declined."
+    }
   },
   "dashboard": {
     "welcomeBack": "Welcome back",

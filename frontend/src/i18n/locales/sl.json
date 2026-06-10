@@ -1290,7 +1290,20 @@
     "messagingUnavailable": "Sporočanje ni na voljo — izvajalec še ni dodeljen",
     "sending": "Pošiljam…",
     "conversation": "Pogovor",
-    "roleLabel": "Klepet"
+    "roleLabel": "Klepet",
+    "system": {
+      "created": "Zahtevek {{code}} · {{serviceType}} · čaka na odziv izvajalca.",
+      "accepted": "{{provider}} je sprejel zahtevek {{code}}",
+      "invoiceIssued": "Račun izdan · €{{amount}} · čaka na plačilo.",
+      "paymentReceived": "Plačilo prejeto · zahtevek {{code}} zaključen. Hvala!",
+      "APPROVED": "Zahtevek {{code}} odobren · čaka na prihod izvajalca.",
+      "IN_TRANSIT": "Izvajalec je na poti · zahtevek {{code}}.",
+      "PENDING_PROVIDER_INVOICE": "Delo zaključeno · čaka na izdajo računa.",
+      "PENDING_PAYMENT": "Račun izdan · čaka na plačilo.",
+      "COMPLETED": "Zahtevek {{code}} označen kot zaključen. Hvala!",
+      "CANCELLED": "Zahtevek {{code}} je bil preklican.",
+      "DECLINED": "Zahtevek {{code}} je bil zavrnjen."
+    }
   },
   "dashboard": {
     "welcomeBack": "Dobrodošli nazaj",

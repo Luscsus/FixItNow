@@ -9,6 +9,7 @@ import { uploadFile as uploadFileToServer } from '@/services/imageService';
 import { useChatWebSocket } from '@/hooks/useChatWebSocket';
 import type { Ticket } from '@/domain/ticket';
 import type { ChatMessage } from '@/domain/chat';
+import { renderSystemMessage } from '@/utils/systemMessage';
 
 // ─── Attachment helpers ────────────────────────────────────────────────────────
 
@@ -88,8 +89,9 @@ function MessageBubble({
   locale: string;
   youLabel: string;
 }) {
+  const { t } = useTranslation();
   if (msg.type === 'SYSTEM') {
-    return <div className="sys-msg"><span>{msg.content}</span></div>;
+    return <div className="sys-msg"><span>{renderSystemMessage(msg.content, t)}</span></div>;
   }
 
   const avatar = (

@@ -27,9 +27,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.example.backend.common.exception.ApiException;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -114,8 +119,9 @@ public class TicketService {
             // Note: the requested slot is NOT booked on the provider's calendar yet —
             // a BOOKED block is only created once the provider accepts the ticket.
             // Opening greeting so the chat isn't empty when the provider opens it
-            postSystemMessage(saved, "Ticket " + formatTicketCode(saved.getId())
-                + " · " + saved.getServiceType() + " · awaiting provider response.");
+            postSystemMessage(saved, "chat.system.created", Map.of(
+                "code", formatTicketCode(saved.getId()),
+                "serviceType", String.valueOf(saved.getServiceType())));
             // Let the requested provider know a customer picked them directly.
             notifyProviderOfInboundRequest(saved);
         }
@@ -374,9 +380,9 @@ public class TicketService {
         ensureChatRoom(ticket, provider.getId());
         Ticket saved = ticketRepository.save(ticket);
         recordHistory(saved, TicketStatus.APPROVED);
-        String acceptedMsg = formatProviderName(provider)
-            + " accepted ticket " + formatTicketCode(saved.getId());
-        postSystemMessage(saved, acceptedMsg);
+        postSystemMessage(saved, "chat.system.accepted", Map.of(
+            "provider", formatProviderName(provider),
+            "code", formatTicketCode(saved.getId())));
         notifyCustomerOfStatusChange(saved, TicketStatus.APPROVED);
         return toResponse(saved);
     }
@@ -439,8 +445,8 @@ public class TicketService {
         Ticket saved = ticketRepository.save(ticket);
         recordHistory(saved, TicketStatus.PENDING_PAYMENT);
         calendarService.syncBookedBlockForTicket(saved);
-        String invoiceMsg = "Invoice issued · €" + amount.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString() + " · awaiting payment.";
-        postSystemMessage(saved, invoiceMsg);
+        postSystemMessage(saved, "chat.system.invoiceIssued", Map.of(
+            "amount", amount.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()));
         notifyCustomerOfStatusChange(saved, TicketStatus.PENDING_PAYMENT);
 
         // Email the invoice PDF to the customer
@@ -498,7 +504,8 @@ public class TicketService {
         recordHistory(saved, TicketStatus.COMPLETED);
         calendarService.syncBookedBlockForTicket(saved);
 
-        postSystemMessage(saved, "Payment received · ticket " + formatTicketCode(saved.getId()) + " complete. Thank you!");
+        postSystemMessage(saved, "chat.system.paymentReceived", Map.of(
+            "code", formatTicketCode(saved.getId())));
         notifyCustomerOfStatusChange(saved, TicketStatus.COMPLETED);
         notifyProviderOfPayment(saved);
         return toResponse(saved);
@@ -616,6 +623,32 @@ public class TicketService {
         return String.format("FIX-%04d", id);
     }
 
+    private static final ObjectMapper SYSTEM_MESSAGE_MAPPER = new ObjectMapper();
+
+    /**
+     * Posts a translatable SYSTEM message into the ticket's chat room. The wire
+     * content is a JSON token ({@code {"i18nKey": ..., "params": {...}}}) that the
+     * client renders in the reader's language; this mirrors how status
+     * notifications carry an i18next key + interpolation params. Plain-text rows
+     * written before this change still render verbatim on the client.
+     */
+    private void postSystemMessage(Ticket ticket, String i18nKey, Map<String, Object> params) {
+        postSystemMessage(ticket, encodeSystemMessage(i18nKey, params));
+    }
+
+    /** Serialise an i18next key + params into the SYSTEM message wire token. */
+    private static String encodeSystemMessage(String i18nKey, Map<String, Object> params) {
+        Map<String, Object> token = new LinkedHashMap<>();
+        token.put("i18nKey", i18nKey);
+        token.put("params", params == null ? Map.of() : params);
+        try {
+            return SYSTEM_MESSAGE_MAPPER.writeValueAsString(token);
+        } catch (JsonProcessingException ex) {
+            // Should never happen for a plain string map; degrade to the bare key.
+            return i18nKey;
+        }
+    }
+
     /**
      * Posts a SYSTEM message into the ticket's chat room (if one exists). Failures
      * are swallowed so chat issues never break the primary ticket operation.
@@ -714,17 +747,18 @@ public class TicketService {
 
     /** Human-readable message for ticket lifecycle transitions, or null for transitions we don't surface. */
     private String statusChangeMessage(Ticket ticket, TicketStatus from, TicketStatus to) {
-        String code = formatTicketCode(ticket.getId());
-        return switch (to) {
-            case APPROVED                 -> "Ticket " + code + " approved · awaiting provider en-route.";
-            case IN_TRANSIT               -> "Provider is en route · ticket " + code + ".";
-            case PENDING_PROVIDER_INVOICE -> "Work complete · awaiting provider invoice.";
-            case PENDING_PAYMENT          -> "Invoice issued · awaiting payment.";
-            case COMPLETED                -> "Ticket " + code + " marked complete. Thanks!";
-            case CANCELLED                -> "Ticket " + code + " was cancelled.";
-            case DECLINED                 -> "Ticket " + code + " was declined.";
+        String key = switch (to) {
+            case APPROVED                 -> "chat.system.APPROVED";
+            case IN_TRANSIT               -> "chat.system.IN_TRANSIT";
+            case PENDING_PROVIDER_INVOICE -> "chat.system.PENDING_PROVIDER_INVOICE";
+            case PENDING_PAYMENT          -> "chat.system.PENDING_PAYMENT";
+            case COMPLETED                -> "chat.system.COMPLETED";
+            case CANCELLED                -> "chat.system.CANCELLED";
+            case DECLINED                 -> "chat.system.DECLINED";
             case PENDING_APPROVAL         -> null; // no message — initial state
         };
+        if (key == null) return null;
+        return encodeSystemMessage(key, Map.of("code", formatTicketCode(ticket.getId())));
     }
 
     /** Notification body for ticket status changes — mirrors the STATUS_EVENT_LABEL map in the frontend UI. */

@@ -14,6 +14,7 @@ import type { ChatRoomSummary } from '@/domain/chat';
 import { useChatWebSocket } from '@/hooks/useChatWebSocket';
 import type { Ticket, TicketPriority, TicketStatus } from '@/domain/ticket';
 import type { ChatError, ChatMessage, MessageStatus, MessageType } from '@/domain/chat';
+import { renderSystemMessage } from '@/utils/systemMessage';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useNotifications } from '@/hooks/useNotifications';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -229,7 +230,7 @@ function MessageBubble({ msg, isMine, senderName, profilePictureUrl, locale, you
 }) {
   const { t } = useTranslation();
   if (msg.type === 'SYSTEM') {
-    return <div className="sys-msg"><span>{msg.content}</span></div>;
+    return <div className="sys-msg"><span>{renderSystemMessage(msg.content, t)}</span></div>;
   }
 
   const avatar = (
@@ -663,6 +664,7 @@ export function ChatPage() {
       if (!content) return fallback;
       if (type === 'IMAGE') return imageLabel;
       if (type === 'FILE') return fileLabel;
+      if (type === 'SYSTEM') return renderSystemMessage(content, t);
       return content;
     };
     const q = search.trim().toLowerCase();
@@ -682,7 +684,7 @@ export function ChatPage() {
         return { conv: c, preview, unread, iso, sortKey: iso ? new Date(iso).getTime() : 0 };
       })
       .sort((a, b) => b.sortKey - a.sortKey);
-  }, [allConversations, search, selectedRoomId, lastMsgForRoom, unreadRoomIds, imageLabel, fileLabel]);
+  }, [allConversations, search, selectedRoomId, lastMsgForRoom, unreadRoomIds, imageLabel, fileLabel, t]);
 
   const unreadRows = rows.filter(r => r.unread > 0);
   const readRows = rows.filter(r => r.unread === 0);

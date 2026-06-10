@@ -135,7 +135,7 @@ Visit **http://localhost:5173** in your browser.
 |:---:|:---:|
 | ![App screenshot 1](docs/screenshot-1.png) | ![App screenshot 2](docs/screenshot-2.png) |
 
-<img src="docs/screenshot-phone.png" alt="Mobile screenshot" width="280" />
+<img src="docs/screenshot-phone.png" alt="Mobile screenshot" width="280" /> <img src="docs/screenshot-3.png" alt="Mobile screenshot" width="280" />
 
 </div>
 

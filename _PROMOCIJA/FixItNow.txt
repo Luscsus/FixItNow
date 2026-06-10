@@ -1,0 +1,39 @@
+FixItNow
+
+Hitra povezava med strankami in lokalnimi serviserji – od prijave okvare do plačila.
+
+Leto izdelave: 2026
+
+Avtor1 Jan Mrkonjič
+Avtor2 Luka Grobelnik
+Avtor3 Alan Labaš
+
+Domača stran: https://fixitnow.si/
+Vir podatkov: https://www.openstreetmap.org/
+Koda: https://github.com/Luscsus/FixItNow
+
+Kategorizacija: celovita informacijska rešitev, spletna aplikacija, spletno zaledje aplikacije, mobilna aplikacija (PWA).
+
+Oznake: React, TypeScript, Vite, TailwindCSS, shadcn/ui, PWA, Java, SpringBoot, PostgreSQL, Flyway, Docker, REST, WebSocket, STOMP, JWT, Stripe, Gemini, OpenStreetMap, OSRM, Scrum, GitHub, i18n
+
+OPIS PROJEKTA:
+FixItNow: Tvoj serviser na dosegu klika
+
+Se ti je doma kaj pokvarilo in ne veš, kdo bi to znal popraviti? FixItNow je tržnica storitev, ki stranke poveže z lokalnimi serviserji – vodovodarji, električarji, mojstri za vse vrste opravil. Težavo prijaviš kot zahtevek (ticket), platforma jo s pomočjo umetne inteligence (Google Gemini) razvrsti v pravo kategorijo, primeren serviser pa jo prevzame in razporedi.
+
+Od prijave do zaključka na enem mestu:
+	•	Celoten življenjski cikel zahtevka: ustvari → klasificiraj → poveži → razporedi → v izvajanju → zaključeno
+	•	Klepet v realnem času med stranko in serviserjem
+	•	Sledenje lokaciji serviserja v živo na poti do stranke
+	•	Iskanje in pregled storitev na zemljevidu z geokodiranjem in usmerjanjem
+
+Varno in zanesljivo:
+	•	Plačila prek Stripe Connect s provizijo platforme
+	•	Prijava z JWT in osvežitvenimi žetoni in potrditev e-pošte
+	•	Skrbniška konzola za upravljanje serviserjev, uporabnikov in zahtevkov
+
+Sodobna in dostopna:
+	•	Namestljiva PWA aplikacija, ki deluje na računalniku in telefonu
+	•	Večjezičnost (i18n) ter svetla in temna tema
+
+FixItNow naredi iskanje pomoči preprosto, hitro in pregledno – brez nepotrebnega iskanja kontaktov in čakanja na ponudbe.

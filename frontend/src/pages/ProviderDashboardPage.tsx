@@ -373,15 +373,19 @@ export function ProviderDashboardPage() {
                 {t("dashboard.providerDashboard")} · {providerName}
               </span>
               <h1 className="dash-hero-headline">
-                {inboundTickets.length > 0 ? (
-                  <>
-                    {t("dashboard.gotInbound", { count: inboundTickets.length })}
-                    {activeJobs.length > 0 && (
-                      <>{t("dashboard.andActiveJobs", { count: activeJobs.length })}</>
-                    )}
-                  </>
+                {inboundTickets.length > 0 && activeJobs.length > 0 ? (
+                  t("dashboard.heroBoth", {
+                    inbound: t("dashboard.inboundCount", { count: inboundTickets.length }),
+                    active: t("dashboard.activeCount", { count: activeJobs.length }),
+                  })
+                ) : inboundTickets.length > 0 ? (
+                  t("dashboard.heroInbound", {
+                    inbound: t("dashboard.inboundCount", { count: inboundTickets.length }),
+                  })
                 ) : activeJobs.length > 0 ? (
-                  t("dashboard.activeJobsInProgress", { count: activeJobs.length })
+                  t("dashboard.heroActive", {
+                    active: t("dashboard.activeCount", { count: activeJobs.length }),
+                  })
                 ) : (
                   <>{t("dashboard.welcomeBackProvider")}, <b>{firstName}</b>. {t("dashboard.noRequestsNow")}</>
                 )}
